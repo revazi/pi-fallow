@@ -13,10 +13,15 @@ type FlagSpec = {
 };
 
 const COMMANDS: CompletionSpec[] = [
+	{ value: "audit --base main --gate new-only", label: "audit PR (main)", description: "Report only issues introduced by the PR diff vs main" },
+	{ value: "audit --base origin/main --gate new-only", label: "audit PR (origin/main)", description: "Report only issues introduced by the PR diff vs origin/main" },
+	{ value: "check-changed --changed-since main", label: "check-changed (main)", description: "Run changed-file checks since main" },
 	{ value: "dead-code", description: "Find unused exports, files, dependencies, and types" },
+	{ value: "check-changed", description: "Run changed-file checks; add --changed-since main/origin/main" },
 	{ value: "dupes", description: "Find duplicated code and clone groups" },
 	{ value: "health", description: "Show maintainability, complexity, churn, and health metrics" },
-	{ value: "audit", description: "Run a PR/change gate; use --base main for changed code" },
+	{ value: "audit", description: "Run a PR/change gate; use --base main --gate new-only for PRs" },
+	{ value: "trace-file", description: "Investigate one file: trace-file path/to/file.ts" },
 	{ value: "fix", description: "Preview/apply safe cleanup fixes; usually add --dry-run first" },
 	{ value: "flags", description: "Analyze feature flags" },
 	{ value: "list", description: "List project info, files, plugins, entry points, or boundaries" },
@@ -43,6 +48,11 @@ const ROOT_FLAGS: FlagSpec[] = [
 	{ flag: "--score", description: "Compute project health score/grade" },
 ];
 
+const CHANGED_FILE_FLAGS: FlagSpec[] = [
+	{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: REF_VALUES },
+	{ flag: "--include-entry-exports", description: "Also report unused exports in entry files" },
+];
+
 const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 	"dead-code": [
 		{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: REF_VALUES },
@@ -52,6 +62,8 @@ const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 		{ flag: "--trace-file", description: "Trace why a file is considered used/unused" },
 		{ flag: "--trace-dependency", description: "Trace why a dependency is considered used/unused" },
 	],
+	"check-changed": CHANGED_FILE_FLAGS,
+	"trace-file": [],
 	dupes: [
 		{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: REF_VALUES },
 		{ flag: "--top", description: "Limit top clone groups", values: ["5", "10", "20", "50"] },

@@ -74,6 +74,12 @@ Ask Pi:
 Or run manually in Pi:
 
 ```text
-/fallow audit --base main --format json --quiet
+/fallow audit --base main --gate new-only
+/fallow audit --base origin/main --gate new-only
+/fallow check-changed --changed-since main
+/fallow dead-code --changed-since main
+/fallow dupes --changed-since main
+/fallow health --changed-since main
+/fallow trace-file extensions/fallow/ui.ts
 /fallow health --file-scores --targets --score --format json --quiet
 ```

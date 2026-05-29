@@ -59,7 +59,7 @@ export function buildFallowArgs(params: FallowRunParams): string[] {
 			break;
 
 		case "check-changed":
-			args.push("dead-code");
+			args.push("check-changed");
 			common();
 			addValue(args, "--changed-since", params.changedSince ?? params.base);
 			addBool(args, "--include-entry-exports", params.includeEntryExports);
@@ -159,7 +159,7 @@ export function buildFallowArgs(params: FallowRunParams): string[] {
 
 		case "trace-file":
 			if (!params.file) throw new Error("trace-file requires file.");
-			args.push("dead-code", "--trace-file", stripAt(params.file));
+			args.push("trace-file", stripAt(params.file));
 			common();
 			break;
 

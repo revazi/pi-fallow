@@ -12,12 +12,13 @@ export default function (pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "fallow_run",
 		label: "Fallow",
-		description: `Run Fallow codebase intelligence for TypeScript/JavaScript: dead code, changed-file checks, duplication, health, audit, auto-fix preview/apply, project info, traces, feature flags, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Uses FALLOW_BIN if set, otherwise fallow from PATH, falling back to npx -y fallow.`,
+		description: `Run Fallow codebase intelligence for TypeScript/JavaScript: PR/new-issue audits (audit --base ... --gate new-only), changed-file checks, dead code, duplication, health, auto-fix preview/apply, project info, file traces, feature flags, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Uses FALLOW_BIN if set, otherwise fallow from PATH, falling back to npx -y fallow.`,
 		promptSnippet: "Run Fallow static/runtime codebase intelligence and return JSON summaries.",
 		promptGuidelines: [
 			"Use fallow_run after making TypeScript/JavaScript changes when the user asks for cleanup, quality, dead-code, duplication, architecture, complexity, or PR-readiness checks.",
-			"Use fallow_run with command=\"audit\" for PR/change gates; command=\"all\" for full-repo context; command=\"fix-preview\" before command=\"fix-apply\" unless the user explicitly requested automatic cleanup.",
-			"Use fallow_run trace commands before deleting exports, files, dependencies, or clone groups when confidence is low.",
+			"Use fallow_run with command=\"audit\", base=\"main\" or \"origin/main\", and gate=\"new-only\" for PR/new-issue checks; use command=\"check-changed\" with changedSince for changed-file checks.",
+			"Use command=\"all\" for full-repo context; command=\"fix-preview\" before command=\"fix-apply\" unless the user explicitly requested automatic cleanup.",
+			"Use fallow_run trace commands, especially command=\"trace-file\" with file, before deleting exports, files, dependencies, or clone groups when confidence is low.",
 		],
 		parameters: fallowRunParams,
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
