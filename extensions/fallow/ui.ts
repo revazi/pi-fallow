@@ -78,7 +78,6 @@ interface FlatIssue {
 }
 
 export interface FallowNavigatorResult {
-	action: "ask" | "editor";
 	prompt: string;
 	issueCount: number;
 }
@@ -111,8 +110,7 @@ export class FallowIssueNavigator implements Component {
 		if (matchesKey(data, "home")) return this.select(0);
 		if (matchesKey(data, "end")) return this.select(this.issues.length - 1);
 		if (data === "s" || matchesKey(data, "tab")) return this.toggleMarked();
-		if (data === "e") return this.onDone(this.buildResult("editor"));
-		if (data === "a") return this.onDone(this.buildResult("ask"));
+		if (data === "e" || data === "a") return this.onDone(this.buildResult());
 		if (matchesKey(data, "enter") || matchesKey(data, "space") || matchesKey(data, "right") || data === "l") {
 			if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
 			else {
@@ -138,7 +136,7 @@ export class FallowIssueNavigator implements Component {
 
 		lines.push(this.topBorder(frameWidth, theme.fg(statusColor, theme.bold(` ${this.overview.title} `))));
 		for (const statLine of this.statLines(innerWidth)) lines.push(this.frame(statLine, frameWidth));
-		lines.push(this.frame(theme.fg("dim", "↑↓/jk navigate · enter expand · s select · e editor · a ask Pi · q close"), frameWidth));
+		lines.push(this.frame(theme.fg("dim", "↑↓/jk navigate · enter expand · s select · e/a load to editor · q close"), frameWidth));
 		lines.push(this.separator(frameWidth));
 
 		if (!this.issues.length) {
@@ -171,7 +169,7 @@ export class FallowIssueNavigator implements Component {
 
 		if (end < this.issues.length) lines.push(this.frame(theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
 		lines.push(this.separator(frameWidth));
-		lines.push(this.frame(theme.fg("muted", `${this.selection().length} selected · e copies prompt to editor · a sends prompt to Pi now`), frameWidth));
+		lines.push(this.frame(theme.fg("muted", `${this.selection().length} selected · e/a loads prompt into editor for your comments`), frameWidth));
 		if (this.options.fullOutputPath) lines.push(this.frame(theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), frameWidth));
 		if (this.options.command) lines.push(this.frame(theme.fg("muted", this.options.command), frameWidth));
 		lines.push(this.bottomBorder(frameWidth));
@@ -215,9 +213,9 @@ export class FallowIssueNavigator implements Component {
 		return indices.map((index) => this.issues[index]).filter(Boolean) as FlatIssue[];
 	}
 
-	private buildResult(action: "ask" | "editor"): FallowNavigatorResult {
+	private buildResult(): FallowNavigatorResult {
 		const issues = this.selection();
-		return { action, issueCount: issues.length, prompt: this.buildPrompt(issues) };
+		return { issueCount: issues.length, prompt: this.buildPrompt(issues) };
 	}
 
 	private buildPrompt(issues: FlatIssue[]): string {
@@ -236,7 +234,11 @@ export class FallowIssueNavigator implements Component {
 
 		return [
 			"Please work on the following selected Fallow findings.",
-			"For each finding: inspect the referenced code, decide whether to fix, refactor, delete, add tests, or suppress intentionally, then make the appropriate changes. After changes, rerun the relevant Fallow command to verify.",
+			"",
+			"Additional instructions from user:",
+			"<!-- Add your comments here before submitting to Pi. -->",
+			"",
+			"Default task: For each finding, inspect the referenced code, decide whether to fix, refactor, delete, add tests, or suppress intentionally, then make the appropriate changes. After changes, rerun the relevant Fallow command to verify.",
 			this.options.command ? `Fallow command: ${this.options.command}` : undefined,
 			"",
 			blocks,

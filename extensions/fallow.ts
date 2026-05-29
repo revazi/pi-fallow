@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
+import { getFallowArgumentCompletions } from "./fallow/autocomplete";
 import { commandDisplay, execFallow, fallowExitLabel, runFallow, splitArgs } from "./fallow/cli";
 import { formatToolOutput, parseJson } from "./fallow/output";
 import { fallowRunParams } from "./fallow/schema";
@@ -57,6 +58,8 @@ export default function (pi: ExtensionAPI) {
 
 	pi.registerCommand("fallow", {
 		description: "Run fallow with raw CLI args. JSON/quiet are added if no --format is supplied.",
+		argumentHint: "[dead-code|dupes|health|audit|fix|list|flags|coverage analyze] [options]",
+		getArgumentCompletions: getFallowArgumentCompletions,
 		handler: async (rawArgs, ctx) => {
 			const args = rawArgs.trim() ? splitArgs(rawArgs) : [];
 			const hasFormat = args.some((arg) => arg === "--format" || arg === "-f" || arg.startsWith("--format="));
@@ -134,11 +137,9 @@ export default function (pi: ExtensionAPI) {
 					overlayOptions: { width: "90%", maxHeight: "80%", anchor: "center" },
 				});
 
-				if (navigatorResult?.action === "editor") {
+				if (navigatorResult) {
 					ctx.ui.setEditorText(navigatorResult.prompt);
-					ctx.ui.notify(`Loaded ${navigatorResult.issueCount} Fallow finding(s) into the editor.`, "info");
-				} else if (navigatorResult?.action === "ask") {
-					pi.sendUserMessage(navigatorResult.prompt);
+					ctx.ui.notify(`Loaded ${navigatorResult.issueCount} Fallow finding(s) into the editor. Add comments, then submit when ready.`, "info");
 				}
 			}
 		},

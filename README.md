@@ -17,17 +17,18 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 ## What this extension adds
 
 - LLM tool: `fallow_run`
-- Slash command: `/fallow ...`
+- Slash command: `/fallow ...` with argument autocomplete for Fallow commands and common flags
 - Automatic JSON + quiet output for modeled tool calls
 - Uses `FALLOW_BIN` if set, otherwise `fallow` from `PATH`, falling back to `npx -y fallow`
 - Truncates large output to Pi's default limits and saves full JSON to a temp file
 - Compact TUI rendering with expandable command/summary details
-- Interactive bordered issue navigator for `/fallow ...`: arrow keys or `j/k` move, Enter/Space expands the selected finding, `s` selects/unselects, `e` loads selected findings into the editor, `a` sends selected findings to Pi immediately, `q`/Esc closes. The regular Pi transcript only gets a compact summary while details live in the navigator.
+- Interactive bordered issue navigator for `/fallow ...`: arrow keys or `j/k` move, Enter/Space expands the selected finding, `s` selects/unselects, `e` or `a` loads selected findings into the editor so you can add comments before submitting, `q`/Esc closes. The regular Pi transcript only gets a compact summary while details live in the navigator.
 
 ## File layout
 
 - `extensions/fallow.ts` — extension entrypoint and Pi registration
 - `extensions/fallow/schema.ts` — tool parameter schema
+- `extensions/fallow/autocomplete.ts` — `/fallow` command and flag autocomplete
 - `extensions/fallow/cli.ts` — CLI argument building and process execution
 - `extensions/fallow/output.ts` — JSON parsing, summaries, truncation
 - `extensions/fallow/overview.ts` — maps Fallow JSON to overview data
