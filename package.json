@@ -1,0 +1,10 @@
+{
+  "name": "pi-fallow-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi coding agent extension for Fallow codebase intelligence.",
+  "keywords": ["pi-package", "pi-extension", "fallow", "codebase-intelligence"],
+  "pi": {
+    "extensions": ["./extensions/fallow.ts"]
+  }
+}
