@@ -17,7 +17,7 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 ## What this extension adds
 
 - LLM tool: `fallow_run`
-- Slash command: `/fallow ...` with argument autocomplete for Fallow commands and common flags
+- Slash command: `/fallow ...` with autocomplete for Fallow commands and common flags (type `/fallow` and press Tab to pick a subcommand)
 - Automatic JSON + quiet output for modeled tool calls
 - Uses `FALLOW_BIN` if set, otherwise `fallow` from `PATH`, falling back to `npx -y fallow`
 - Truncates large output to Pi's default limits and saves full JSON to a temp file

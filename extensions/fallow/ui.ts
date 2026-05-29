@@ -1,6 +1,18 @@
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
 
+const ansi = (code: number, text: string) => `\x1b[38;5;${code}m${text}\x1b[39m`;
+export const fallowPurple = (text: string) => ansi(141, text);
+const purple = fallowPurple;
+const violet = (text: string) => ansi(99, text);
+const pink = (text: string) => ansi(213, text);
+const cyan = (text: string) => ansi(81, text);
+const amber = (text: string) => ansi(215, text);
+
+function pill(text: string, color: (value: string) => string): string {
+	return color(` ${text} `);
+}
+
 export class FallowOverviewComponent implements Component {
 	private cachedWidth?: number;
 	private cachedLines?: string[];
@@ -134,9 +146,11 @@ export class FallowIssueNavigator implements Component {
 		const lines: string[] = [];
 		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
 
-		lines.push(this.topBorder(frameWidth, theme.fg(statusColor, theme.bold(` ${this.overview.title} `))));
+		const issueCount = this.issues.length;
+		const title = `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(this.overview.title))}${theme.fg("dim", " · ")}${pill(`${issueCount} finding${issueCount === 1 ? "" : "s"}`, issueCount ? pink : cyan)} `;
+		lines.push(this.topBorder(frameWidth, title));
 		for (const statLine of this.statLines(innerWidth)) lines.push(this.frame(statLine, frameWidth));
-		lines.push(this.frame(theme.fg("dim", "↑↓/jk navigate · enter expand · s select · e/a load to editor · q close"), frameWidth));
+		lines.push(this.frame(this.helpLine(), frameWidth));
 		lines.push(this.separator(frameWidth));
 
 		if (!this.issues.length) {
@@ -157,7 +171,7 @@ export class FallowIssueNavigator implements Component {
 			if (entry.sectionIndex !== lastSection) {
 				lastSection = entry.sectionIndex;
 				const count = entry.section.count !== undefined ? theme.fg("dim", ` (${entry.section.count})`) : "";
-				lines.push(this.frame(`  ${theme.fg(entry.section.color ?? "accent", theme.bold(entry.section.title))}${count}`, frameWidth));
+				lines.push(this.frame(`  ${violet("●")} ${theme.fg(entry.section.color ?? "accent", theme.bold(entry.section.title))}${count}`, frameWidth));
 			}
 			lines.push(this.frame(this.issueLine(index, innerWidth), frameWidth));
 			if (this.expanded.has(index)) {
@@ -169,9 +183,9 @@ export class FallowIssueNavigator implements Component {
 
 		if (end < this.issues.length) lines.push(this.frame(theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
 		lines.push(this.separator(frameWidth));
-		lines.push(this.frame(theme.fg("muted", `${this.selection().length} selected · e/a loads prompt into editor for your comments`), frameWidth));
-		if (this.options.fullOutputPath) lines.push(this.frame(theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), frameWidth));
-		if (this.options.command) lines.push(this.frame(theme.fg("muted", this.options.command), frameWidth));
+		lines.push(this.frame(`${pill(`${this.selection().length} selected`, purple)} ${theme.fg("muted", "e/a loads prompt into editor for your comments")}`, frameWidth));
+		if (this.options.fullOutputPath) lines.push(this.frame(`${cyan("Full JSON")} ${theme.fg("dim", this.options.fullOutputPath)}`, frameWidth));
+		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
 		lines.push(this.bottomBorder(frameWidth));
 
 		return this.cache(width, lines);
@@ -257,23 +271,33 @@ export class FallowIssueNavigator implements Component {
 
 	private statLines(width: number): string[] {
 		if (!this.overview.stats.length) return [];
+		const colors = [purple, cyan, amber, pink, violet];
 		const statLine = this.overview.stats.slice(0, 8)
-			.map((stat) => `${this.theme.fg("muted", stat.label)} ${this.theme.fg("accent", String(stat.value))}`)
-			.join(this.theme.fg("dim", " · "));
+			.map((stat, index) => `${colors[index % colors.length]!("◆")} ${this.theme.fg("muted", stat.label)} ${this.theme.fg("accent", this.theme.bold(String(stat.value)))}`)
+			.join(this.theme.fg("dim", "   "));
 		return wrapTextWithAnsi(statLine, width);
+	}
+
+	private helpLine(): string {
+		const key = (text: string) => pill(text, violet);
+		return `${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}  ${key("enter")} ${this.theme.fg("muted", "expand")}  ${key("s")} ${this.theme.fg("muted", "select")}  ${key("e/a")} ${this.theme.fg("muted", "load")}  ${key("q")} ${this.theme.fg("muted", "close")}`;
 	}
 
 	private issueLine(index: number, width: number): string {
 		const entry = this.issues[index]!;
 		const selected = index === this.selected;
 		const expanded = this.expanded.has(index);
-		const marker = selected ? "›" : " ";
-		const check = this.marked.has(index) ? "☑" : "☐";
-		const expandMarker = expanded ? "▾" : "▸";
+		const marker = selected ? purple("❯") : this.theme.fg("dim", " ");
+		const check = this.marked.has(index) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
+		const expandMarker = expanded ? amber("▾") : violet("▸");
 		const loc = entry.item.path ? `${entry.item.path}${entry.item.line ? `:${entry.item.line}` : ""}` : undefined;
-		const main = [entry.item.label, loc, entry.item.meta].filter(Boolean).join(" · ");
+		const main = [
+			this.theme.fg("text", entry.item.label),
+			loc ? cyan(loc) : undefined,
+			entry.item.meta ? this.theme.fg("dim", entry.item.meta) : undefined,
+		].filter(Boolean).join(this.theme.fg("dim", " · "));
 		const raw = `    ${marker} ${check} ${expandMarker} ${main}`;
-		const styled = selected ? this.theme.bg("selectedBg", this.theme.fg("text", raw)) : this.theme.fg("text", raw);
+		const styled = selected ? this.theme.bg("selectedBg", raw) : raw;
 		return truncateToWidth(styled, width);
 	}
 
@@ -281,30 +305,30 @@ export class FallowIssueNavigator implements Component {
 		const theme = this.theme;
 		const item = entry.item;
 		const lines: string[] = [];
-		if (item.action) lines.push(...wrapTextWithAnsi(theme.fg("dim", `      ↳ ${item.action}`), width));
-		if (!item.action && item.path) lines.push(theme.fg("dim", `      ${item.path}${item.line ? `:${item.line}` : ""}`));
+		if (item.action) lines.push(...wrapTextWithAnsi(`${amber("      ↳")} ${theme.fg("muted", item.action)}`, width));
+		if (!item.action && item.path) lines.push(`${cyan("      Location")} ${theme.fg("dim", `${item.path}${item.line ? `:${item.line}` : ""}`)}`);
 		return lines;
 	}
 
 	private topBorder(width: number, title: string): string {
 		const titleWidth = visibleWidth(title);
 		const fill = Math.max(0, width - titleWidth - 2);
-		return this.theme.fg("border", "┌") + title + this.theme.fg("border", "─".repeat(fill) + "┐");
+		return purple("╭") + title + purple("─".repeat(fill) + "╮");
 	}
 
 	private separator(width: number): string {
-		return this.theme.fg("border", "├" + "─".repeat(Math.max(0, width - 2)) + "┤");
+		return purple("├" + "─".repeat(Math.max(0, width - 2)) + "┤");
 	}
 
 	private bottomBorder(width: number): string {
-		return this.theme.fg("border", "└" + "─".repeat(Math.max(0, width - 2)) + "┘");
+		return purple("╰" + "─".repeat(Math.max(0, width - 2)) + "╯");
 	}
 
 	private frame(content: string, width: number): string {
 		const innerWidth = Math.max(0, width - 4);
 		const truncated = truncateToWidth(content, innerWidth);
 		const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(truncated)));
-		return this.theme.fg("border", "│ ") + truncated + padding + this.theme.fg("border", " │");
+		return purple("│ ") + truncated + padding + purple(" │");
 	}
 
 	private cache(width: number, lines: string[]): string[] {

@@ -1,12 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { getFallowArgumentCompletions } from "./fallow/autocomplete";
+import { getFallowArgumentCompletions, getFallowRootCommandCompletions } from "./fallow/autocomplete";
 import { commandDisplay, execFallow, fallowExitLabel, runFallow, splitArgs } from "./fallow/cli";
 import { formatToolOutput, parseJson } from "./fallow/output";
 import { fallowRunParams } from "./fallow/schema";
 import type { FallowDetails, FallowOverview } from "./fallow/types";
-import { FallowIssueNavigator, FallowOverviewComponent, type FallowNavigatorResult } from "./fallow/ui";
+import { fallowPurple, FallowIssueNavigator, FallowOverviewComponent, type FallowNavigatorResult } from "./fallow/ui";
 
 export default function (pi: ExtensionAPI) {
 	pi.registerTool({
@@ -78,7 +78,10 @@ export default function (pi: ExtensionAPI) {
 				try {
 					commandResult = await ctx.ui.custom<Awaited<ReturnType<typeof runCommand>> | null>((tui, theme, _keybindings, done) => {
 						const displayArgs = finalArgs.length ? finalArgs.join(" ") : "all";
-						const loader = new BorderedLoader(tui, theme, `Running fallow ${displayArgs}...`);
+						const loaderTheme = Object.create(theme) as typeof theme;
+						const originalFg = theme.fg.bind(theme);
+						loaderTheme.fg = ((color: Parameters<typeof theme.fg>[0], text: string) => color === "border" ? fallowPurple(text) : originalFg(color, text)) as typeof theme.fg;
+						const loader = new BorderedLoader(tui, loaderTheme, `Running fallow ${displayArgs}...`);
 						let settled = false;
 						const finish = (value: Awaited<ReturnType<typeof runCommand>> | null) => {
 							if (settled) return;
@@ -166,5 +169,31 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
 		ctx.ui.setStatus("fallow", "fallow ready");
+		ctx.ui.addAutocompleteProvider((current) => ({
+			async getSuggestions(lines, cursorLine, cursorCol, options) {
+				const line = lines[cursorLine] ?? "";
+				const beforeCursor = line.slice(0, cursorCol);
+				const slashIndex = beforeCursor.lastIndexOf("/");
+				const slashPrefix = slashIndex >= 0 ? beforeCursor.slice(slashIndex) : "";
+				// After Pi completes `/fal` to `/fallow `, Tab uses the file-completion path.
+				// Intercept that exact command-with-space context and show Fallow subcommands.
+				// Requiring whitespace avoids replacing the normal `/fal` -> `/fallow` flow.
+				if (/^\/fallow\s+$/.test(slashPrefix)) {
+					return { prefix: slashPrefix, items: getFallowRootCommandCompletions() };
+				}
+				return current.getSuggestions(lines, cursorLine, cursorCol, options);
+			},
+			applyCompletion(lines, cursorLine, cursorCol, item, prefix) {
+				return current.applyCompletion(lines, cursorLine, cursorCol, item, prefix);
+			},
+			shouldTriggerFileCompletion(lines, cursorLine, cursorCol) {
+				const line = lines[cursorLine] ?? "";
+				const beforeCursor = line.slice(0, cursorCol);
+				const slashIndex = beforeCursor.lastIndexOf("/");
+				const slashPrefix = slashIndex >= 0 ? beforeCursor.slice(slashIndex) : "";
+				if (/^\/fallow\s+$/.test(slashPrefix)) return true;
+				return current.shouldTriggerFileCompletion?.(lines, cursorLine, cursorCol) ?? true;
+			},
+		}));
 	});
 }

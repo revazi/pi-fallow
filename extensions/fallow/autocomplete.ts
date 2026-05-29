@@ -153,6 +153,14 @@ function matches(value: string, prefix: string): boolean {
 	return value.toLowerCase().startsWith(prefix.toLowerCase());
 }
 
+export function getFallowRootCommandCompletions(): AutocompleteItem[] {
+	return COMMANDS.map((spec) => ({
+		value: `fallow ${spec.value}`,
+		label: spec.label ?? spec.value,
+		description: spec.description,
+	}));
+}
+
 function completeToken(beforeCurrent: string, current: string, specs: CompletionSpec[]): AutocompleteItem[] {
 	return specs
 		.filter((spec) => matches(spec.value, current) || matches(spec.label ?? spec.value, current))
