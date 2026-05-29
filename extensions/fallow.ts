@@ -1,11 +1,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "@earendil-works/pi-coding-agent";
+import { BorderedLoader, DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { commandDisplay, execFallow, fallowExitLabel, runFallow, splitArgs } from "./fallow/cli";
 import { formatToolOutput, parseJson } from "./fallow/output";
 import { fallowRunParams } from "./fallow/schema";
 import type { FallowDetails, FallowOverview } from "./fallow/types";
-import { FallowOverviewComponent } from "./fallow/ui";
+import { FallowIssueNavigator, FallowOverviewComponent } from "./fallow/ui";
 
 export default function (pi: ExtensionAPI) {
 	pi.registerTool({
@@ -62,9 +62,45 @@ export default function (pi: ExtensionAPI) {
 			const hasFormat = args.some((arg) => arg === "--format" || arg === "-f" || arg.startsWith("--format="));
 			const finalArgs = hasFormat ? args : [...args, "--format", "json", "--quiet"];
 			const timeoutSecs = Number(process.env.FALLOW_TIMEOUT_SECS || 120);
-			const { binary, args: executedArgs, result } = await execFallow(pi, finalArgs, ctx.cwd, ctx.signal, timeoutSecs);
-			const parsed = parseJson(result.stdout, result.stderr);
-			const formatted = await formatToolOutput(parsed, ctx.cwd, result.code);
+			const runCommand = async (signal?: AbortSignal) => {
+				const { binary, args: executedArgs, result } = await execFallow(pi, finalArgs, ctx.cwd, signal ?? ctx.signal, timeoutSecs);
+				const parsed = parseJson(result.stdout, result.stderr);
+				const formatted = await formatToolOutput(parsed, ctx.cwd, result.code);
+				return { binary, executedArgs, result, formatted };
+			};
+
+			let commandResult: Awaited<ReturnType<typeof runCommand>> | null;
+			if (ctx.hasUI) {
+				ctx.ui.setStatus("fallow", "fallow running…");
+				try {
+					commandResult = await ctx.ui.custom<Awaited<ReturnType<typeof runCommand>> | null>((tui, theme, _keybindings, done) => {
+						const displayArgs = finalArgs.length ? finalArgs.join(" ") : "all";
+						const loader = new BorderedLoader(tui, theme, `Running fallow ${displayArgs}...`);
+						let settled = false;
+						const finish = (value: Awaited<ReturnType<typeof runCommand>> | null) => {
+							if (settled) return;
+							settled = true;
+							done(value);
+						};
+						loader.onAbort = () => finish(null);
+						runCommand(loader.signal).then(finish, (error) => {
+							ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+							finish(null);
+						});
+						return loader;
+					});
+				} finally {
+					ctx.ui.setStatus("fallow", "fallow ready");
+				}
+				if (!commandResult) {
+					ctx.ui.notify("fallow cancelled", "info");
+					return;
+				}
+			} else {
+				commandResult = await runCommand();
+			}
+
+			const { binary, executedArgs, result, formatted } = commandResult;
 			if (ctx.hasUI) {
 				const label = fallowExitLabel(result.code, result.killed);
 				const message = result.code === 1
@@ -72,17 +108,42 @@ export default function (pi: ExtensionAPI) {
 					: `fallow ${label}: ${commandDisplay(binary, executedArgs)}`;
 				ctx.ui.notify(message, result.code >= 2 || result.killed ? "error" : "info");
 			}
+			const hasNavigator = ctx.hasUI && formatted.overview?.sections.some((section) => section.items.length > 0);
 			pi.sendMessage({
 				customType: "fallow-result",
-				content: formatted.text,
+				content: hasNavigator ? `Opened Fallow issue navigator.\n${formatted.summary}` : formatted.text,
 				display: true,
-				details: { command: binary, args: executedArgs, exitCode: result.code, overview: formatted.overview, fullOutputPath: formatted.fullOutputPath, truncated: formatted.truncated },
+				details: { command: binary, args: executedArgs, exitCode: result.code, overview: formatted.overview, compact: hasNavigator, fullOutputPath: formatted.fullOutputPath, truncated: formatted.truncated },
 			});
+
+			if (hasNavigator) {
+				await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
+					return new FallowIssueNavigator(
+						formatted.overview!,
+						theme,
+						() => done(undefined),
+						() => tui.requestRender(),
+						{
+							command: commandDisplay(binary, executedArgs),
+							fullOutputPath: formatted.fullOutputPath,
+							truncated: formatted.truncated,
+						},
+					);
+				}, {
+					overlay: true,
+					overlayOptions: { width: "90%", maxHeight: "80%", anchor: "center" },
+				});
+			}
 		},
 	});
 
 	pi.registerMessageRenderer("fallow-result", (message, options, theme) => {
-		const details = message.details as { command?: string; args?: string[]; overview?: FallowOverview; fullOutputPath?: string; truncated?: boolean } | undefined;
+		const details = message.details as { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean } | undefined;
+		if (details?.compact) {
+			const title = details.overview?.title ?? "Fallow result";
+			const stats = details.overview?.stats.slice(0, 5).map((stat) => `${stat.label}: ${stat.value}`).join(" · ");
+			return new Text(theme.fg("toolTitle", theme.bold(title)) + (stats ? `\n${theme.fg("dim", stats)}` : "") + "\n" + theme.fg("muted", "Detailed findings were shown in the navigator window."), 0, 0);
+		}
 		if (details?.overview) {
 			return new FallowOverviewComponent(details.overview, theme, {
 				expanded: options.expanded,

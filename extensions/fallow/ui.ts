@@ -1,5 +1,5 @@
-import { truncateToWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { FallowOverview } from "./types";
+import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
+import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
 
 export class FallowOverviewComponent implements Component {
 	private cachedWidth?: number;
@@ -67,5 +67,186 @@ export class FallowOverviewComponent implements Component {
 	invalidate(): void {
 		this.cachedWidth = undefined;
 		this.cachedLines = undefined;
+	}
+}
+
+interface FlatIssue {
+	section: FallowOverviewSection;
+	item: FallowIssueLine;
+	sectionIndex: number;
+	itemIndex: number;
+}
+
+export class FallowIssueNavigator implements Component {
+	private issues: FlatIssue[];
+	private selected = 0;
+	private scrollStart = 0;
+	private expanded = new Set<number>();
+	private cachedWidth?: number;
+	private cachedLines?: string[];
+
+	constructor(
+		private overview: FallowOverview,
+		private theme: any,
+		private onClose: () => void,
+		private requestRender: () => void,
+		private options: { command?: string; fullOutputPath?: string; truncated?: boolean } = {},
+	) {
+		this.issues = overview.sections.flatMap((section, sectionIndex) =>
+			section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })),
+		);
+	}
+
+	handleInput(data: string): void {
+		if (matchesKey(data, "escape") || data === "q") return this.onClose();
+		if (matchesKey(data, "up") || data === "k") return this.move(-1);
+		if (matchesKey(data, "down") || data === "j") return this.move(1);
+		if (matchesKey(data, "home")) return this.select(0);
+		if (matchesKey(data, "end")) return this.select(this.issues.length - 1);
+		if (matchesKey(data, "enter") || matchesKey(data, "space") || matchesKey(data, "right") || data === "l") {
+			if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
+			else {
+				this.expanded.clear();
+				this.expanded.add(this.selected);
+			}
+			return this.changed();
+		}
+		if (matchesKey(data, "left") || data === "h") {
+			this.expanded.delete(this.selected);
+			return this.changed();
+		}
+	}
+
+	render(width: number): string[] {
+		if (this.cachedWidth === width && this.cachedLines) return this.cachedLines;
+
+		const frameWidth = Math.max(50, width);
+		const innerWidth = Math.max(10, frameWidth - 4);
+		const theme = this.theme;
+		const lines: string[] = [];
+		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
+
+		lines.push(this.topBorder(frameWidth, theme.fg(statusColor, theme.bold(` ${this.overview.title} `))));
+		for (const statLine of this.statLines(innerWidth)) lines.push(this.frame(statLine, frameWidth));
+		lines.push(this.frame(theme.fg("dim", "↑↓/jk navigate · enter/space expand · ← collapse · q/esc close"), frameWidth));
+		lines.push(this.separator(frameWidth));
+
+		if (!this.issues.length) {
+			lines.push(this.frame(theme.fg("success", "No navigable findings in this Fallow report."), frameWidth));
+			lines.push(this.bottomBorder(frameWidth));
+			return this.cache(width, lines);
+		}
+
+		const listHeight = 10;
+		this.ensureVisible(listHeight);
+		const start = this.scrollStart;
+		const end = Math.min(this.issues.length, start + listHeight);
+		if (start > 0) lines.push(this.frame(theme.fg("dim", `… ${start} earlier findings`), frameWidth));
+
+		let lastSection = -1;
+		for (let index = start; index < end; index++) {
+			const entry = this.issues[index]!;
+			if (entry.sectionIndex !== lastSection) {
+				lastSection = entry.sectionIndex;
+				const count = entry.section.count !== undefined ? theme.fg("dim", ` (${entry.section.count})`) : "";
+				lines.push(this.frame(`  ${theme.fg(entry.section.color ?? "accent", theme.bold(entry.section.title))}${count}`, frameWidth));
+			}
+			lines.push(this.frame(this.issueLine(index, innerWidth), frameWidth));
+			if (this.expanded.has(index)) {
+				for (const detailLine of this.detailLines(entry, innerWidth)) {
+					lines.push(this.frame(detailLine, frameWidth));
+				}
+			}
+		}
+
+		if (end < this.issues.length) lines.push(this.frame(theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
+		if (this.options.fullOutputPath || this.options.command) lines.push(this.separator(frameWidth));
+		if (this.options.fullOutputPath) lines.push(this.frame(theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), frameWidth));
+		if (this.options.command) lines.push(this.frame(theme.fg("muted", this.options.command), frameWidth));
+		lines.push(this.bottomBorder(frameWidth));
+
+		return this.cache(width, lines);
+	}
+
+	invalidate(): void {
+		this.cachedWidth = undefined;
+		this.cachedLines = undefined;
+	}
+
+	private move(delta: number): void {
+		this.select(this.selected + delta);
+	}
+
+	private select(index: number): void {
+		this.selected = Math.max(0, Math.min(Math.max(0, this.issues.length - 1), index));
+		this.changed();
+	}
+
+	private ensureVisible(listHeight: number): void {
+		if (this.selected < this.scrollStart) this.scrollStart = this.selected;
+		if (this.selected >= this.scrollStart + listHeight) this.scrollStart = this.selected - listHeight + 1;
+		this.scrollStart = Math.max(0, Math.min(this.scrollStart, Math.max(0, this.issues.length - listHeight)));
+	}
+
+	private changed(): void {
+		this.invalidate();
+		this.requestRender();
+	}
+
+	private statLines(width: number): string[] {
+		if (!this.overview.stats.length) return [];
+		const statLine = this.overview.stats.slice(0, 8)
+			.map((stat) => `${this.theme.fg("muted", stat.label)} ${this.theme.fg("accent", String(stat.value))}`)
+			.join(this.theme.fg("dim", " · "));
+		return wrapTextWithAnsi(statLine, width);
+	}
+
+	private issueLine(index: number, width: number): string {
+		const entry = this.issues[index]!;
+		const selected = index === this.selected;
+		const expanded = this.expanded.has(index);
+		const marker = selected ? "›" : " ";
+		const expandMarker = expanded ? "▾" : "▸";
+		const loc = entry.item.path ? `${entry.item.path}${entry.item.line ? `:${entry.item.line}` : ""}` : undefined;
+		const main = [entry.item.label, loc, entry.item.meta].filter(Boolean).join(" · ");
+		const raw = `    ${marker} ${expandMarker} ${main}`;
+		const styled = selected ? this.theme.bg("selectedBg", this.theme.fg("text", raw)) : this.theme.fg("text", raw);
+		return truncateToWidth(styled, width);
+	}
+
+	private detailLines(entry: FlatIssue, width: number): string[] {
+		const theme = this.theme;
+		const item = entry.item;
+		const lines: string[] = [];
+		if (item.action) lines.push(...wrapTextWithAnsi(theme.fg("dim", `      ↳ ${item.action}`), width));
+		if (!item.action && item.path) lines.push(theme.fg("dim", `      ${item.path}${item.line ? `:${item.line}` : ""}`));
+		return lines;
+	}
+
+	private topBorder(width: number, title: string): string {
+		const titleWidth = visibleWidth(title);
+		const fill = Math.max(0, width - titleWidth - 2);
+		return this.theme.fg("border", "┌") + title + this.theme.fg("border", "─".repeat(fill) + "┐");
+	}
+
+	private separator(width: number): string {
+		return this.theme.fg("border", "├" + "─".repeat(Math.max(0, width - 2)) + "┤");
+	}
+
+	private bottomBorder(width: number): string {
+		return this.theme.fg("border", "└" + "─".repeat(Math.max(0, width - 2)) + "┘");
+	}
+
+	private frame(content: string, width: number): string {
+		const innerWidth = Math.max(0, width - 4);
+		const truncated = truncateToWidth(content, innerWidth);
+		const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(truncated)));
+		return this.theme.fg("border", "│ ") + truncated + padding + this.theme.fg("border", " │");
+	}
+
+	private cache(width: number, lines: string[]): string[] {
+		this.cachedWidth = width;
+		this.cachedLines = lines;
+		return lines;
 	}
 }

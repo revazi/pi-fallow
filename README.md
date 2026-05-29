@@ -22,6 +22,7 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 - Uses `FALLOW_BIN` if set, otherwise `fallow` from `PATH`, falling back to `npx -y fallow`
 - Truncates large output to Pi's default limits and saves full JSON to a temp file
 - Compact TUI rendering with expandable command/summary details
+- Interactive bordered issue navigator for `/fallow ...`: arrow keys or `j/k` move, Enter/Space expands the selected finding, `q`/Esc closes. The regular Pi transcript only gets a compact summary while details live in the navigator.
 
 ## File layout
 
