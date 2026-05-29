@@ -56,6 +56,7 @@ function makeIssue(kind: string, issue: Record<string, any>): FallowIssueLine {
 		meta: issueMeta(issue),
 		action: primaryAction(issue),
 		severity: issue.severity,
+		raw: issue,
 	};
 }
 
@@ -110,6 +111,7 @@ function buildHealthSections(data: Record<string, any>): FallowOverviewSection[]
 					label: `score ${fmt(issue.maintainability_index)}`,
 					path: issue.path,
 					meta: `${issue.lines ?? "?"} LOC · dead ${fmt((issue.dead_code_ratio ?? 0) * 100)}% · CRAP max ${fmt(issue.crap_max)}`,
+					raw: issue,
 				};
 			}),
 		});
@@ -127,6 +129,7 @@ function buildHealthSections(data: Record<string, any>): FallowOverviewSection[]
 					path: issue.path,
 					meta: `priority ${fmt(issue.priority)} · ${issue.effort ?? "unknown effort"}`,
 					action: issue.recommendation,
+					raw: issue,
 				};
 			}),
 		});
@@ -143,6 +146,7 @@ function buildHealthSections(data: Record<string, any>): FallowOverviewSection[]
 					label: `hotspot ${fmt(issue.score)}`,
 					path: issue.path,
 					meta: `${issue.commits ?? "?"} commits · churn ${(issue.lines_added ?? 0) + (issue.lines_deleted ?? 0)} · ${issue.trend ?? ""}`,
+					raw: issue,
 				};
 			}),
 		});
@@ -168,6 +172,7 @@ function buildDupesSections(data: Record<string, any>): FallowOverviewSection[] 
 				line: first.start_line,
 				meta: `${group.line_count ?? "?"} lines · ${group.token_count ?? "?"} tokens · ${instances.length} instances`,
 				action: second.file ? `also at ${second.file}:${second.start_line}` : primaryAction(group),
+				raw: group,
 			};
 		}),
 	}];

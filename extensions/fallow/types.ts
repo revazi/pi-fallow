@@ -18,6 +18,7 @@ export interface FallowIssueLine {
 	meta?: string;
 	action?: string;
 	severity?: string;
+	raw?: unknown;
 }
 
 export interface FallowOverviewSection {

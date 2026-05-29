@@ -5,7 +5,7 @@ import { commandDisplay, execFallow, fallowExitLabel, runFallow, splitArgs } fro
 import { formatToolOutput, parseJson } from "./fallow/output";
 import { fallowRunParams } from "./fallow/schema";
 import type { FallowDetails, FallowOverview } from "./fallow/types";
-import { FallowIssueNavigator, FallowOverviewComponent } from "./fallow/ui";
+import { FallowIssueNavigator, FallowOverviewComponent, type FallowNavigatorResult } from "./fallow/ui";
 
 export default function (pi: ExtensionAPI) {
 	pi.registerTool({
@@ -117,11 +117,11 @@ export default function (pi: ExtensionAPI) {
 			});
 
 			if (hasNavigator) {
-				await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
+				const navigatorResult = await ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
 					return new FallowIssueNavigator(
 						formatted.overview!,
 						theme,
-						() => done(undefined),
+						done,
 						() => tui.requestRender(),
 						{
 							command: commandDisplay(binary, executedArgs),
@@ -133,6 +133,13 @@ export default function (pi: ExtensionAPI) {
 					overlay: true,
 					overlayOptions: { width: "90%", maxHeight: "80%", anchor: "center" },
 				});
+
+				if (navigatorResult?.action === "editor") {
+					ctx.ui.setEditorText(navigatorResult.prompt);
+					ctx.ui.notify(`Loaded ${navigatorResult.issueCount} Fallow finding(s) into the editor.`, "info");
+				} else if (navigatorResult?.action === "ask") {
+					pi.sendUserMessage(navigatorResult.prompt);
+				}
 			}
 		},
 	});

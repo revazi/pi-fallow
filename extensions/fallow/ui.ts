@@ -77,18 +77,25 @@ interface FlatIssue {
 	itemIndex: number;
 }
 
+export interface FallowNavigatorResult {
+	action: "ask" | "editor";
+	prompt: string;
+	issueCount: number;
+}
+
 export class FallowIssueNavigator implements Component {
 	private issues: FlatIssue[];
 	private selected = 0;
 	private scrollStart = 0;
 	private expanded = new Set<number>();
+	private marked = new Set<number>();
 	private cachedWidth?: number;
 	private cachedLines?: string[];
 
 	constructor(
 		private overview: FallowOverview,
 		private theme: any,
-		private onClose: () => void,
+		private onDone: (result: FallowNavigatorResult | null) => void,
 		private requestRender: () => void,
 		private options: { command?: string; fullOutputPath?: string; truncated?: boolean } = {},
 	) {
@@ -98,11 +105,14 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	handleInput(data: string): void {
-		if (matchesKey(data, "escape") || data === "q") return this.onClose();
+		if (matchesKey(data, "escape") || data === "q") return this.onDone(null);
 		if (matchesKey(data, "up") || data === "k") return this.move(-1);
 		if (matchesKey(data, "down") || data === "j") return this.move(1);
 		if (matchesKey(data, "home")) return this.select(0);
 		if (matchesKey(data, "end")) return this.select(this.issues.length - 1);
+		if (data === "s" || matchesKey(data, "tab")) return this.toggleMarked();
+		if (data === "e") return this.onDone(this.buildResult("editor"));
+		if (data === "a") return this.onDone(this.buildResult("ask"));
 		if (matchesKey(data, "enter") || matchesKey(data, "space") || matchesKey(data, "right") || data === "l") {
 			if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
 			else {
@@ -128,7 +138,7 @@ export class FallowIssueNavigator implements Component {
 
 		lines.push(this.topBorder(frameWidth, theme.fg(statusColor, theme.bold(` ${this.overview.title} `))));
 		for (const statLine of this.statLines(innerWidth)) lines.push(this.frame(statLine, frameWidth));
-		lines.push(this.frame(theme.fg("dim", "↑↓/jk navigate · enter/space expand · ← collapse · q/esc close"), frameWidth));
+		lines.push(this.frame(theme.fg("dim", "↑↓/jk navigate · enter expand · s select · e editor · a ask Pi · q close"), frameWidth));
 		lines.push(this.separator(frameWidth));
 
 		if (!this.issues.length) {
@@ -160,7 +170,8 @@ export class FallowIssueNavigator implements Component {
 		}
 
 		if (end < this.issues.length) lines.push(this.frame(theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
-		if (this.options.fullOutputPath || this.options.command) lines.push(this.separator(frameWidth));
+		lines.push(this.separator(frameWidth));
+		lines.push(this.frame(theme.fg("muted", `${this.selection().length} selected · e copies prompt to editor · a sends prompt to Pi now`), frameWidth));
 		if (this.options.fullOutputPath) lines.push(this.frame(theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), frameWidth));
 		if (this.options.command) lines.push(this.frame(theme.fg("muted", this.options.command), frameWidth));
 		lines.push(this.bottomBorder(frameWidth));
@@ -182,6 +193,12 @@ export class FallowIssueNavigator implements Component {
 		this.changed();
 	}
 
+	private toggleMarked(): void {
+		if (this.marked.has(this.selected)) this.marked.delete(this.selected);
+		else this.marked.add(this.selected);
+		this.changed();
+	}
+
 	private ensureVisible(listHeight: number): void {
 		if (this.selected < this.scrollStart) this.scrollStart = this.selected;
 		if (this.selected >= this.scrollStart + listHeight) this.scrollStart = this.selected - listHeight + 1;
@@ -191,6 +208,49 @@ export class FallowIssueNavigator implements Component {
 	private changed(): void {
 		this.invalidate();
 		this.requestRender();
+	}
+
+	private selection(): FlatIssue[] {
+		const indices = this.marked.size ? [...this.marked].sort((a, b) => a - b) : [this.selected];
+		return indices.map((index) => this.issues[index]).filter(Boolean) as FlatIssue[];
+	}
+
+	private buildResult(action: "ask" | "editor"): FallowNavigatorResult {
+		const issues = this.selection();
+		return { action, issueCount: issues.length, prompt: this.buildPrompt(issues) };
+	}
+
+	private buildPrompt(issues: FlatIssue[]): string {
+		const blocks = issues.map((entry, index) => {
+			const item = entry.item;
+			const loc = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : "unknown location";
+			const raw = item.raw === undefined ? "" : `\nRaw finding:\n\`\`\`json\n${this.safeJson(item.raw, 3000)}\n\`\`\``;
+			return [
+				`## ${index + 1}. ${entry.section.title}: ${item.label}`,
+				`Location: ${loc}`,
+				item.meta ? `Details: ${item.meta}` : undefined,
+				item.action ? `Suggested action: ${item.action}` : undefined,
+				raw || undefined,
+			].filter(Boolean).join("\n");
+		}).join("\n\n");
+
+		return [
+			"Please work on the following selected Fallow findings.",
+			"For each finding: inspect the referenced code, decide whether to fix, refactor, delete, add tests, or suppress intentionally, then make the appropriate changes. After changes, rerun the relevant Fallow command to verify.",
+			this.options.command ? `Fallow command: ${this.options.command}` : undefined,
+			"",
+			blocks,
+		].filter((part) => part !== undefined).join("\n");
+	}
+
+	private safeJson(value: unknown, maxChars: number): string {
+		let text: string;
+		try {
+			text = JSON.stringify(value, null, 2);
+		} catch {
+			text = String(value);
+		}
+		return text.length > maxChars ? `${text.slice(0, maxChars)}\n… truncated …` : text;
 	}
 
 	private statLines(width: number): string[] {
@@ -206,10 +266,11 @@ export class FallowIssueNavigator implements Component {
 		const selected = index === this.selected;
 		const expanded = this.expanded.has(index);
 		const marker = selected ? "›" : " ";
+		const check = this.marked.has(index) ? "☑" : "☐";
 		const expandMarker = expanded ? "▾" : "▸";
 		const loc = entry.item.path ? `${entry.item.path}${entry.item.line ? `:${entry.item.line}` : ""}` : undefined;
 		const main = [entry.item.label, loc, entry.item.meta].filter(Boolean).join(" · ");
-		const raw = `    ${marker} ${expandMarker} ${main}`;
+		const raw = `    ${marker} ${check} ${expandMarker} ${main}`;
 		const styled = selected ? this.theme.bg("selectedBg", this.theme.fg("text", raw)) : this.theme.fg("text", raw);
 		return truncateToWidth(styled, width);
 	}
