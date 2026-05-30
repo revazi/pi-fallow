@@ -1,5 +1,7 @@
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
+import { formatFallowProjectState } from "./project";
+import { formatFallowPrSummary } from "./pr-summary";
+import type { FallowIssueLine, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "./types";
 
 const ansi = (code: number, text: string) => `\x1b[38;5;${code}m${text}\x1b[39m`;
 export const fallowPurple = (text: string) => ansi(141, text);
@@ -20,7 +22,7 @@ export class FallowOverviewComponent implements Component {
 	constructor(
 		private overview: FallowOverview,
 		private theme: any,
-		private options: { expanded?: boolean; command?: string; fullOutputPath?: string; truncated?: boolean } = {},
+		private options: { expanded?: boolean; command?: string; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } = {},
 	) {}
 
 	render(width: number): string[] {
@@ -67,6 +69,12 @@ export class FallowOverviewComponent implements Component {
 		for (const note of this.overview.notes.slice(0, this.options.expanded ? 5 : 2)) {
 			lines.push(...wrapTextWithAnsi(theme.fg("dim", `  ${note}`), Math.max(10, width)));
 		}
+		const prSummaryText = formatFallowPrSummary(this.options.prSummary);
+		if (prSummaryText) {
+			for (const line of prSummaryText.split("\n")) lines.push(truncateToWidth(theme.fg(line.includes("FAIL") ? "warning" : "dim", line), width));
+		}
+		const projectStateLine = formatFallowProjectState(this.options.projectState);
+		if (projectStateLine) lines.push(truncateToWidth(theme.fg("dim", projectStateLine), width));
 		if (this.options.expanded && this.options.command) lines.push(truncateToWidth(theme.fg("muted", this.options.command), width));
 		if (this.options.fullOutputPath) lines.push(truncateToWidth(theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), width));
 		if (this.options.truncated) lines.push(truncateToWidth(theme.fg("warning", "JSON output was truncated for context."), width));
@@ -108,7 +116,7 @@ export class FallowIssueNavigator implements Component {
 		private theme: any,
 		private onDone: (result: FallowNavigatorResult | null) => void,
 		private requestRender: () => void,
-		private options: { command?: string; fullOutputPath?: string; truncated?: boolean } = {},
+		private options: { command?: string; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } = {},
 	) {
 		this.issues = overview.sections.flatMap((section, sectionIndex) =>
 			section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })),
@@ -184,6 +192,12 @@ export class FallowIssueNavigator implements Component {
 		if (end < this.issues.length) lines.push(this.frame(theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
 		lines.push(this.separator(frameWidth));
 		lines.push(this.frame(`${pill(`${this.selection().length} selected`, purple)} ${theme.fg("muted", "e/a loads prompt into editor for your comments")}`, frameWidth));
+		const prSummaryText = formatFallowPrSummary(this.options.prSummary);
+		if (prSummaryText) {
+			for (const line of prSummaryText.split("\n")) lines.push(this.frame(`${pink("PR")} ${theme.fg(line.includes("FAIL") ? "warning" : "dim", line)}`, frameWidth));
+		}
+		const projectStateLine = formatFallowProjectState(this.options.projectState);
+		if (projectStateLine) lines.push(this.frame(`${cyan("Project")} ${theme.fg("dim", projectStateLine)}`, frameWidth));
 		if (this.options.fullOutputPath) lines.push(this.frame(`${cyan("Full JSON")} ${theme.fg("dim", this.options.fullOutputPath)}`, frameWidth));
 		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
 		lines.push(this.bottomBorder(frameWidth));

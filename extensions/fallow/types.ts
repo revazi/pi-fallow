@@ -1,3 +1,26 @@
+export interface FallowProjectState {
+	configPath?: string;
+	configSource: "file" | "flag" | "none";
+	cacheEnabled: boolean;
+	cacheFiles: string[];
+}
+
+export interface FallowGitState {
+	isGitRepo: boolean;
+	branch?: string;
+	detached?: boolean;
+	baseRef?: string;
+}
+
+export interface FallowPrSummary {
+	baseRef?: string;
+	gate: string;
+	changedFilesCount?: number;
+	newIssuesCount: number;
+	passed: boolean;
+	topAffectedFiles: string[];
+}
+
 export interface FallowDetails {
 	command: string;
 	args: string[];
@@ -9,6 +32,8 @@ export interface FallowDetails {
 	overview?: FallowOverview;
 	fullOutputPath?: string;
 	truncated?: boolean;
+	projectState?: FallowProjectState;
+	prSummary?: FallowPrSummary;
 }
 
 export interface FallowIssueLine {

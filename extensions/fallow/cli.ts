@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext, ExecResult } from "@earendil-works/pi-coding-agent";
 import { formatToolOutput, parseJson } from "./output";
+import { detectFallowProjectState, formatFallowProjectState } from "./project";
+import { buildFallowPrSummary, formatFallowPrSummary } from "./pr-summary";
 import type { FallowRunParams } from "./schema";
 import type { FallowDetails } from "./types";
 
@@ -267,9 +269,13 @@ export async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: 
 	const timeoutSecs = params.timeoutSecs ?? Number(process.env.FALLOW_TIMEOUT_SECS || 120);
 	const started = Date.now();
 	const { binary, args: executedArgs, result } = await execFallow(pi, args, cwd, ctx.signal, timeoutSecs);
+	const projectState = await detectFallowProjectState(cwd, args);
 	const elapsedMs = Date.now() - started;
 	const parsed = parseJson(result.stdout, result.stderr);
 	const formatted = await formatToolOutput(parsed, cwd, result.code);
+	const projectStateLine = formatFallowProjectState(projectState);
+	const prSummary = buildFallowPrSummary(parsed.data, executedArgs, result.code);
+	const prSummaryText = formatFallowPrSummary(prSummary);
 
 	// Fallow uses exit code 1 for "issues found" on gate/check commands. Treat only 2+ as execution errors.
 	if (result.code >= 2 || result.killed) {
@@ -291,9 +297,12 @@ export async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: 
 		overview: formatted.overview,
 		fullOutputPath: formatted.fullOutputPath,
 		truncated: formatted.truncated,
+		projectState,
+		prSummary,
 	};
 
-	return { content: [{ type: "text" as const, text: formatted.text }], details };
+	const prefixes = [prSummaryText, projectStateLine].filter(Boolean).join("\n");
+	return { content: [{ type: "text" as const, text: prefixes ? `${prefixes}\n\n${formatted.text}` : formatted.text }], details };
 }
 
 export function splitArgs(input: string): string[] {

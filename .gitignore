@@ -1,0 +1,5 @@
+node_modules/
+*.tgz
+.fallow/
+.pi/
+.DS_Store

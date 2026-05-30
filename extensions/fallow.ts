@@ -4,9 +4,19 @@ import { Text } from "@earendil-works/pi-tui";
 import { getFallowArgumentCompletions, getFallowRootCommandCompletions } from "./fallow/autocomplete";
 import { commandDisplay, execFallow, fallowExitLabel, runFallow, splitArgs } from "./fallow/cli";
 import { formatToolOutput, parseJson } from "./fallow/output";
+import { detectFallowGitState, detectFallowProjectState, formatFallowProjectState, formatFallowStatus } from "./fallow/project";
+import { buildFallowPrSummary, formatFallowPrSummary } from "./fallow/pr-summary";
 import { fallowRunParams } from "./fallow/schema";
-import type { FallowDetails, FallowOverview } from "./fallow/types";
+import type { FallowDetails, FallowOverview, FallowPrSummary, FallowProjectState } from "./fallow/types";
 import { fallowPurple, FallowIssueNavigator, FallowOverviewComponent, type FallowNavigatorResult } from "./fallow/ui";
+
+async function setFallowReadyStatus(ctx: { cwd: string; ui: { setStatus(key: string, text: string): void } }) {
+	try {
+		ctx.ui.setStatus("fallow", formatFallowStatus(await detectFallowGitState(ctx.cwd)));
+	} catch {
+		ctx.ui.setStatus("fallow", "fallow ready");
+	}
+}
 
 export default function (pi: ExtensionAPI) {
 	pi.registerTool({
@@ -43,6 +53,8 @@ export default function (pi: ExtensionAPI) {
 					command: commandDisplay(details.command, details.args),
 					fullOutputPath: details.fullOutputPath,
 					truncated: details.truncated,
+					projectState: details.projectState,
+					prSummary: details.prSummary,
 				});
 			}
 			let text = theme.fg(details.exitCode === 0 ? "success" : "warning", `Fallow ${fallowExitLabel(details.exitCode)} (exit ${details.exitCode})`);
@@ -51,6 +63,10 @@ export default function (pi: ExtensionAPI) {
 			if (expanded) {
 				text += `\n${theme.fg("muted", commandDisplay(details.command, details.args))}`;
 				text += `\n${theme.fg("dim", details.summary)}`;
+				const prSummaryText = formatFallowPrSummary(details.prSummary);
+				if (prSummaryText) text += `\n${theme.fg("dim", prSummaryText)}`;
+				const projectStateLine = formatFallowProjectState(details.projectState);
+				if (projectStateLine) text += `\n${theme.fg("dim", projectStateLine)}`;
 				if (details.fullOutputPath) text += `\n${theme.fg("dim", `Full output: ${details.fullOutputPath}`)}`;
 			}
 			return new Text(text, 0, 0);
@@ -68,9 +84,11 @@ export default function (pi: ExtensionAPI) {
 			const timeoutSecs = Number(process.env.FALLOW_TIMEOUT_SECS || 120);
 			const runCommand = async (signal?: AbortSignal) => {
 				const { binary, args: executedArgs, result } = await execFallow(pi, finalArgs, ctx.cwd, signal ?? ctx.signal, timeoutSecs);
+				const projectState = await detectFallowProjectState(ctx.cwd, finalArgs);
 				const parsed = parseJson(result.stdout, result.stderr);
 				const formatted = await formatToolOutput(parsed, ctx.cwd, result.code);
-				return { binary, executedArgs, result, formatted };
+				const prSummary = buildFallowPrSummary(parsed.data, executedArgs, result.code);
+				return { binary, executedArgs, result, formatted, projectState, prSummary };
 			};
 
 			let commandResult: Awaited<ReturnType<typeof runCommand>> | null;
@@ -97,7 +115,7 @@ export default function (pi: ExtensionAPI) {
 						return loader;
 					});
 				} finally {
-					ctx.ui.setStatus("fallow", "fallow ready");
+					void setFallowReadyStatus(ctx);
 				}
 				if (!commandResult) {
 					ctx.ui.notify("fallow cancelled", "info");
@@ -107,7 +125,10 @@ export default function (pi: ExtensionAPI) {
 				commandResult = await runCommand();
 			}
 
-			const { binary, executedArgs, result, formatted } = commandResult;
+			const { binary, executedArgs, result, formatted, projectState, prSummary } = commandResult;
+			const projectStateLine = formatFallowProjectState(projectState);
+			const prSummaryText = formatFallowPrSummary(prSummary);
+			const resultPrefix = [prSummaryText, projectStateLine].filter(Boolean).join("\n");
 			if (ctx.hasUI) {
 				const label = fallowExitLabel(result.code, result.killed);
 				const message = result.code === 1
@@ -118,9 +139,11 @@ export default function (pi: ExtensionAPI) {
 			const hasNavigator = ctx.hasUI && formatted.overview?.sections.some((section) => section.items.length > 0);
 			pi.sendMessage({
 				customType: "fallow-result",
-				content: hasNavigator ? `Opened Fallow issue navigator.\n${formatted.summary}` : formatted.text,
+				content: hasNavigator
+					? `Opened Fallow issue navigator.\n${resultPrefix ? `${resultPrefix}\n` : ""}${formatted.summary}`
+					: resultPrefix ? `${resultPrefix}\n\n${formatted.text}` : formatted.text,
 				display: true,
-				details: { command: binary, args: executedArgs, exitCode: result.code, overview: formatted.overview, compact: hasNavigator, fullOutputPath: formatted.fullOutputPath, truncated: formatted.truncated },
+				details: { command: binary, args: executedArgs, exitCode: result.code, overview: formatted.overview, compact: hasNavigator, fullOutputPath: formatted.fullOutputPath, truncated: formatted.truncated, projectState, prSummary },
 			});
 
 			if (hasNavigator) {
@@ -134,6 +157,8 @@ export default function (pi: ExtensionAPI) {
 							command: commandDisplay(binary, executedArgs),
 							fullOutputPath: formatted.fullOutputPath,
 							truncated: formatted.truncated,
+							projectState,
+							prSummary,
 						},
 					);
 				}, {
@@ -150,11 +175,13 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerMessageRenderer("fallow-result", (message, options, theme) => {
-		const details = message.details as { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean } | undefined;
+		const details = message.details as { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } | undefined;
 		if (details?.compact) {
 			const title = details.overview?.title ?? "Fallow result";
 			const stats = details.overview?.stats.slice(0, 5).map((stat) => `${stat.label}: ${stat.value}`).join(" · ");
-			return new Text(theme.fg("toolTitle", theme.bold(title)) + (stats ? `\n${theme.fg("dim", stats)}` : "") + "\n" + theme.fg("muted", "Detailed findings were shown in the navigator window."), 0, 0);
+			const prSummaryText = formatFallowPrSummary(details.prSummary);
+			const projectStateLine = formatFallowProjectState(details.projectState);
+			return new Text(theme.fg("toolTitle", theme.bold(title)) + (stats ? `\n${theme.fg("dim", stats)}` : "") + (prSummaryText ? `\n${theme.fg("dim", prSummaryText)}` : "") + (projectStateLine ? `\n${theme.fg("dim", projectStateLine)}` : "") + "\n" + theme.fg("muted", "Detailed findings were shown in the navigator window."), 0, 0);
 		}
 		if (details?.overview) {
 			return new FallowOverviewComponent(details.overview, theme, {
@@ -162,6 +189,8 @@ export default function (pi: ExtensionAPI) {
 				command: details.command && details.args ? commandDisplay(details.command, details.args) : undefined,
 				fullOutputPath: details.fullOutputPath,
 				truncated: details.truncated,
+				projectState: details.projectState,
+				prSummary: details.prSummary,
 			});
 		}
 		return new Text(theme.fg("toolTitle", theme.bold("Fallow result")) + "\n" + message.content, 0, 0);
@@ -169,7 +198,7 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
-		ctx.ui.setStatus("fallow", "fallow ready");
+		void setFallowReadyStatus(ctx);
 		ctx.ui.addAutocompleteProvider((current) => ({
 			async getSuggestions(lines, cursorLine, cursorCol, options) {
 				const line = lines[cursorLine] ?? "";

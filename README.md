@@ -33,17 +33,41 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 - `extensions/fallow/output.ts` — JSON parsing, summaries, truncation
 - `extensions/fallow/overview.ts` — maps Fallow JSON to overview data
 - `extensions/fallow/ui.ts` — pi-tui overview component
+- `extensions/fallow/project.ts` — Fallow project/git status detection
+- `extensions/fallow/pr-summary.ts` — PR gate summary extraction
 - `extensions/fallow/types.ts` — shared types
 
 ## Install / test
 
-From this directory:
+Install this repository as a Pi package:
 
 ```bash
-pi -e ./extensions/fallow.ts
+# Global install for your user
+pi install .
+
+# Or project-local install, written to .pi/settings.json
+pi install -l .
 ```
 
-As a Pi package, `package.json` declares:
+Try it for one Pi run without installing:
+
+```bash
+pi -e .
+```
+
+Install from git:
+
+```bash
+pi install git:github.com/revazi/pi-fallow
+```
+
+After publishing to npm, install with:
+
+```bash
+pi install npm:pi-fallow-extension
+```
+
+`package.json` declares the Pi package entrypoint:
 
 ```json
 {
@@ -51,15 +75,6 @@ As a Pi package, `package.json` declares:
     "extensions": ["./extensions/fallow.ts"]
   }
 }
-```
-
-For global or project-local auto-discovery, copy both the entrypoint and helper directory into one of Pi's extension locations, for example:
-
-```bash
-mkdir -p .pi/extensions
-cp extensions/fallow.ts .pi/extensions/fallow.ts
-cp -R extensions/fallow .pi/extensions/fallow
-pi
 ```
 
 ## Examples
