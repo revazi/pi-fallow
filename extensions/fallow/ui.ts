@@ -35,21 +35,41 @@ export class FallowOverviewComponent implements Component {
 		this.renderSections(width, lines);
 		this.renderNotes(width, lines);
 		this.renderSummaryBlocks(width, lines);
-		if (this.options.expanded && this.options.command) lines.push(truncateToWidth(this.theme.fg("muted", this.options.command), width));
-		if (this.options.fullOutputPath) lines.push(truncateToWidth(this.theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), width));
-		if (this.options.truncated) lines.push(truncateToWidth(this.theme.fg("warning", "JSON output was truncated for context."), width));
+		this.renderCommandSummary(width, lines);
+		this.renderPathSummary(width, lines);
+		this.renderTruncationWarning(width, lines);
+		return this.cache(width, lines);
+	}
 
+	private renderCommandSummary(width: number, lines: string[]): void {
+		if (!this.options.expanded || !this.options.command) return;
+		lines.push(truncateToWidth(this.theme.fg("muted", this.options.command), width));
+	}
+
+	private renderPathSummary(width: number, lines: string[]): void {
+		if (!this.options.fullOutputPath) return;
+		lines.push(truncateToWidth(this.theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), width));
+	}
+
+	private renderTruncationWarning(width: number, lines: string[]): void {
+		if (!this.options.truncated) return;
+		lines.push(truncateToWidth(this.theme.fg("warning", "JSON output was truncated for context."), width));
+	}
+
+	private cache(width: number, lines: string[]): string[] {
 		this.cachedWidth = width;
 		this.cachedLines = lines;
 		return lines;
 	}
 
+
 	private renderTitle(width: number, lines: string[]): void {
 		const theme = this.theme;
-		const statusIcon = this.overview.status === "success" ? "✓" : this.overview.status === "error" ? "✗" : "●";
-		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
+		const statusColor = getOverviewStatusColor(this.overview.status);
+		const statusIcon = getOverviewStatusIcon(this.overview.status);
 		lines.push(truncateToWidth(`${theme.fg(statusColor, statusIcon)} ${theme.fg("toolTitle", theme.bold(this.overview.title))}`, width));
 	}
+
 
 	private renderStats(width: number, lines: string[]): void {
 		if (!this.overview.stats.length) return;
@@ -85,21 +105,33 @@ export class FallowOverviewComponent implements Component {
 
 	private renderSectionItems(section: FallowOverviewSection, width: number, lines: string[], maxItems: number): void {
 		for (const item of section.items.slice(0, maxItems)) {
-			const loc = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : undefined;
-			const main = [
-				this.theme.fg("text", item.label),
-				loc ? this.theme.fg("muted", loc) : undefined,
-				item.meta ? this.theme.fg("dim", item.meta) : undefined,
-			]
-				.filter(Boolean)
-				.join(this.theme.fg("dim", " · "));
-			lines.push(truncateToWidth(`    • ${main}`, width));
-			if (!this.options.expanded || !item.action) continue;
-			for (const wrapped of wrapTextWithAnsi(this.theme.fg("dim", `      ↳ ${item.action}`), Math.max(10, width))) {
-				lines.push(wrapped);
-			}
+			this.renderSectionItemLine(item, width, lines);
+			this.renderSectionItemAction(item, width, lines);
 		}
 	}
+
+	private renderSectionItemLine(item: FallowIssueLine, width: number, lines: string[]): void {
+		const main = this.buildSectionItemLine(item);
+		lines.push(truncateToWidth(`    • ${main}`, width));
+	}
+
+	private buildSectionItemLine(item: FallowIssueLine): string {
+		const location = getItemLocation(item);
+		const labels = [
+			this.theme.fg("text", item.label),
+			location ? this.theme.fg("muted", location) : undefined,
+			item.meta ? this.theme.fg("dim", item.meta) : undefined,
+		].filter(Boolean);
+		return labels.join(this.theme.fg("dim", " · "));
+	}
+
+	private renderSectionItemAction(item: FallowIssueLine, width: number, lines: string[]): void {
+		if (!this.options.expanded || !item.action) return;
+		for (const wrapped of wrapTextWithAnsi(this.theme.fg("dim", `      ↳ ${item.action}`), Math.max(10, width))) {
+			lines.push(wrapped);
+		}
+	}
+
 
 	private renderSectionOverflow(section: FallowOverviewSection, width: number, lines: string[], maxItems: number): void {
 		if (section.items.length <= maxItems) return;
@@ -113,14 +145,10 @@ export class FallowOverviewComponent implements Component {
 	}
 
 	private renderSummaryBlocks(width: number, lines: string[]): void {
-		const theme = this.theme;
-		const summaryText = renderSummaryLines(formatFallowPrSummary(this.options.prSummary), theme);
-		if (summaryText) {
-			for (const line of summaryText.split("\n")) lines.push(truncateToWidth(line, width));
-		}
-		const projectStateText = renderSummaryLines(formatFallowProjectState(this.options.projectState), theme);
-		if (projectStateText) {
-			for (const line of projectStateText.split("\n")) lines.push(truncateToWidth(line, width));
+		for (const summaryText of collectSummaryBlocks(this.options.prSummary, this.options.projectState, this.theme)) {
+			for (const line of summaryText) {
+				lines.push(truncateToWidth(line, width));
+			}
 		}
 	}
 
@@ -128,6 +156,35 @@ export class FallowOverviewComponent implements Component {
 		this.cachedWidth = undefined;
 		this.cachedLines = undefined;
 	}
+}
+
+function getOverviewStatusColor(status: FallowOverview["status"]): "success" | "error" | "warning" {
+	if (status === "success") return "success";
+	if (status === "error") return "error";
+	return "warning";
+}
+
+function getOverviewStatusIcon(status: FallowOverview["status"]): string {
+	if (status === "success") return "✓";
+	if (status === "error") return "✗";
+	return "●";
+}
+
+function getItemLocation(item: FallowIssueLine): string | undefined {
+	if (!item.path) return undefined;
+	return `${item.path}${item.line ? `:${item.line}` : ""}`;
+}
+
+function collectSummaryBlocks(prSummary: unknown, projectState: unknown, theme: any): string[][] {
+	const summaryText = renderSummaryLines(formatFallowPrSummary(prSummary), theme);
+	const projectStateText = renderSummaryLines(formatFallowProjectState(projectState), theme);
+	return [summaryText, projectStateText].filter(Boolean).map((text) => text.split("\n"));
+}
+
+function buildHeaderTitle(issueCount: number, title: string, status: FallowOverview["status"], theme: any): string {
+	const statusColor = getOverviewStatusColor(status);
+	const findingText = `${issueCount} finding${issueCount === 1 ? "" : "s"}`;
+	return `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(title))}${theme.fg("dim", " · ")}${pill(findingText, issueCount ? pink : cyan)} `;
 }
 
 interface FlatIssue {
@@ -219,10 +276,8 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private renderHeader(frameWidth: number, innerWidth: number, lines: string[]): void {
-		const theme = this.theme;
-		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
 		const issueCount = this.issues.length;
-		const title = `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(this.overview.title))}${theme.fg("dim", " · ")}${pill(`${issueCount} finding${issueCount === 1 ? "" : "s"}`, issueCount ? pink : cyan)} `;
+		const title = buildHeaderTitle(issueCount, this.overview.title, this.overview.status, this.theme);
 		lines.push(this.topBorder(frameWidth, title));
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
 		lines.push(this.frame(this.helpLine(), frameWidth));
@@ -247,25 +302,36 @@ export class FallowIssueNavigator implements Component {
 		let lastSection = -1;
 		for (let index = start; index < end; index++) {
 			const entry = this.issues[index]!;
+			rows.push(...this.renderIssueRowsSectionHeader(entry, index, lastSection));
 			if (entry.sectionIndex !== lastSection) {
 				lastSection = entry.sectionIndex;
-				const count = entry.section.count !== undefined ? this.theme.fg("dim", ` (${entry.section.count})`) : "";
-				rows.push(`  ${violet("●")} ${this.theme.fg(entry.section.color ?? "accent", this.theme.bold(entry.section.title))}${count}`);
 			}
 			rows.push(this.issueLine(index, innerWidth));
-			if (this.expanded.has(index)) {
-				rows.push(...this.detailLines(this.issues[index]!, innerWidth));
-			}
+			if (this.expanded.has(index)) rows.push(...this.detailLines(entry, innerWidth));
 		}
 		return rows;
+	}
+
+	private renderIssueRowsSectionHeader(entry: FlatIssue, index: number, lastSection: number): string[] {
+		if (entry.sectionIndex === lastSection) return [];
+		const count = entry.section.count !== undefined ? this.theme.fg("dim", ` (${entry.section.count})`) : "";
+		return [`  ${violet("●")} ${this.theme.fg(entry.section.color ?? "accent", this.theme.bold(entry.section.title))}${count}`];
 	}
 
 	private renderFooter(frameWidth: number, lines: string[]): void {
 		const theme = this.theme;
 		lines.push(this.separator(frameWidth));
 		lines.push(this.frame(`${pill(`${this.selection().length} selected`, purple)} ${theme.fg("muted", "e/a loads prompt into editor for your comments")}`, frameWidth));
+		this.renderFooterSummaryBlocks(theme, frameWidth, lines);
+		this.renderFooterMeta(theme, frameWidth, lines);
+	}
+
+	private renderFooterSummaryBlocks(theme: any, frameWidth: number, lines: string[]): void {
 		this.renderSummaryBlock(this.options.prSummary ? formatFallowPrSummary(this.options.prSummary) : undefined, theme, frameWidth, lines);
 		this.renderSummaryBlock(this.options.projectState ? formatFallowProjectState(this.options.projectState) : undefined, theme, frameWidth, lines);
+	}
+
+	private renderFooterMeta(theme: any, frameWidth: number, lines: string[]): void {
 		if (this.options.fullOutputPath) lines.push(this.frame(`${cyan("Full JSON")} ${theme.fg("dim", this.options.fullOutputPath)}`, frameWidth));
 		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
 	}
@@ -328,11 +394,12 @@ export class FallowIssueNavigator implements Component {
 
 	private pathFromAction(action: string | undefined): string | null {
 		if (!action) return null;
-		const pathWithLine = action.match(/(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+:\d+)(?:\s|$)/);
-		if (pathWithLine?.[1]) return this.stripTraceSuffix(pathWithLine[1]);
-		const barePath = action.match(/(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+)(?:\s|$)/);
-		return barePath?.[1] ? this.stripTraceSuffix(barePath[1]) : null;
+		const pathWithLine = pickPathFromText(action, /(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+:\d+)(?:\s|$)/);
+		if (pathWithLine) return this.stripTraceSuffix(pathWithLine);
+		const barePath = pickPathFromText(action, /(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+)(?:\s|$)/);
+		return barePath ? this.stripTraceSuffix(barePath) : null;
 	}
+
 
 	private stripTraceSuffix(path: string): string {
 		return path
@@ -341,20 +408,8 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private buildPrompt(issues: FlatIssue[]): string {
-		const blocks = issues.map((entry, index) => {
-			const item = entry.item;
-			const loc = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : "unknown location";
-			const raw = item.raw === undefined ? "" : `\nRaw finding:\n\`\`\`json\n${this.safeJson(item.raw, 3000)}\n\`\`\``;
-			return [
-				`## ${index + 1}. ${entry.section.title}: ${item.label}`,
-				`Location: ${loc}`,
-				item.meta ? `Details: ${item.meta}` : undefined,
-				item.action ? `Suggested action: ${item.action}` : undefined,
-				raw || undefined,
-			].filter(Boolean).join("\n");
-		}).join("\n\n");
-
-		return [
+		const blocks = issues.map((entry, index) => this.buildIssuePromptBlock(entry, index)).join("\n\n");
+		const sections = [
 			"Please work on the following selected Fallow findings.",
 			"",
 			"Additional instructions from user:",
@@ -364,9 +419,46 @@ export class FallowIssueNavigator implements Component {
 			this.options.command ? `Fallow command: ${this.options.command}` : undefined,
 			"",
 			blocks,
-		].filter((part) => part !== undefined).join("\n");
+		];
+		return sections.filter((part) => part !== undefined).join("\n");
 	}
 
+	private buildIssuePromptBlock(entry: FlatIssue, index: number): string {
+		const item = entry.item;
+		const lines: string[] = [
+			`## ${index + 1}. ${entry.section.title}: ${item.label}`,
+			this.buildIssueLocationLine(item),
+			...this.buildIssueMetaLines(item),
+			...this.buildIssueActionLines(item),
+			...this.buildIssueRawLines(item),
+		];
+		return lines.join("\n");
+	}
+
+	private buildIssueLocationLine(item: FallowIssueLine): string {
+		const location = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : "unknown location";
+		return `Location: ${location}`;
+	}
+
+	private buildIssueMetaLines(item: FallowIssueLine): string[] {
+		if (!item.meta) return [];
+		return [`Details: ${item.meta}`];
+	}
+
+	private buildIssueActionLines(item: FallowIssueLine): string[] {
+		if (!item.action) return [];
+		return [`Suggested action: ${item.action}`];
+	}
+
+	private buildIssueRawLines(item: FallowIssueLine): string[] {
+		if (item.raw === undefined) return [];
+		return [
+			"Raw finding:",
+			"```json",
+			this.safeJson(item.raw, 3000),
+			"```",
+		];
+	}
 	private safeJson(value: unknown, maxChars: number): string {
 		let text: string;
 		try {
@@ -393,29 +485,52 @@ export class FallowIssueNavigator implements Component {
 
 	private issueLine(index: number, width: number): string {
 		const entry = this.issues[index]!;
-		const selected = index === this.selected;
-		const expanded = this.expanded.has(index);
-		const marker = selected ? purple("❯") : this.theme.fg("dim", " ");
-		const check = this.marked.has(index) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
-		const expandMarker = expanded ? amber("▾") : violet("▸");
-		const loc = entry.item.path ? `${entry.item.path}${entry.item.line ? `:${entry.item.line}` : ""}` : undefined;
-		const main = [
-			this.theme.fg("text", entry.item.label),
-			loc ? cyan(loc) : undefined,
-			entry.item.meta ? this.theme.fg("dim", entry.item.meta) : undefined,
-		].filter(Boolean).join(this.theme.fg("dim", " · "));
+		const marker = this.issueLineMarker(index);
+		const check = this.issueLineCheck(index);
+		const expandMarker = this.expanded.has(index) ? amber("▾") : violet("▸");
+		const main = this.buildIssueLineMain(entry);
 		const raw = `    ${marker} ${check} ${expandMarker} ${main}`;
-		const styled = selected ? this.theme.bg("selectedBg", raw) : raw;
-		return truncateToWidth(styled, width);
+		return truncateToWidth(this.selected === index ? this.theme.bg("selectedBg", raw) : raw, width);
 	}
 
+	private buildIssueLineMain(entry: FlatIssue): string {
+		const loc = this.getIssueLineLocation(entry.item);
+		return [
+			this.theme.fg("text", entry.item.label),
+			loc,
+			entry.item.meta ? this.theme.fg("dim", entry.item.meta) : undefined,
+		].filter(Boolean).join(this.theme.fg("dim", " · "));
+	}
+
+	private getIssueLineLocation(item: FallowIssueLine): string | undefined {
+		if (!item.path) return undefined;
+		const path = item.line ? `${item.path}:${item.line}` : item.path;
+		return cyan(path);
+	}
+
+	private issueLineMarker(index: number): string {
+		return index === this.selected ? purple("❯") : this.theme.fg("dim", " ");
+	}
+
+	private issueLineCheck(index: number): string {
+		return this.marked.has(index) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
+	}
 	private detailLines(entry: FlatIssue, width: number): string[] {
-		const theme = this.theme;
 		const item = entry.item;
-		const lines: string[] = [];
-		if (item.action) lines.push(...wrapTextWithAnsi(`${amber("      ↳")} ${theme.fg("muted", item.action)}`, width));
-		if (!item.action && item.path) lines.push(`${cyan("      Location")} ${theme.fg("dim", `${item.path}${item.line ? `:${item.line}` : ""}`)}`);
-		return lines;
+		return [
+			...this.buildDetailActionLines(item, width),
+			...this.buildDetailLocationLines(item, width),
+		];
+	}
+
+	private buildDetailActionLines(item: FallowIssueLine, width: number): string[] {
+		if (!item.action) return [];
+		return [wrapTextWithAnsi(`${amber("      ↳")} ${this.theme.fg("muted", item.action)}`, width)];
+	}
+
+	private buildDetailLocationLines(item: FallowIssueLine, width: number): string[] {
+		if (item.action || !item.path) return [];
+		return [`${cyan("      Location")} ${this.theme.fg("dim", `${item.path}${item.line ? `:${item.line}` : ""}`)}`];
 	}
 
 	private topBorder(width: number, title: string): string {
@@ -444,4 +559,9 @@ export class FallowIssueNavigator implements Component {
 		this.cachedLines = lines;
 		return lines;
 	}
+}
+
+function pickPathFromText(text: string, pattern: RegExp): string | null {
+	const match = text.match(pattern);
+	return match?.[1] ?? null;
 }

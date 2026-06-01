@@ -259,15 +259,29 @@ async function execFallow(_pi: ExtensionAPI, args: string[], cwd: string, signal
 	const configuredBin = process.env.FALLOW_BIN;
 	const binary = configuredBin || "fallow";
 	const result = await execCommand(binary, args, cwd, signal, timeoutSecs);
-	if (!configuredBin && (result.code === 127 || (result.code === 1 && !result.stdout.trim() && !result.stderr.trim()))) {
-		const npxArgs = ["-y", "fallow", ...args];
-		return {
-			binary: "npx",
-			args: npxArgs,
-			result: await execCommand("npx", npxArgs, cwd, signal, timeoutSecs),
-		};
+	if (!shouldTryNpxFallback(configuredBin, result)) {
+		return { binary, args, result };
 	}
-	return { binary, args, result };
+	const npxArgs = buildNpxArgs(args);
+	return { binary: "npx", args: npxArgs, result: await execCommand("npx", npxArgs, cwd, signal, timeoutSecs) };
+}
+
+function shouldTryNpxFallback(configuredBin: string | undefined, result: ExecResult): boolean {
+	if (configuredBin) return false;
+	if (!isNpxFallbackCode(result.code)) return false;
+	return result.code === 127 || isEmptyFailureOutput(result);
+}
+
+function isNpxFallbackCode(code: number): boolean {
+	return code === 127 || code === 1;
+}
+
+function isEmptyFailureOutput(result: ExecResult): boolean {
+	return !result.stdout.trim() && !result.stderr.trim();
+}
+
+function buildNpxArgs(args: string[]): string[] {
+	return ["-y", "fallow", ...args];
 }
 
 async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext) {
@@ -285,42 +299,92 @@ async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: Extensi
 	return { content: [{ type: "text" as const, text: content }], details };
 }
 
+type CliQuote = "'" | '"';
+
 function splitArgs(input: string): string[] {
-	const args: string[] = [];
-	let current = "";
-	let quote: "'" | '"' | undefined;
-	let escaped = false;
-	for (const ch of input) {
-		if (escaped) {
-			current += ch;
-			escaped = false;
-			continue;
-		}
-		if (ch === "\\") {
-			escaped = true;
-			continue;
-		}
-		if (quote) {
-			if (ch === quote) quote = undefined;
-			else current += ch;
-			continue;
-		}
-		if (ch === "'" || ch === '"') {
-			quote = ch;
-			continue;
-		}
-		if (/\s/.test(ch)) {
-			if (current) {
-				args.push(current);
-				current = "";
-			}
-			continue;
-		}
-		current += ch;
+	const state = createSplitArgsState();
+	for (const char of input) {
+		applySplitChar(state, char);
 	}
-	if (quote) throw new Error("Unclosed quote in arguments.");
-	if (current) args.push(current);
-	return args;
+	if (state.quote) throw new Error("Unclosed quote in arguments.");
+	if (state.current) state.args.push(state.current);
+	return state.args;
+}
+
+function createSplitArgsState(): {
+	args: string[];
+	current: string;
+	quote: CliQuote | undefined;
+	escaped: boolean;
+} {
+	return { args: [], current: "", quote: undefined, escaped: false };
+}
+
+function applySplitChar(
+	state: { args: string[]; current: string; quote: CliQuote | undefined; escaped: boolean },
+	char: string,
+): void {
+	if (state.escaped) return handleEscapedChar(state, char);
+	return applySplitCharWithoutEscape(state, char);
+}
+
+function handleEscapedChar(
+	state: { current: string; escaped: boolean },
+	char: string,
+): void {
+	applyEscapedChar(state, char);
+}
+
+function applySplitCharWithoutEscape(
+	state: { args: string[]; current: string; quote: CliQuote | undefined; escaped: boolean },
+	char: string,
+): void {
+	if (char === "\\") {
+		state.escaped = true;
+		return;
+	}
+	if (state.quote) {
+		return applyQuotedChar(state, char);
+	}
+	return applySplitCharInUnquoted(state, char);
+}
+
+function applySplitCharInUnquoted(
+	state: { args: string[]; current: string; quote: CliQuote | undefined },
+	char: string,
+): void {
+	if (isQuoteChar(char)) {
+		state.quote = char;
+		return;
+	}
+	if (isWhitespaceChar(char)) return flushSplitArg(state);
+	state.current += char;
+}
+
+function applyEscapedChar(state: { current: string; escaped: boolean }, char: string): void {
+	state.current += char;
+	state.escaped = false;
+}
+
+function applyQuotedChar(
+	state: { current: string; quote: CliQuote | undefined },
+	char: string,
+): void {
+	if (char === state.quote) state.quote = undefined;
+	else state.current += char;
+}
+
+function isWhitespaceChar(value: string): boolean {
+	return /\s/.test(value);
+}
+function isQuoteChar(value: string): value is CliQuote {
+	return value === "'" || value === '"';
+}
+
+function flushSplitArg(state: { args: string[]; current: string }): void {
+	if (!state.current) return;
+	state.args.push(state.current);
+	state.current = "";
 }
 
 export const fallowCli = {

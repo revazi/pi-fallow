@@ -24,6 +24,17 @@ interface FallowCommandInput {
 	throwOnExecutionError?: boolean;
 }
 
+interface ExecutedFallowCommand {
+	binary: string;
+	args: string[];
+	result: ExecResult;
+	stdout: string;
+	stderr: string;	
+	code: number;
+	killed: boolean;
+	elapsedMs: number;
+}
+
 interface FallowCommandResult {
 	binary: string;
 	args: string[];
@@ -48,31 +59,75 @@ function formatCommandLine(binary: string, args: string[]): string {
 }
 
 async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowCommandResult> {
-	const {
-		pi,
-		cwd,
-		args,
-		signal,
-		timeoutSecs,
-		executor,
-		throwOnExecutionError = true,
-	} = input;
+	const execution = await executeCommand(input);
+	const projectState = await detectFallowProjectState(input.cwd, execution.args);
+	const parsed = parseJson(execution.stdout, execution.stderr);
+	const formatted = await formatToolOutput(parsed, input.cwd, execution.code);
+	const prSummary = buildFallowPrSummary(parsed.data, execution.args, execution.code);
+	if (shouldThrowExecutionError(execution, input.throwOnExecutionError ?? true)) {
+		throwExecutionError(execution, formatted.text);
+	}
+	return {
+		binary: execution.binary,
+		args: execution.args,
+		result: execution.result,
+		formatted,
+		parsed,
+		projectState,
+		prSummary,
+		details: buildFallowDetails(execution, parsed.parsed, input.cwd, formatted, projectState, prSummary),
+		content: buildFallowResultContent(formatted, projectState, prSummary),
+	};
+}
 
+async function executeCommand(input: FallowCommandInput): Promise<ExecutedFallowCommand> {
 	const started = Date.now();
+	const { pi, cwd, args, signal, timeoutSecs, executor } = input;
 	const { binary, args: executedArgs, result } = await executor(pi, args, cwd, signal, timeoutSecs);
-	const elapsedMs = Date.now() - started;
-	const projectState = await detectFallowProjectState(cwd, executedArgs);
-	const parsed = parseJson(result.stdout, result.stderr);
-	const formatted = await formatToolOutput(parsed, cwd, result.code);
-	const prSummary = buildFallowPrSummary(parsed.data, executedArgs, result.code);
-
-	const details: FallowDetails = {
-		command: binary,
+	return {
+		binary,
 		args: executedArgs,
+		result,
+		stdout: result.stdout,
+		stderr: result.stderr,
+		code: result.code,
+		killed: result.killed,
+		elapsedMs: Date.now() - started,
+	};
+}
+
+function shouldThrowExecutionError(
+	execution: Pick<ExecutedFallowCommand, "code" | "killed">,
+	throwOnExecutionError: boolean,
+): boolean {
+	if (!throwOnExecutionError) return false;
+	return execution.code >= 2 || execution.killed;
+}
+
+function throwExecutionError(execution: Pick<ExecutedFallowCommand, "binary" | "args" | "code" | "killed">, formattedText: string): never {
+	const reason = [
+		`Fallow command failed (${formatCommandLine(execution.binary, execution.args)})`,
+		`exitCode=${execution.code}${execution.killed ? " killed=true" : ""}`,
+		formattedText,
+	].join("\n");
+	throw new Error(reason);
+}
+
+function buildFallowDetails(
+	execution: Pick<ExecutedFallowCommand, "binary" | "args" | "elapsedMs" | "code">,
+	parsed: boolean,
+	cwd: string,
+	formatted: { summary: string; overview?: FallowOverview; fullOutputPath?: string; truncated?: boolean },
+	projectState: FallowProjectState,
+	prSummary: FallowPrSummary | undefined,
+): FallowDetails {
+	return {
+		command: execution.binary,
+		args: execution.args,
 		cwd,
-		exitCode: result.code,
-		elapsedMs,
-		parsed: parsed.parsed,
+		exitCode: execution.code,
+		elapsedMs: execution.elapsedMs,
+		parsed,
 		summary: formatted.summary,
 		overview: formatted.overview,
 		fullOutputPath: formatted.fullOutputPath,
@@ -80,33 +135,17 @@ async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowC
 		projectState,
 		prSummary,
 	};
+}
 
-	const prSummaryLines = formatFallowPrSummary(prSummary);
-	const projectStateLines = formatFallowProjectState(projectState);
-	const prSummaryText = formatSummaryLines(prSummaryLines);
-	const projectStateText = formatSummaryLines(projectStateLines);
+function buildFallowResultContent(
+	formatted: { text: string },
+	projectState: FallowProjectState,
+	prSummary: FallowPrSummary | undefined,
+): string {
+	const prSummaryText = formatSummaryLines(formatFallowPrSummary(prSummary));
+	const projectStateText = formatSummaryLines(formatFallowProjectState(projectState));
 	const contentPrefix = [prSummaryText, projectStateText].filter(Boolean).join("\n");
-	const content = contentPrefix ? `${contentPrefix}\n\n${formatted.text}` : formatted.text;
-
-	if ((result.code >= 2 || result.killed) && throwOnExecutionError) {
-		throw new Error([
-			`Fallow command failed (${formatCommandLine(binary, executedArgs)})`,
-			`exitCode=${result.code}${result.killed ? " killed=true" : ""}`,
-			formatted.text,
-		].join("\n"));
-	}
-
-	return {
-		binary,
-		args: executedArgs,
-		result,
-		formatted,
-		parsed,
-		projectState,
-		prSummary,
-		details,
-		content,
-	};
+	return contentPrefix ? `${contentPrefix}\n\n${formatted.text}` : formatted.text;
 }
 
 export const fallowEngine = {

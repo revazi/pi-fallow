@@ -211,22 +211,33 @@ function parseTokens(input: string): string[] {
 }
 
 function currentToken(argumentText: string): { beforeCurrent: string; current: string; previousTokens: string[] } {
-	const match = argumentText.match(/^(.*?)(\S*)$/);
-	const beforeCurrent = match?.[1] ?? argumentText;
-	const current = match?.[2] ?? "";
+	const match = splitCurrentToken(argumentText);
 	return {
-		beforeCurrent,
-		current,
-		previousTokens: parseTokens(beforeCurrent.trim()),
+		beforeCurrent: match.beforeCurrent,
+		current: match.current,
+		previousTokens: parseTokens(match.beforeCurrent.trim()),
 	};
+}
+
+function splitCurrentToken(argumentText: string): { beforeCurrent: string; current: string } {
+	const match = argumentText.match(/^(.*?)(\S*)$/) ?? ["", argumentText, ""];
+	const [, beforeCurrent, current] = match;
+	return { beforeCurrent, current };
 }
 
 function commandKey(tokens: string[]): string | undefined {
 	const first = tokens[0];
 	if (!first || first.startsWith("-")) return undefined;
-	if (first === "coverage" && tokens[1] === "analyze") return "coverage analyze";
-	if (first === "pr") return "audit";
-	return first;
+	if (isCoverageAnalyze(first, tokens[1])) return "coverage analyze";
+	return normalizeRootCommand(first);
+}
+
+function normalizeRootCommand(command: string): string {
+	return command === "pr" ? "audit" : command;
+}
+
+function isCoverageAnalyze(first: string, second: string | undefined): boolean {
+	return first === "coverage" && second === "analyze";
 }
 
 function allFlags(command: string | undefined): FlagSpec[] {
@@ -269,16 +280,7 @@ function completeToken(beforeCurrent: string, current: string, specs: Completion
 		}));
 }
 
-function completeFlags(beforeCurrent: string, current: string, flags: FlagSpec[], usedFlags: Set<string>): AutocompleteItem[] {
-	return flags
-		.filter((spec) => !usedFlags.has(spec.flag))
-		.filter((spec) => matches(spec.flag, current))
-		.map((spec) => ({
-			value: `${beforeCurrent}${spec.flag} `,
-			label: spec.flag,
-			description: spec.description,
-		}));
-}
+
 
 function valuesForFlag(flag: FlagSpec): string[] | undefined {
 	if (!flag.values) return undefined;
@@ -286,65 +288,143 @@ function valuesForFlag(flag: FlagSpec): string[] | undefined {
 }
 
 function valueCompletions(beforeCurrent: string, current: string, flag: FlagSpec | undefined): AutocompleteItem[] | null {
-	const values = flag ? valuesForFlag(flag) : undefined;
-	if (!values?.length) return null;
-	const items = values
+	const items = collectFlagValueCompletions(beforeCurrent, current, flag);
+	return items.length ? items : null;
+}
+
+function collectFlagValueCompletions(beforeCurrent: string, current: string, flag: FlagSpec | undefined): AutocompleteItem[] {
+	if (!flag) return [];
+	const values = valuesForFlag(flag);
+	if (!values?.length) return [];
+	return values
 		.filter((value) => matches(value, current))
 		.map((value) => ({
 			value: `${beforeCurrent}${value} `,
 			label: value,
 			description: `${flag.flag} value`,
 		}));
-	return items.length ? items : null;
 }
 
 function equalsValueCompletions(beforeCurrent: string, current: string, flags: FlagSpec[]): AutocompleteItem[] | null {
-	const equalsIndex = current.indexOf("=");
-	if (equalsIndex === -1) return null;
-	const flagName = current.slice(0, equalsIndex);
-	const valuePrefix = current.slice(equalsIndex + 1);
-	const flag = flags.find((candidate) => candidate.flag === flagName);
-	if (!flag) return null;
+	const matchesValues = collectEqualsValueCompletions(beforeCurrent, current, flags);
+	return matchesValues.length ? matchesValues : null;
+}
+
+function collectEqualsValueCompletions(beforeCurrent: string, current: string, flags: FlagSpec[]): AutocompleteItem[] {
+	const [flagName, valuePrefix] = splitEqualsToken(current);
+	if (!flagName) return [];
+	const flag = findFlagByName(flags, flagName);
 	const values = valuesForFlag(flag);
-	if (!values?.length) return null;
-	const items = values
+	return buildEqualsValueCompletions(beforeCurrent, flagName, valuePrefix, values, flag?.description);
+}
+
+function findFlagByName(flags: FlagSpec[], flagName: string): FlagSpec | undefined {
+	return flags.find((candidate) => candidate.flag === flagName);
+}
+
+function buildEqualsValueCompletions(
+	beforeCurrent: string,
+	flagName: string,
+	valuePrefix: string,
+	values: string[] | undefined,
+	description: string | undefined,
+): AutocompleteItem[] {
+	if (!values?.length) return [];
+	return buildEqualsValueMatches(beforeCurrent, flagName, valuePrefix, values, description ?? "");
+}
+
+function splitEqualsToken(current: string): [string | undefined, string] {
+	const equalsIndex = current.indexOf("=");
+	if (equalsIndex === -1) return [undefined, ""];
+	return [current.slice(0, equalsIndex), current.slice(equalsIndex + 1)];
+}
+
+function buildEqualsValueMatches(
+	beforeCurrent: string,
+	flagName: string,
+	valuePrefix: string,
+	values: string[],
+	description: string,
+): AutocompleteItem[] {
+	return values
 		.filter((value) => matches(value, valuePrefix))
 		.map((value) => ({
 			value: `${beforeCurrent}${flagName}=${value} `,
 			label: `${flagName}=${value}`,
-			description: flag.description,
+			description,
 		}));
-	return items.length ? items : null;
 }
 
 function getFallowArgumentCompletions(argumentText: string): AutocompleteItem[] | null {
+	const context = analyzeFallowArgumentContext(argumentText);
+	const valueItems = pickValueCompletions(context);
+	if (valueItems) return valueItems;
+	return resolvePositionalCompletions(context);
+}
+
+function analyzeFallowArgumentContext(argumentText: string) {
 	const { beforeCurrent, current, previousTokens } = currentToken(argumentText);
 	const command = commandKey(previousTokens);
 	const flags = allFlags(command);
 	const previousFlag = previousTokens.at(-1);
 	const previousFlagSpec = flags.find((flag) => flag.flag === previousFlag);
-	const usedFlags = new Set(previousTokens.filter((token) => token.startsWith("--")));
+	const usedFlags = usedFlagsFromTokens(previousTokens);
 
-	const valueItems = valueCompletions(beforeCurrent, current, previousFlagSpec)
-		?? equalsValueCompletions(beforeCurrent, current, flags);
-	if (valueItems) return valueItems;
+	return { beforeCurrent, current, previousTokens, command, flags, previousFlagSpec, usedFlags };
+}
 
-	if (!command) {
-		if (current.startsWith("-")) {
-			const items = completeFlags(beforeCurrent, current, flags, usedFlags);
-			return items.length ? items : null;
-		}
-		const items = completeToken(beforeCurrent, current, COMMANDS);
-		return items.length ? items : null;
+function usedFlagsFromTokens(previousTokens: string[]): Set<string> {
+	const values = new Set<string>();
+	for (const token of previousTokens) {
+		if (token.startsWith("--")) values.add(token);
 	}
+	return values;
+}
 
-	if (previousTokens[0] === "coverage" && previousTokens[1] !== "analyze") {
-		const items = completeToken(beforeCurrent, current, [
-			{ value: "analyze", description: "Analyze runtime coverage and cold paths" },
-		]);
-		return items.length ? items : null;
+function pickValueCompletions(
+	context: ReturnType<typeof analyzeFallowArgumentContext>,
+): AutocompleteItem[] | null {
+	const equalItems = valueCompletions(context.beforeCurrent, context.current, context.previousFlagSpec)
+		?? equalsValueCompletions(context.beforeCurrent, context.current, context.flags);
+	if (equalItems) return equalItems;
+	return null;
+}
+
+function resolvePositionalCompletions(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	if (!context.command) return completeRootPosition(context);
+	if (context.previousTokens[0] === "coverage" && context.previousTokens[1] !== "analyze") {
+		return completeCoverageAnalyze(context);
 	}
+	return completeFlags(context.beforeCurrent, context.current, context.flags, context.usedFlags);
+}
 
-	const items = completeFlags(beforeCurrent, current, flags, usedFlags);
+function completeRootPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	if (context.current.startsWith("-")) return completeFlags(context.beforeCurrent, context.current, context.flags, context.usedFlags);
+	const items = completeToken(context.beforeCurrent, context.current, COMMANDS);
 	return items.length ? items : null;
 }
+
+function completeCoverageAnalyze(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	const items = completeToken(context.beforeCurrent, context.current, [
+		{ value: "analyze", description: "Analyze runtime coverage and cold paths" },
+	]);
+	return items.length ? items : null;
+}
+
+function completeFlags(
+	beforeCurrent: string,
+	current: string,
+	flags: FlagSpec[],
+	usedFlags: Set<string>,
+): AutocompleteItem[] | null {
+	const items = flags
+		.filter((spec) => !usedFlags.has(spec.flag))
+		.filter((spec) => matches(spec.flag, current))
+		.map((spec) => ({
+			value: `${beforeCurrent}${spec.flag} `,
+			label: spec.flag,
+			description: spec.description,
+		}));
+	return items.length ? items : null;
+}
+

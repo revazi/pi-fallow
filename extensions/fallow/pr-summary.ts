@@ -21,33 +21,64 @@ function normalizeArgs(args: string[]): string[] {
 
 function findValue(root: unknown, keys: string[], maxDepth = 6): unknown {
 	const seen = new Set<unknown>();
-	const visit = (value: unknown, depth: number): unknown => {
-		if (depth > maxDepth || value === null || typeof value !== "object" || seen.has(value)) return undefined;
+	const targetKeys = new Set(keys);
+	const stack: Array<{ value: unknown; depth: number }> = [{ value: root, depth: 0 }];
+
+	while (stack.length) {
+		const { value, depth } = stack.pop()!;
+		if (!canTraverseValue(value, depth, maxDepth, seen)) continue;
 		seen.add(value);
-		if (!Array.isArray(value)) {
-			const record = value as Record<string, unknown>;
-			for (const key of keys) {
-				if (record[key] !== undefined) return record[key];
-			}
-			for (const child of Object.values(record)) {
-				const found = visit(child, depth + 1);
-				if (found !== undefined) return found;
-			}
-			return undefined;
-		}
+		const targetValue = extractTargetValue(value, targetKeys, keys);
+		if (targetValue !== undefined) return targetValue;
+		pushChildrenToStack(stack, value, depth);
+	}
+	return undefined;
+}
+
+function extractTargetValue(value: unknown, targetKeys: Set<string>, keys: string[]): unknown {
+	const record = value as Record<string, unknown>;
+	for (const key of keys) {
+		if (!targetKeys.has(key)) continue;
+		const valueAtKey = record[key];
+		if (valueAtKey !== undefined) return valueAtKey;
+	}
+	return undefined;
+}
+
+function pushChildrenToStack(
+	stack: Array<{ value: unknown; depth: number }>,
+	value: unknown,
+	depth: number,
+): void {
+	if (Array.isArray(value)) {
 		for (const child of value) {
-			const found = visit(child, depth + 1);
-			if (found !== undefined) return found;
+			stack.push({ value: child, depth: depth + 1 });
 		}
-		return undefined;
-	};
-	return visit(root, 0);
+		return;
+	}
+	for (const [, child] of Object.entries(value as Record<string, unknown>)) {
+		stack.push({ value: child, depth: depth + 1 });
+	}
+}
+
+function canTraverseValue(value: unknown, depth: number, maxDepth: number, seen: Set<unknown>): value is Record<string, any> | unknown[] {
+	return depth <= maxDepth && value !== null && typeof value === "object" && !seen.has(value);
 }
 
 function toNumber(value: unknown): number | undefined {
-	if (typeof value === "number" && Number.isFinite(value)) return value;
-	if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);
+	if (typeof value === "number") return normalizeFiniteNumber(value);
+	if (typeof value === "string") return parseNumericString(value);
 	return undefined;
+}
+
+function normalizeFiniteNumber(value: number): number | undefined {
+	return Number.isFinite(value) ? value : undefined;
+}
+
+function parseNumericString(value: string): number | undefined {
+	if (!value.trim()) return undefined;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function collectFindingLikeObjects(root: unknown, maxDepth = 7): Record<string, any>[] {
@@ -65,35 +96,49 @@ function collectFindingLikeObjects(root: unknown, maxDepth = 7): Record<string, 
 		"clone_groups",
 	]);
 
-	const visit = (value: unknown, depth: number, parentKey?: string) => {
-		if (depth > maxDepth || value === null || typeof value !== "object" || seen.has(value)) return;
+	const stack: Array<{ value: unknown; depth: number; parentKey?: string }> = [{ value: root, depth: 0 }];
+	while (stack.length) {
+		const { value, depth, parentKey } = stack.pop()!;
+		if (!canTraverseValue(value, depth, maxDepth, seen)) continue;
 		seen.add(value);
-		if (Array.isArray(value)) {
-			for (const item of value) {
-				if (parentKey && issueArrayKeys.has(parentKey)) {
-					const record = asRecord(item);
-					if (record) findings.push(record);
-				}
-				visit(item, depth + 1, parentKey);
-			}
-			return;
-		}
-		const record = value as Record<string, unknown>;
-		for (const [key, child] of Object.entries(record)) visit(child, depth + 1, key);
-	};
 
-	visit(root, 0);
+		if (Array.isArray(value)) {
+			collectFromArrayItems(value, parentKey, issueArrayKeys, findings);
+			value.forEach((item) => stack.push({ value: item, depth: depth + 1, parentKey }));
+			continue;
+		}
+
+		Object.entries(value).forEach(([key, child]) => {
+			stack.push({ value: child, depth: depth + 1, parentKey: key });
+		});
+	}
 	return findings;
+}
+
+function collectFromArrayItems(
+	items: unknown[],
+	parentKey: string | undefined,
+	issueKeySet: Set<string>,
+	findings: Record<string, any>[],
+): void {
+	if (!parentKey || !issueKeySet.has(parentKey)) return;
+	items.forEach((item) => {
+		const record = asRecord(item);
+		if (record) findings.push(record);
+	});
 }
 
 function addPathsFromEntries(paths: Set<string>, entries: unknown): void {
 	if (!Array.isArray(entries)) return;
 	for (const entry of entries) {
-		const record = asRecord(entry);
-		if (!record) continue;
-		if (typeof record.path === "string") paths.add(record.path);
-		if (typeof record.file === "string") paths.add(record.file);
+		appendEntryPaths(paths, asRecord(entry));
 	}
+}
+
+function appendEntryPaths(paths: Set<string>, record: Record<string, any> | undefined): void {
+	if (!record) return;
+	if (typeof record.path === "string") paths.add(record.path);
+	if (typeof record.file === "string") paths.add(record.file);
 }
 
 function pathsFromFinding(finding: Record<string, any>): string[] {
@@ -120,50 +165,100 @@ function countTopFiles(findings: Record<string, any>[]): string[] {
 function countSeverityBuckets(findings: Record<string, any>[]): Array<{ severity: string; count: number }> {
 	const counts = new Map<string, number>();
 	for (const finding of findings) {
-		const severity = String(finding.severity ?? "unknown").toLowerCase().trim() || "unknown";
+		const severity = resolveSeverity(finding.severity);
 		counts.set(severity, (counts.get(severity) ?? 0) + 1);
 	}
-	const order = ["critical", "high", "medium", "low", "info", "warning", "error", "unknown"];
-	const sorted = [...counts.entries()].sort((left, right) => {
-		const [severityLeft, countLeft] = left;
-		const [severityRight, countRight] = right;
-		const aIndex = order.indexOf(severityLeft);
-		const bIndex = order.indexOf(severityRight);
-		if (aIndex !== bIndex) return (aIndex === -1 ? order.length : aIndex) - (bIndex === -1 ? order.length : bIndex);
-		return countRight - countLeft;
-	});
+	const sorted = [...counts.entries()].sort((left, right) => compareSeverityBuckets(left, right));
 	return sorted.map(([severity, count]) => ({ severity, count }));
+}
+
+function resolveSeverity(value: unknown): string {
+	const severity = String(value ?? "unknown").toLowerCase().trim();
+	return severity || "unknown";
+}
+
+const severityOrder = ["critical", "high", "medium", "low", "info", "warning", "error", "unknown"];
+
+function compareSeverityBuckets(left: [string, number], right: [string, number]): number {
+	const [severityLeft, countLeft] = left;
+	const [severityRight, countRight] = right;
+	const aIndex = severityOrder.indexOf(severityLeft);
+	const bIndex = severityOrder.indexOf(severityRight);
+	if (aIndex !== bIndex) return normalizeSeverityIndex(aIndex) - normalizeSeverityIndex(bIndex);
+	return countRight - countLeft;
+}
+
+function normalizeSeverityIndex(index: number): number {
+	return index === -1 ? severityOrder.length : index;
 }
 
 export function buildFallowPrSummary(data: unknown, args: string[], exitCode: number): FallowPrSummary | undefined {
 	const normalizedArgs = normalizeArgs(args);
-	if (!normalizedArgs.includes("audit")) return undefined;
-
+	if (!isPrAuditCommand(normalizedArgs)) return undefined;
 	const root = asRecord(data);
-	const baseRef = flagValue(normalizedArgs, "--base")
-		?? (findValue(root, ["base_ref", "baseRef", "base"]) as string | undefined);
-	const gate = flagValue(normalizedArgs, "--gate")
-		?? (findValue(root, ["gate"]) as string | undefined);
-	if (gate !== "new-only" && !baseRef) return undefined;
+	const { baseRef, gate } = resolvePrMetadata(normalizedArgs, root);
+	if (!shouldBuildPrSummary(gate, baseRef)) return undefined;
+	return buildPrSummaryFromFindings(root, exitCode, baseRef, gate);
+}
 
-	const findings = collectFindingLikeObjects(root);
-	const changedFilesCount = toNumber(findValue(root, ["changed_files_count", "changedFilesCount", "changed_file_count", "changedFileCount"]));
-	const explicitIssueCount = toNumber(findValue(root, ["new_issues_count", "newIssuesCount", "new_issues", "total_issues", "totalIssues"]));
-	const newIssuesCount = explicitIssueCount ?? findings.length;
-	const passed = exitCode === 0 && newIssuesCount === 0;
-	const severityBuckets = findings.length ? countSeverityBuckets(findings) : [];
-
+function resolvePrMetadata(
+	args: string[],
+	root: Record<string, any> | undefined,
+): { baseRef: string | undefined; gate: string | undefined } {
 	return {
-		baseRef,
-		gate: gate ?? "new-only",
-		changedFilesCount,
-		newIssuesCount,
-		passed,
-		topAffectedFiles: countTopFiles(findings),
-		severityBuckets,
+		baseRef: resolvePrBaseRef(args, root),
+		gate: resolvePrGate(args, root),
 	};
 }
 
+function buildPrSummaryFromFindings(
+	root: Record<string, any> | undefined,
+	exitCode: number,
+	baseRef: string | undefined,
+	gate: string | undefined,
+): FallowPrSummary {
+	const findings = collectFindingLikeObjects(root);
+	const newIssuesCount = resolveIssueCount(root, findings);
+	return {
+		baseRef,
+		gate: gate ?? "new-only",
+		changedFilesCount: resolveNumericField(root, ["changed_files_count", "changedFilesCount", "changed_file_count", "changedFileCount"]),
+		newIssuesCount,
+		passed: exitCode === 0 && newIssuesCount === 0,
+		topAffectedFiles: countTopFiles(findings),
+		severityBuckets: findings.length ? countSeverityBuckets(findings) : [],
+	};
+}
+
+function resolveIssueCount(root: Record<string, any> | undefined, findings: Record<string, any>[]): number {
+	const explicitIssueCount = resolveNumericField(root, ["new_issues_count", "newIssuesCount", "new_issues", "total_issues", "totalIssues"]);
+	return explicitIssueCount ?? findings.length;
+}
+
+function isPrAuditCommand(args: string[]): boolean {
+	return args.includes("audit");
+}
+
+function resolvePrBaseRef(args: string[], root: Record<string, any> | undefined): string | undefined {
+	const commandBase = flagValue(args, "--base");
+	if (commandBase) return commandBase;
+	return findValue(root, ["base_ref", "baseRef", "base"]) as string | undefined;
+}
+
+function resolvePrGate(args: string[], root: Record<string, any> | undefined): string | undefined {
+	const commandGate = flagValue(args, "--gate");
+	if (commandGate) return commandGate;
+	return findValue(root, ["gate"]) as string | undefined;
+}
+
+function shouldBuildPrSummary(gate: string | undefined, baseRef: string | undefined): boolean {
+	return gate === "new-only" || !!baseRef;
+}
+
+function resolveNumericField(root: Record<string, any> | undefined, keys: string[]): number | undefined {
+	if (!root) return undefined;
+	return toNumber(findValue(root, keys));
+}
 function severityLine(summary: FallowPrSummary): FallowSummaryLine | undefined {
 	if (!summary.severityBuckets || !summary.severityBuckets.length) return undefined;
 	const text = summary.severityBuckets
@@ -182,12 +277,18 @@ export function formatFallowPrSummary(summary: FallowPrSummary | undefined): Fal
 	if (!summary) return undefined;
 	const lines: FallowSummaryLine[] = [];
 	lines.push({ tone: summary.passed ? "success" : "warning", text: `PR audit: ${summary.passed ? "PASS" : "FAIL"}` });
-	lines.push({ tone: "dim", text: `Base ref: ${summary.baseRef ?? "unknown"}` });
-	lines.push({ tone: "dim", text: `Changed files: ${summary.changedFilesCount ?? "unknown"}` });
-	lines.push({ tone: "dim", text: `New issues: ${summary.newIssuesCount}` });
-	const severitySummaryLine = severityLine(summary);
-	if (severitySummaryLine) lines.push(severitySummaryLine);
-	const topAffected = buildTopAffectedLine(summary);
-	if (topAffected) lines.push(topAffected);
+	addPrSummaryLine(lines, "Base ref", summary.baseRef);
+	addPrSummaryLine(lines, "Changed files", summary.changedFilesCount);
+	addPrSummaryLine(lines, "New issues", summary.newIssuesCount);
+	addOptionalLine(lines, severityLine(summary));
+	addOptionalLine(lines, buildTopAffectedLine(summary));
 	return { lines };
+}
+
+function addPrSummaryLine(lines: FallowSummaryLine[], label: string, value: string | number | undefined): void {
+	lines.push({ tone: "dim", text: `${label}: ${value ?? "unknown"}` });
+}
+
+function addOptionalLine(lines: FallowSummaryLine[], value: FallowSummaryLine | undefined): void {
+	if (value) lines.push(value);
 }

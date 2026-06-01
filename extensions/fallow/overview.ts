@@ -9,43 +9,79 @@ function asArray(value: unknown): any[] {
 }
 
 function fmt(value: unknown): string {
-	if (value === undefined || value === null) return "";
-	if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(1);
-	return String(value);
+	if (value == null) return "";
+	if (typeof value !== "number") return String(value);
+	return formatNumericValue(value);
+}
+
+function formatNumericValue(value: number): string {
+	if (Number.isInteger(value)) return String(value);
+	return value.toFixed(1);
 }
 
 function issueLocation(issue: Record<string, any>): { path?: string; line?: number } {
-	const importedFrom = asArray(issue.imported_from)[0];
+	const importedFrom = asArray(issue.imported_from)[0] as Record<string, any> | undefined;
 	return {
-		path: issue.path ?? issue.file ?? importedFrom?.path,
-		line: issue.line ?? issue.start_line ?? importedFrom?.line,
+		path: firstDefinedValue([issue.path, issue.file, importedFrom?.path]),
+		line: firstDefinedValue([issue.line, issue.start_line, importedFrom?.line]),
 	};
+}
+
+function firstDefinedValue<T>(values: Array<T | undefined>): T | undefined {
+	for (const value of values) {
+		if (value !== undefined) return value;
+	}
+	return undefined;
 }
 
 function primaryAction(issue: Record<string, any>): string | undefined {
 	const actions = asArray(issue.actions);
-	const action = actions.find((entry) => entry?.type && entry.type !== "suppress-line" && entry.type !== "suppress-file") ?? actions[0];
+	const action = findPrimaryAction(actions);
 	return action?.description ?? action?.type;
 }
 
+function findPrimaryAction(actions: unknown[]): Record<string, any> | undefined {
+	return actions.find((entry) => isActionVisible(entry)) ?? actions[0];
+}
+
+function isActionVisible(entry: unknown): boolean {
+	return entry?.type && entry.type !== "suppress-line" && entry.type !== "suppress-file";
+}
+
 function issueLabel(kind: string, issue: Record<string, any>): string {
-	if (issue.export_name) return `${kind}: ${issue.export_name}`;
-	if (issue.package_name) return `${kind}: ${issue.package_name}`;
-	if (issue.name) return `${kind}: ${issue.name}`;
-	if (issue.rule_id) return `${kind}: ${issue.rule_id}`;
+	for (const key of ["export_name", "package_name", "name", "rule_id"] as const) {
+		const value = issue[key];
+		if (value) return `${kind}: ${value}`;
+	}
 	return kind;
 }
 
 function issueMeta(issue: Record<string, any>): string | undefined {
 	const parts: string[] = [];
-	if (issue.severity) parts.push(issue.severity);
-	if (issue.cyclomatic !== undefined) parts.push(`cyc ${issue.cyclomatic}`);
-	if (issue.cognitive !== undefined) parts.push(`cog ${issue.cognitive}`);
-	if (issue.crap !== undefined) parts.push(`CRAP ${fmt(issue.crap)}`);
-	if (issue.line_count !== undefined) parts.push(`${issue.line_count} lines`);
-	if (issue.token_count !== undefined) parts.push(`${issue.token_count} tokens`);
+	const entries: Array<[string, unknown]> = [
+		["severity", issue.severity],
+		["cyclomatic", issue.cyclomatic],
+		["cognitive", issue.cognitive],
+		["crap", issue.crap],
+		["line_count", issue.line_count],
+		["token_count", issue.token_count],
+	];
+	const formatters: Record<string, (value: unknown) => string> = {
+		severity: (value) => String(value),
+		cyclomatic: (value) => `cyc ${value}`,
+		cognitive: (value) => `cog ${value}`,
+		crap: (value) => `CRAP ${fmt(value)}`,
+		line_count: (value) => `${value} lines`,
+		token_count: (value) => `${value} tokens`,
+	};
+	for (const [key, value] of entries) {
+		if (value === undefined) continue;
+		const format = formatters[key];
+		parts.push(format(value));
+	}
 	return parts.length ? parts.join(" · ") : undefined;
 }
+
 
 function makeIssue(kind: string, issue: Record<string, any>): FallowIssueLine {
 	const location = issueLocation(issue);
@@ -90,68 +126,70 @@ function buildDeadCodeSections(data: Record<string, any>): FallowOverviewSection
 
 function buildHealthSections(data: Record<string, any>): FallowOverviewSection[] {
 	const sections: FallowOverviewSection[] = [];
-	const findings = asArray(data.findings);
-	if (findings.length) {
-		sections.push({
-			title: "Complexity findings",
-			count: findings.length,
-			color: "error",
-			items: findings.slice(0, 8).map((entry) => makeIssue("complexity", asRecord(entry) ?? {})),
-		});
-	}
-	const fileScores = asArray(data.file_scores);
-	if (fileScores.length) {
-		sections.push({
-			title: "Worst file scores",
-			count: fileScores.length,
-			color: "accent",
-			items: fileScores.slice(0, 5).map((entry) => {
-				const issue = asRecord(entry) ?? {};
-				return {
-					label: `score ${fmt(issue.maintainability_index)}`,
-					path: issue.path,
-					meta: `${issue.lines ?? "?"} LOC · dead ${fmt((issue.dead_code_ratio ?? 0) * 100)}% · CRAP max ${fmt(issue.crap_max)}`,
-					raw: issue,
-				};
-			}),
-		});
-	}
-	const targets = asArray(data.targets);
-	if (targets.length) {
-		sections.push({
-			title: "Refactoring targets",
-			count: targets.length,
-			color: "warning",
-			items: targets.slice(0, 5).map((entry) => {
-				const issue = asRecord(entry) ?? {};
-				return {
-					label: issue.category ?? "target",
-					path: issue.path,
-					meta: `priority ${fmt(issue.priority)} · ${issue.effort ?? "unknown effort"}`,
-					action: issue.recommendation,
-					raw: issue,
-				};
-			}),
-		});
-	}
-	const hotspots = asArray(data.hotspots);
-	if (hotspots.length) {
-		sections.push({
-			title: "Hotspots",
-			count: hotspots.length,
-			color: "warning",
-			items: hotspots.slice(0, 5).map((entry) => {
-				const issue = asRecord(entry) ?? {};
-				return {
-					label: `hotspot ${fmt(issue.score)}`,
-					path: issue.path,
-					meta: `${issue.commits ?? "?"} commits · churn ${(issue.lines_added ?? 0) + (issue.lines_deleted ?? 0)} · ${issue.trend ?? ""}`,
-					raw: issue,
-				};
-			}),
-		});
-	}
+	appendHealthSection(sections, "Complexity findings", "error", asArray(data.findings), 8, buildComplexityIssue);
+	appendHealthSection(sections, "Worst file scores", "accent", asArray(data.file_scores), 5, buildFileScoreIssue);
+	appendHealthSection(sections, "Refactoring targets", "warning", asArray(data.targets), 5, buildRefactoringTargetIssue);
+	appendHealthSection(sections, "Hotspots", "warning", asArray(data.hotspots), 5, buildHotspotIssue);
 	return sections;
+}
+
+function appendHealthSection(
+	sections: FallowOverviewSection[],
+	title: string,
+	color: "error" | "accent" | "warning",
+	entries: unknown[],
+	limit: number,
+	buildItem: (entry: unknown) => FallowIssueLine,
+): void {
+	if (!entries.length) return;
+	sections.push({ title, count: entries.length, color, items: entries.slice(0, limit).map(buildItem) });
+}
+
+function buildComplexityIssue(entry: unknown): FallowIssueLine {
+	return makeIssue("complexity", asRecord(entry) ?? {});
+}
+
+function buildFileScoreIssue(entry: unknown): FallowIssueLine {
+	const issue = asRecord(entry) ?? {};
+	return {
+		label: `score ${fmt(issue.maintainability_index)}`,
+		path: issue.path,
+		meta: `${issue.lines ?? "?"} LOC · dead ${fmt((issue.dead_code_ratio ?? 0) * 100)}% · CRAP max ${fmt(issue.crap_max)}`,
+		raw: issue,
+	};
+}
+
+function buildRefactoringTargetIssue(entry: unknown): FallowIssueLine {
+	const issue = asRecord(entry) ?? {};
+	return {
+		label: issue.category ?? "target",
+		path: issue.path,
+		meta: `priority ${fmt(issue.priority)} · ${issue.effort ?? "unknown effort"}`,
+		action: issue.recommendation,
+		raw: issue,
+	};
+}
+
+function buildHotspotIssue(entry: unknown): FallowIssueLine {
+	const issue = asRecord(entry) ?? {};
+	return {
+		label: `hotspot ${fmt(issue.score)}`,
+		path: issue.path,
+		meta: `${buildHotspotCommitSummary(issue)} commits · churn ${buildHotspotChurn(issue)} · ${buildHotspotTrend(issue)}`,
+		raw: issue,
+	};
+}
+
+function buildHotspotCommitSummary(issue: Record<string, any>): string {
+	return issue.commits ? String(issue.commits) : "?";
+}
+
+function buildHotspotChurn(issue: Record<string, any>): number {
+	return (issue.lines_added ?? 0) + (issue.lines_deleted ?? 0);
+}
+
+function buildHotspotTrend(issue: Record<string, any>): string {
+	return issue.trend ?? "";
 }
 
 function buildDupesSections(data: Record<string, any>): FallowOverviewSection[] {
@@ -161,23 +199,35 @@ function buildDupesSections(data: Record<string, any>): FallowOverviewSection[] 
 		title: "Clone groups",
 		count: groups.length,
 		color: "warning",
-		items: groups.slice(0, 6).map((entry, index) => {
-			const group = asRecord(entry) ?? {};
-			const instances = asArray(group.instances);
-			const first = asRecord(instances[0]) ?? {};
-			const second = asRecord(instances[1]) ?? {};
-			return {
-				label: `clone #${index + 1}`,
-				path: first.file,
-				line: first.start_line,
-				meta: `${group.line_count ?? "?"} lines · ${group.token_count ?? "?"} tokens · ${instances.length} instances`,
-				action: second.file ? `also at ${second.file}:${second.start_line}` : primaryAction(group),
-				raw: group,
-			};
-		}),
+		items: groups.slice(0, 6).map((entry, index) => makeCloneGroupIssue(entry, index)),
 	}];
 }
 
+function makeCloneGroupIssue(entry: unknown, index: number): FallowIssueLine {
+	const group = asRecord(entry) ?? {};
+	const instances = asArray(group.instances);
+	const [first, second] = getCloneInstances(instances);
+	return {
+		label: `clone #${index + 1}`,
+		path: first.file,
+		line: first.start_line,
+		meta: formatCloneMeta(group, instances.length),
+		action: getCloneAction(second, group),
+		raw: group,
+	};
+}
+
+function getCloneInstances(instances: any[]): [Record<string, any>, Record<string, any>] {
+	return [asRecord(instances[0]) ?? {}, asRecord(instances[1]) ?? {}];
+}
+
+function formatCloneMeta(group: Record<string, any>, instanceCount: number): string {
+	return `${group.line_count ?? "?"} lines · ${group.token_count ?? "?"} tokens · ${instanceCount} instances`;
+}
+
+function getCloneAction(second: Record<string, any>, group: Record<string, any>): string | undefined {
+	return second.file ? `also at ${second.file}:${second.start_line}` : primaryAction(group);
+}
 function addSummaryStats(stats: Array<{ label: string; value: string | number }>, summary: Record<string, any> | undefined, keys: string[]): void {
 	if (!summary) return;
 	for (const key of keys) {
@@ -187,34 +237,54 @@ function addSummaryStats(stats: Array<{ label: string; value: string | number }>
 
 function addRootStats(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>): void {
 	const rootSummary = asRecord(root.summary);
-	if (root.verdict) stats.push({ label: "verdict", value: root.verdict });
-	if (root.total_issues !== undefined) stats.push({ label: "issues", value: root.total_issues });
-	if (root.elapsed_ms !== undefined) stats.push({ label: "elapsed", value: `${root.elapsed_ms}ms` });
-	if (root.health_score) {
-		stats.push({ label: "score", value: `${fmt(root.health_score.score)} ${root.health_score.grade ?? ""}`.trim() });
-	}
+	addIfDefinedStat(stats, "verdict", root.verdict);
+	addIfDefinedStat(stats, "issues", root.total_issues);
+	addIfDefinedStat(stats, "elapsed", root.elapsed_ms !== undefined ? `${root.elapsed_ms}ms` : undefined);
+	addIfDefinedHealthScore(stats, root.health_score);
 	addSummaryStats(stats, rootSummary, ["total_issues", "files_analyzed", "functions_above_threshold", "severity_critical_count", "clone_groups", "duplicated_lines", "average_maintainability"]);
 }
 
+function addIfDefinedStat(stats: Array<{ label: string; value: string | number }>, label: string, value: string | number | undefined): void {
+	if (value === undefined) return;
+	stats.push({ label, value });
+}
+
+function addIfDefinedHealthScore(
+	stats: Array<{ label: string; value: string | number }>,
+	healthScore: Record<string, any> | undefined,
+): void {
+	if (!healthScore) return;
+	const score = `${fmt(healthScore.score)} ${healthScore.grade ?? ""}`.trim();
+	stats.push({ label: "score", value: score });
+}
+
 function addPrimarySections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
-	const specs: Array<{
-		isPresent: (root: Record<string, any>) => boolean;
-		forceTitle: string;
-		sectionsFor: (data: Record<string, any> | undefined) => FallowOverviewSection[];
-		selector: (root: Record<string, any>) => Record<string, any> | undefined;
-		prefix: string;
-	}> = [
+	const specs = buildPrimarySectionSpecs();
+	for (const spec of specs) {
+		if (!spec.isPresent(root)) continue;
+		processPrimarySection(root, sections, title, spec);
+	}
+}
+
+function buildPrimarySectionSpecs(): Array<{
+	isPresent: (root: Record<string, any>) => boolean;
+	forceTitle: string;
+	sectionsFor: (data: Record<string, any> | undefined) => FallowOverviewSection[];
+	selector: (root: Record<string, any>) => Record<string, any> | undefined;
+	prefix: string;
+}> {
+	return [
 		{
 			isPresent: (entry) => !!(entry.check || entry.dead_code),
 			forceTitle: "Fallow full analysis",
-			sectionsFor: (data) => buildDeadCodeSections(data),
+			sectionsFor: buildDeadCodeSections,
 			selector: (entry) => asRecord(entry.check ?? entry.dead_code),
 			prefix: "Dead code",
 		},
 		{
 			isPresent: (entry) => !!(entry.dupes || entry.duplication),
 			forceTitle: "Fallow duplication",
-			sectionsFor: (data) => buildDupesSections(data),
+			sectionsFor: buildDupesSections,
 			selector: (entry) => asRecord(entry.dupes ?? entry.duplication),
 			prefix: "Dupes",
 		},
@@ -226,15 +296,25 @@ function addPrimarySections(root: Record<string, any>, sections: FallowOverviewS
 			prefix: "Health",
 		},
 	];
+}
 
-	for (const spec of specs) {
-		if (!spec.isPresent(root)) continue;
-		if (title.value === "Fallow") title.value = spec.forceTitle;
-		const sectionData = spec.selector(root);
-		if (!sectionData) continue;
-		for (const section of spec.sectionsFor(sectionData)) {
-			sections.push({ ...section, title: `${spec.prefix} · ${section.title}` });
-		}
+function processPrimarySection(
+	root: Record<string, any>,
+	sections: FallowOverviewSection[],
+	title: { value: string },
+	spec: {
+		isPresent: (root: Record<string, any>) => boolean;
+		forceTitle: string;
+		sectionsFor: (data: Record<string, any> | undefined) => FallowOverviewSection[];
+		selector: (root: Record<string, any>) => Record<string, any> | undefined;
+		prefix: string;
+	},
+): void {
+	if (title.value === "Fallow") title.value = spec.forceTitle;
+	const sectionData = spec.selector(root);
+	if (!sectionData) return;
+	for (const section of spec.sectionsFor(sectionData)) {
+		sections.push({ ...section, title: `${spec.prefix} · ${section.title}` });
 	}
 }
 
@@ -243,7 +323,25 @@ function addFallbackSections(root: Record<string, any>, sections: FallowOverview
 	const deadSections = buildDeadCodeSections(root);
 	const healthSections = buildHealthSections(root);
 	const dupeSections = buildDupesSections(root);
+	appendFallbackSections(sections, deadSections, healthSections, dupeSections);
+	updateFallbackTitle(healthSections, dupeSections, deadSections, title);
+}
+
+function appendFallbackSections(
+	sections: FallowOverviewSection[],
+	deadSections: FallowOverviewSection[],
+	healthSections: FallowOverviewSection[],
+	dupeSections: FallowOverviewSection[],
+): void {
 	sections.push(...deadSections, ...healthSections, ...dupeSections);
+}
+
+function updateFallbackTitle(
+	healthSections: FallowOverviewSection[],
+	dupeSections: FallowOverviewSection[],
+	deadSections: FallowOverviewSection[],
+	title: { value: string },
+): void {
 	if (healthSections.length) title.value = "Fallow health";
 	else if (dupeSections.length) title.value = "Fallow duplication";
 	else if (deadSections.length) title.value = "Fallow dead code";
@@ -262,12 +360,26 @@ function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSect
 }
 
 function addDefaultNotes(root: Record<string, any>, sections: FallowOverviewSection[], stats: Array<{ label: string; value: string | number }>, notes: string[]): void {
-	if (root.entry_point_count !== undefined) stats.push({ label: "entry points", value: root.entry_point_count });
-	if (root.file_count !== undefined) stats.push({ label: "files", value: root.file_count });
-	if (!sections.length && root.message) notes.push(String(root.message));
-	if (!sections.length && stats.length <= 1) notes.push("No issues found in the selected report sections.");
+	addIfDefined(stats, "entry points", root.entry_point_count);
+	addIfDefined(stats, "files", root.file_count);
+	appendFallbackNotes(root, sections, stats, notes);
 }
 
+function appendFallbackNotes(
+	root: Record<string, any>,
+	sections: FallowOverviewSection[],
+	stats: Array<{ label: string; value: string | number }>,
+	notes: string[],
+): void {
+	if (sections.length) return;
+	if (root.message) notes.push(String(root.message));
+	if (stats.length <= 1) notes.push("No issues found in the selected report sections.");
+}
+
+function addIfDefined(stats: Array<{ label: string; value: string | number }>, label: string, value: string | number | undefined): void {
+	if (value === undefined) return;
+	stats.push({ label, value });
+}
 export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview | undefined {
 	const root = asRecord(data);
 	if (!root) return undefined;
@@ -283,6 +395,24 @@ export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview
 	addDefaultNotes(root, sections, stats, notes);
 	if (exitCode === 1) notes.push("Fallow exit 1 means findings/gate failure, not a crashed command.");
 
-	const status = exitCode >= 2 || root.error ? "error" : sections.length || exitCode === 1 ? "warning" : "success";
-	return { title: title.value, status, stats, sections, notes };
+	return {
+		title: title.value,
+		status: buildFallowStatus(root, sections, exitCode),
+		stats,
+		sections,
+		notes,
+	};
+}
+
+function buildFallowStatus(root: Record<string, any>, sections: FallowOverviewSection[], exitCode: number): "success" | "warning" | "error" {
+	if (isFallowErrorState(root, exitCode)) return "error";
+	return isFallowWarningState(sections, exitCode) ? "warning" : "success";
+}
+
+function isFallowErrorState(root: Record<string, any>, exitCode: number): boolean {
+	return !!root.error || exitCode >= 2;
+}
+
+function isFallowWarningState(sections: FallowOverviewSection[], exitCode: number): boolean {
+	return sections.length > 0 || exitCode === 1;
 }

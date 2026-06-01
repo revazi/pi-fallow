@@ -5,6 +5,10 @@ import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFil
 import { buildFallowOverview } from "./overview";
 import type { FallowOverview } from "./types";
 
+function asRecord(value: unknown): Record<string, any> | undefined {
+	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : undefined;
+}
+
 function stringifyCompact(value: unknown): string {
 	try {
 		return JSON.stringify(value);
@@ -62,10 +66,18 @@ function addSimpleSummaryField(
 }
 
 function addHealthScoreSummary(data: any, prefix: string, lines: string[]): void {
-	const score = data.health_score?.score ?? data.health_score?.value;
-	const grade = data.health_score?.grade ? ` (${data.health_score.grade})` : "";
-	if (score === undefined) return;
-	lines.push(`${prefix}health_score: ${score}${grade}`);
+	const healthScore = asRecord(data.health_score);
+	if (!healthScore) return;
+	const formatted = formatHealthScoreText(healthScore);
+	if (formatted === null) return;
+	lines.push(formatted);
+}
+
+function formatHealthScoreText(healthScore: Record<string, any>): string | null {
+	const score = healthScore.score ?? healthScore.value;
+	if (score === undefined) return null;
+	const grade = healthScore.grade ? ` (${healthScore.grade})` : "";
+	return `health_score: ${score}${grade}`;
 }
 
 function addObjectSummary(data: unknown, key: string, prefix: string, lines: string[]): void {
@@ -93,23 +105,38 @@ function addNestedSummaries(lines: string[], data: any): void {
 function tryParseJson(raw: string): { ok: true; data: unknown; raw: string } | { ok: false } {
 	const trimmed = raw.trim();
 	if (!trimmed) return { ok: false };
+	const direct = parseJsonText(trimmed);
+	if (direct.ok) return direct;
+	const embedded = parseEmbeddedJson(trimmed);
+	return embedded ?? { ok: false };
+}
+
+function parseJsonText(raw: string): { ok: true; data: unknown; raw: string } | undefined {
 	try {
-		return { ok: true, data: JSON.parse(trimmed), raw: trimmed };
+		return { ok: true, data: JSON.parse(raw), raw };
 	} catch {
-		const firstObject = trimmed.indexOf("{");
-		const firstArray = trimmed.indexOf("[");
-		const starts = [firstObject, firstArray].filter((index) => index >= 0);
-		if (!starts.length) return { ok: false };
-		const start = Math.min(...starts);
-		const end = Math.max(trimmed.lastIndexOf("}"), trimmed.lastIndexOf("]"));
-		if (end <= start) return { ok: false };
-		const candidate = trimmed.slice(start, end + 1);
-		try {
-			return { ok: true, data: JSON.parse(candidate), raw: candidate };
-		} catch {
-			return { ok: false };
-		}
+		return undefined;
 	}
+}
+
+function parseEmbeddedJson(raw: string): { ok: true; data: unknown; raw: string } | undefined {
+	const start = findFirstJsonStart(raw);
+	if (start < 0) return undefined;
+	const end = findLastJsonEnd(raw);
+	if (end <= start) return undefined;
+	const candidate = raw.slice(start, end + 1);
+	return parseJsonText(candidate);
+}
+
+function findFirstJsonStart(raw: string): number {
+	const firstObject = raw.indexOf("{");
+	const firstArray = raw.indexOf("[");
+	const starts = [firstObject, firstArray].filter((index) => index >= 0);
+	return starts.length ? Math.min(...starts) : -1;
+}
+
+function findLastJsonEnd(raw: string): number {
+	return Math.max(raw.lastIndexOf("}"), raw.lastIndexOf("]"));
 }
 
 export function parseJson(stdout: string, stderr: string): { parsed: boolean; data?: unknown; raw: string } {
@@ -120,35 +147,74 @@ export function parseJson(stdout: string, stderr: string): { parsed: boolean; da
 	return { parsed: false, raw: `${stdout}${stderr ? `\n[stderr]\n${stderr}` : ""}`.trim() };
 }
 
-export async function formatToolOutput(parsed: { parsed: boolean; data?: unknown; raw: string }, cwd: string, exitCode = 0): Promise<{
+export async function formatToolOutput(
+	parsed: { parsed: boolean; data?: unknown; raw: string },
+	cwd: string,
+	exitCode = 0,
+): Promise<{
 	text: string;
 	summary: string;
 	overview?: FallowOverview;
 	fullOutputPath?: string;
 	truncated?: boolean;
 }> {
+	const { overview, summary } = buildToolOutputSummary(parsed, exitCode);
+	const rawText = getFormattedRawText(parsed);
+	const truncation = truncateHead(rawText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
+	const fullOutputPath = await writeOutputPathIfTruncated(truncation, rawText);
+	const text = buildToolOutputText(parsed, summary, truncation, fullOutputPath);
+
+	return { text, summary, overview, fullOutputPath, truncated: truncation.truncated };
+}
+
+function buildToolOutputSummary(
+	parsed: { parsed: boolean; data?: unknown; raw: string },
+	exitCode: number,
+): { overview: FallowOverview | undefined; summary: string } {
 	const overview = parsed.parsed ? buildFallowOverview(parsed.data, exitCode) : undefined;
 	const summaryLines = parsed.parsed ? summarizeObject(parsed.data) : [];
 	const summary = summaryLines.length ? summaryLines.join("\n") : "No structured summary available.";
-	const rawText = parsed.parsed ? JSON.stringify(parsed.data, null, 2) : parsed.raw;
-	const truncation = truncateHead(rawText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
+	return { overview, summary };
+}
 
-	let fullOutputPath: string | undefined;
-	if (truncation.truncated) {
-		const tempDir = await mkdtemp(join(tmpdir(), "pi-fallow-"));
-		fullOutputPath = join(tempDir, "fallow-output.json");
-		await withFileMutationQueue(fullOutputPath, async () => writeFile(fullOutputPath!, rawText, "utf8"));
-	}
+function getFormattedRawText(parsed: { parsed: boolean; data?: unknown; raw: string }): string {
+	return parsed.parsed ? JSON.stringify(parsed.data, null, 2) : parsed.raw;
+}
 
-	let text = `Fallow summary:\n${summary}\n\n`;
-	text += parsed.parsed ? "Raw JSON" : "Raw output";
-	text += truncation.truncated ? " (truncated)" : "";
-	text += `:\n${truncation.content}`;
-	if (truncation.truncated && fullOutputPath) {
-		text += `\n\n[Output truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines`;
-		text += ` (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}).`;
-		text += ` Full output saved to: ${fullOutputPath}]`;
-	}
+async function writeOutputPathIfTruncated(truncation: ReturnType<typeof truncateHead>, rawText: string): Promise<string | undefined> {
+	if (!truncation.truncated) return undefined;
+	const tempDir = await mkdtemp(join(tmpdir(), "pi-fallow-"));
+	const fullOutputPath = join(tempDir, "fallow-output.json");
+	await withFileMutationQueue(fullOutputPath, async () => writeFile(fullOutputPath, rawText, "utf8"));
+	return fullOutputPath;
+}
 
-	return { text, summary, overview, fullOutputPath, truncated: truncation.truncated };
+function buildToolOutputText(
+	parsed: { parsed: boolean; data?: unknown; raw: string },
+	summary: string,
+	truncation: ReturnType<typeof truncateHead>,
+	fullOutputPath?: string,
+): string {
+	const header = buildToolOutputHeader(summary);
+	const payloadType = buildPayloadType(parsed, truncation.truncated);
+	const truncationSuffix = buildTruncationSuffix(truncation, fullOutputPath);
+	return `${header}\n${payloadType}:\n${truncation.content}${truncationSuffix}`;
+}
+
+function buildPayloadType(parsed: { parsed: boolean; data?: unknown; raw: string }, isTruncated: boolean): string {
+	const baseType = parsed.parsed ? "Raw JSON" : "Raw output";
+	return `${baseType}${isTruncated ? " (truncated)" : ""}`;
+}
+
+function buildTruncationSuffix(truncation: ReturnType<typeof truncateHead>, fullOutputPath?: string): string {
+	if (!truncation.truncated || !fullOutputPath) return "";
+	return `\n\n${buildTruncationNotice(truncation, fullOutputPath)}`;
+}
+
+function buildToolOutputHeader(summary: string): string {
+	return `Fallow summary:\n${summary}`;
+}
+
+function buildTruncationNotice(truncation: ReturnType<typeof truncateHead>, fullOutputPath: string): string {
+	return `[Output truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines (${formatSize(truncation.outputBytes)} of ${formatSize(truncation.totalBytes)}). Full output saved to: ${fullOutputPath}]`;
 }

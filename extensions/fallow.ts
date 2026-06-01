@@ -45,15 +45,29 @@ function fallowExitLabel(code: number, killed = false): string {
 }
 
 function parseTraceCloneArgs(args: string[]): string[] {
+	const { fileOrPath, line } = getTraceCloneInput(args);
+	if (line) return buildTraceCloneFromLine(fileOrPath, line, args);
+	const parsed = parseTraceCloneFromPath(fileOrPath);
+	return buildTraceCloneFromParsed(parsed, args);
+}
+
+function getTraceCloneInput(args: string[]): { fileOrPath: string; line?: string } {
 	if (!args[1]) throw new Error("trace-clone requires file and line.");
-	const fileOrPath = args[1];
-	const line = args[2];
-	if (line) {
-		if (!/^\d+$/.test(line)) throw new Error("trace-clone requires file and numeric line.");
-		return ["dupes", "--trace", `${fileOrPath}:${line}`, ...args.slice(3)];
-	}
+	return { fileOrPath: args[1], line: args[2] };
+}
+
+function parseTraceCloneFromPath(fileOrPath: string): RegExpMatchArray {
 	const match = /^(.*):(\d+)$/.exec(fileOrPath);
 	if (!match) throw new Error("trace-clone requires file and line.");
+	return match;
+}
+
+function buildTraceCloneFromLine(fileOrPath: string, line: string, args: string[]): string[] {
+	if (!/^\d+$/.test(line)) throw new Error("trace-clone requires file and numeric line.");
+	return ["dupes", "--trace", `${fileOrPath}:${line}`, ...args.slice(3)];
+}
+
+function buildTraceCloneFromParsed(match: RegExpMatchArray, args: string[]): string[] {
 	return ["dupes", "--trace", `${match[1]}:${match[2]}`, ...args.slice(2)];
 }
 
@@ -73,24 +87,42 @@ const traceCommandMap: Record<string, (args: string[]) => string[]> = {
 	"trace-clone": (args) => parseTraceCloneArgs(args),
 };
 
-function normalizeFallowArgs(rawArgs: string[], baseRef: string, lastFallowArgs: string[] | null, notify: (message: string, level: "info" | "warning") => void): string[] | null {
-	if (rawArgs[0] === "rerun") {
-		if (!lastFallowArgs) {
-			notify("No previous /fallow command to rerun.", "warning");
-			return null;
-		}
-		if (rawArgs.length > 1) notify("/fallow rerun uses the last command and ignores extra arguments.", "info");
-		return [...lastFallowArgs];
-	}
-	if (rawArgs[0] === "pr") {
-		const prArgs = rawArgs.slice(1);
-		const skipDefaults = prArgs.some((arg) => arg === "--help" || arg === "-h");
-		const fallbackArgs = skipDefaults ? prArgs : withBaseAndGateFallback(prArgs, baseRef);
-		return ["audit", ...fallbackArgs];
-	}
+function normalizeFallowArgs(
+	rawArgs: string[],
+	baseRef: string,
+	lastFallowArgs: string[] | null,
+	notify: (message: string, level: "info" | "warning") => void,
+): string[] | null {
+	const firstArg = rawArgs[0];
+	if (firstArg === "rerun") return buildRerunFallowArgs(rawArgs, lastFallowArgs, notify);
+	if (firstArg === "pr") return buildPrFallowArgs(rawArgs.slice(1), baseRef);
+	return resolveFallbackArgs(rawArgs);
+}
+
+function resolveFallbackArgs(rawArgs: string[]): string[] {
 	const normalized = [...rawArgs];
-	const translator = traceCommandMap[normalized[0] ?? ""];
+	const command = normalized[0] ?? "";
+	const translator = traceCommandMap[command];
 	return translator ? translator(normalized) : normalized;
+}
+
+function buildRerunFallowArgs(
+	rawArgs: string[],
+	lastFallowArgs: string[] | null,
+	notify: (message: string, level: "info" | "warning") => void,
+): string[] | null {
+	if (!lastFallowArgs) {
+		notify("No previous /fallow command to rerun.", "warning");
+		return null;
+	}
+	if (rawArgs.length > 1) notify("/fallow rerun uses the last command and ignores extra arguments.", "info");
+	return [...lastFallowArgs];
+}
+
+function buildPrFallowArgs(prArgs: string[], baseRef: string): string[] {
+	const skipDefaults = prArgs.some((arg) => arg === "--help" || arg === "-h");
+	const fallbackArgs = skipDefaults ? prArgs : withBaseAndGateFallback(prArgs, baseRef);
+	return ["audit", ...fallbackArgs];
 }
 
 type FallowCommandContext = {
@@ -166,9 +198,17 @@ function buildFallowResultPrefix(projectState: FallowProjectState | undefined, p
 
 function notifyFallowCompletion(ctx: FallowCommandContext, result: FallowCommandResult["result"], binary: string, args: string[]): void {
 	if (!ctx.hasUI) return;
-	const label = fallowExitLabel(result.code, result.killed);
-	const message = result.code === 1 ? `fallow found issues: ${commandDisplay(binary, args)}` : `fallow ${label}: ${commandDisplay(binary, args)}`;
-	ctx.ui.notify(message, result.code >= 2 || result.killed ? "error" : "info");
+	ctx.ui.notify(buildFallowCompletionMessage(result.code, result.killed, binary, args), shouldNotifyAsError(result) ? "error" : "info");
+}
+
+function buildFallowCompletionMessage(code: number, killed: boolean, binary: string, args: string[]): string {
+	const display = commandDisplay(binary, args);
+	if (code === 1) return `fallow found issues: ${display}`;
+	return `fallow ${fallowExitLabel(code, killed)}: ${display}`;
+}
+
+function shouldNotifyAsError(result: { code: number; killed: boolean }): boolean {
+	return result.code >= 2 || result.killed;
 }
 
 function renderFallowResultMessage(
@@ -229,21 +269,34 @@ async function executeFallowResult(
 ): Promise<FallowNavigatorResult | null | undefined> {
 	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
 	if (rememberLast) setLastFallowArgs([...finalArgs]);
-	const executeCommand = buildFallowExecutor(pi, ctx, finalArgs);
+	return runFallowResultFlow(pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs));
+}
 
-	const commandResult = ctx.hasUI
-		? (await runFallowWithLoader(ctx, executeCommand, finalArgs).finally(() => void setFallowReadyStatus(ctx)))
-		: await executeCommand();
+async function runFallowResultFlow(
+	pi: ExtensionAPI,
+	ctx: FallowCommandContext,
+	finalArgs: string[],
+	executeCommand: FallowCommandExecutor,
+): Promise<FallowNavigatorResult | null | undefined> {
+	const commandResult = await runFallowWithLoaderIfUi(ctx, executeCommand, finalArgs);
 	if (!commandResult) {
 		if (ctx.hasUI) ctx.ui.notify("fallow cancelled", "info");
 		return null;
 	}
-
 	const { binary, args: executedArgs, result, formatted, projectState, prSummary } = commandResult;
 	const resultPrefix = buildFallowResultPrefix(projectState, prSummary);
 	notifyFallowCompletion(ctx, result, binary, executedArgs);
 	renderFallowResultMessage(pi, ctx, commandResult, resultPrefix);
 	return openFallowNavigator(ctx, commandResult, binary, executedArgs, projectState, prSummary);
+}
+
+async function runFallowWithLoaderIfUi(
+	ctx: FallowCommandContext,
+	executeCommand: FallowCommandExecutor,
+	finalArgs: string[],
+): Promise<NullableFallowCommandResult> {
+	if (!ctx.hasUI) return executeCommand();
+	return runFallowWithLoader(ctx, executeCommand, finalArgs).finally(() => void setFallowReadyStatus(ctx));
 }
 
 async function normalizeFallowHandlerArgs(
@@ -273,6 +326,26 @@ async function executeFallowCommandLoop(
 		});
 	}
 	return result;
+}
+
+function formatToolCallTitle(args: { command?: string; root?: string; changedSince?: string; base?: string }, theme: any): string {
+	return [
+		theme.fg("toolTitle", theme.bold("fallow ")),
+		theme.fg("accent", args.command ?? "run"),
+		...formatToolCallRootParts(args, theme),
+		...formatToolCallChangeParts(args, theme),
+	].join("");
+}
+
+function formatToolCallRootParts(args: { root?: string }, theme: any): string[] {
+	if (!args.root) return [];
+	return [theme.fg("muted", ` in ${args.root}`)];
+}
+
+function formatToolCallChangeParts(args: { changedSince?: string; base?: string }, theme: any): string[] {
+	const changeReference = args.changedSince ?? args.base;
+	if (!changeReference) return [];
+	return [theme.fg("dim", ` since ${changeReference}`)];
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {
@@ -313,11 +386,7 @@ export default function (pi: ExtensionAPI) {
 			return fallowCli.runFallow(pi, params, ctx);
 		},
 		renderCall(args, theme) {
-			let text = theme.fg("toolTitle", theme.bold("fallow "));
-			text += theme.fg("accent", args.command ?? "run");
-			if (args.root) text += theme.fg("muted", ` in ${args.root}`);
-			if (args.changedSince || args.base) text += theme.fg("dim", ` since ${args.changedSince ?? args.base}`);
-			return new Text(text, 0, 0);
+			return new Text(formatToolCallTitle(args, theme), 0, 0);
 		},
 		renderResult(result, { expanded, isPartial }, theme) {
 			if (isPartial) return new Text(theme.fg("warning", "Running Fallow..."), 0, 0);
@@ -333,19 +402,7 @@ export default function (pi: ExtensionAPI) {
 					prSummary: details.prSummary,
 				});
 			}
-			let text = theme.fg(details.exitCode === 0 ? "success" : "warning", `Fallow ${fallowExitLabel(details.exitCode)} (exit ${details.exitCode})`);
-			if (details.truncated) text += theme.fg("warning", " (truncated)");
-			text += theme.fg("dim", ` · ${details.elapsedMs}ms`);
-			if (expanded) {
-				text += `\n${theme.fg("muted", commandDisplay(details.command, details.args))}`;
-				text += `\n${theme.fg("dim", details.summary)}`;
-				const prSummaryLines = renderSummaryLines(formatFallowPrSummary(details.prSummary), theme);
-				const projectStateLines = renderSummaryLines(formatFallowProjectState(details.projectState), theme);
-				const summary = [prSummaryLines, projectStateLines].filter(Boolean).join("\n");
-				if (summary) text += `\n${summary}`;
-				if (details.fullOutputPath) text += `\n${theme.fg("dim", `Full output: ${details.fullOutputPath}`)}`;
-			}
-			return new Text(text, 0, 0);
+			return new Text(buildFallowCompactMessage(details, expanded, theme), 0, 0);
 		},
 	});
 
@@ -356,28 +413,123 @@ export default function (pi: ExtensionAPI) {
 		handler: (rawArgs, ctx) => runFallowCommandHandler(pi, ctx, commandState, rawArgs),
 	});
 
-	pi.registerMessageRenderer("fallow-result", (message, options, theme) => {
+	pi.registerMessageRenderer("fallow-result", (message, options, theme) =>
+		renderFallowMessageRenderer(message, options, theme),
+	);
+
+
+	function buildFallowCompactMessage(
+		details: FallowDetails,
+		expanded: boolean,
+		theme: any,
+	): string {
+		const base = formatBaseCompactMessage(details, theme);
+		if (!expanded) return base;
+		return [
+			base,
+			theme.fg("muted", commandDisplay(details.command, details.args)),
+			theme.fg("dim", details.summary),
+			...buildCompactMessageSummary(details, theme),
+			details.fullOutputPath ? theme.fg("dim", `Full output: ${details.fullOutputPath}`) : undefined,
+		].filter(Boolean).join("\n");
+	}
+
+	function formatBaseCompactMessage(details: FallowDetails, theme: any): string {
+		const statusColor = details.exitCode === 0 ? "success" : "warning";
+		const parts = [
+			theme.fg(statusColor, `Fallow ${fallowExitLabel(details.exitCode)} (exit ${details.exitCode})`),
+			details.truncated ? theme.fg("warning", " (truncated)") : undefined,
+			theme.fg("dim", ` · ${details.elapsedMs}ms`),
+		];
+		return parts.filter(Boolean).join("");
+	}
+
+	function buildCompactMessageSummary(details: FallowDetails, theme: any): string[] {
+		return [
+			renderSummaryLines(formatFallowPrSummary(details.prSummary), theme),
+			renderSummaryLines(formatFallowProjectState(details.projectState), theme),
+		].filter(Boolean);
+	}
+
+	function renderFallowMessageRenderer(message: any, options: any, theme: any): Text {
 		const details = message.details as { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } | undefined;
-		if (details?.compact) {
-			const title = details.overview?.title ?? "Fallow result";
-			const stats = details.overview?.stats.slice(0, 5).map((stat) => `${stat.label}: ${stat.value}`).join(" · ");
-			const prSummaryLines = renderSummaryLines(formatFallowPrSummary(details.prSummary), theme);
-			const projectStateLines = renderSummaryLines(formatFallowProjectState(details.projectState), theme);
-			const summary = [prSummaryLines, projectStateLines].filter(Boolean).join("\n");
-			return new Text(theme.fg("toolTitle", theme.bold(title)) + (stats ? `\n${theme.fg("dim", stats)}` : "") + (summary ? `\n${summary}` : "") + "\n" + theme.fg("muted", "Detailed findings were shown in the navigator window."), 0, 0);
-		}
-		if (details?.overview) {
-			return new FallowOverviewComponent(details.overview, theme, {
-				expanded: options.expanded,
-				command: details.command && details.args ? commandDisplay(details.command, details.args) : undefined,
-				fullOutputPath: details.fullOutputPath,
-				truncated: details.truncated,
-				projectState: details.projectState,
-				prSummary: details.prSummary,
-			});
-		}
+		const compactMessage = renderFallowCompactResultMessage(details, theme);
+		if (compactMessage) return compactMessage;
+		const overviewMessage = renderFallowOverviewResultMessage(details, options, theme);
+		if (overviewMessage) return overviewMessage;
 		return new Text(theme.fg("toolTitle", theme.bold("Fallow result")) + "\n" + message.content, 0, 0);
-	});
+	}
+
+	function renderFallowCompactResultMessage(
+		details: { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } | undefined,
+		theme: any,
+	): Text | null {
+		if (!details || !details.compact) return null;
+		return new Text(buildCompactFallowMessage(details, theme), 0, 0);
+	}
+
+	function buildCompactFallowMessage(
+		details: { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary },
+		theme: any,
+	): string {
+		const title = details.overview ? details.overview.title : "Fallow result";
+		const summary = buildCompactSummary(details, theme);
+		const stats = buildCompactStats(details.overview);
+		const lines = [
+			theme.fg("toolTitle", theme.bold(title)),
+			theme.fg("muted", "Detailed findings were shown in the navigator window."),
+		];
+		return [
+			...lines.slice(0, 1),
+			...includeCompactLine(stats, (line) => theme.fg("dim", line)),
+			...includeCompactLine(summary, (line) => line),
+			...lines.slice(1),
+		].join("\n");
+	}
+
+	function includeCompactLine<T>(value: T | undefined, render: (value: T) => string): string[] {
+		if (value === undefined) return [];
+		return [render(value)];
+	}
+
+	function buildCompactStats(overview: FallowOverview | undefined): string {
+		const stats = overview?.stats ?? [];
+		if (!stats.length) return "";
+		return stats.slice(0, 5).map((stat) => `${stat.label}: ${stat.value}`).join(" · ");
+	}
+
+	function buildCompactSummary(
+		details: { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary },
+		theme: any,
+	): string {
+		const prSummaryLines = renderSummaryLines(formatFallowPrSummary(details.prSummary), theme);
+		const projectStateLines = renderSummaryLines(formatFallowProjectState(details.projectState), theme);
+		return [prSummaryLines, projectStateLines].filter(Boolean).join("\n");
+	}
+
+	function renderFallowOverviewResultMessage(
+		details: { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } | undefined,
+		options: { expanded?: boolean },
+		theme: any,
+	): Text | null {
+		if (!details || !details.overview) return null;
+		const overview = details.overview;
+		return new FallowOverviewComponent(overview, theme, {
+			expanded: options.expanded,
+			command: resolveOverviewCommand(details),
+			fullOutputPath: details.fullOutputPath,
+			truncated: details.truncated,
+			projectState: details.projectState,
+			prSummary: details.prSummary,
+		});
+	}
+
+	function resolveOverviewCommand(
+		details: { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } | undefined,
+	): string | undefined {
+		if (!details?.command || !details.args) return undefined;
+		return commandDisplay(details.command, details.args);
+	}
 
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;

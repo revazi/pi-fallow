@@ -43,73 +43,66 @@ function readFlagValue(args: string[], flag: string): string | undefined {
 }
 
 export async function detectFallowProjectState(cwd: string, args: string[] = []): Promise<FallowProjectState> {
-	const configOverride = readFlagValue(args, "--config");
-	let configPath: string | undefined;
-	let configSource: FallowProjectState["configSource"] = "none";
-
-	if (configOverride) {
-		configPath = stripAt(configOverride);
-		configSource = "flag";
-	} else {
-		for (const candidate of CONFIG_FILES) {
-			const absolute = resolve(cwd, candidate);
-			if (await exists(absolute)) {
-				configPath = candidate;
-				configSource = "file";
-				break;
-			}
-		}
-	}
-
+	const { configPath: configuredPath, configSource } = await resolveProjectConfig(cwd, args);
 	const cacheEnabled = !args.some((arg) => arg === "--no-cache");
-	const cacheDir = join(cwd, ".fallow");
-	let cacheFiles: string[] = [];
-	if (cacheEnabled && await exists(cacheDir)) {
-		try {
-			const entries = await readdir(cacheDir, { withFileTypes: true });
-			cacheFiles = entries
-				.filter((entry) => entry.isFile() && entry.name.endsWith(".bin"))
-				.map((entry) => `.fallow/${entry.name}`)
-				.sort((a, b) => a.localeCompare(b));
-		} catch {
-			cacheFiles = [];
-		}
-	}
-
+	const cacheFiles = await collectCacheFiles(cwd, cacheEnabled);
 	return {
-		configPath: configPath ? relativePath(cwd, resolve(cwd, configPath)) : undefined,
+		configPath: configuredPath ? relativePath(cwd, resolve(cwd, configuredPath)) : undefined,
 		configSource,
 		cacheEnabled,
 		cacheFiles,
 	};
 }
 
+async function resolveProjectConfig(cwd: string, args: string[]): Promise<{ configPath?: string; configSource: FallowProjectState["configSource"] }> {
+	const configOverride = readFlagValue(args, "--config");
+	if (configOverride) return { configPath: stripAt(configOverride), configSource: "flag" };
+	for (const candidate of CONFIG_FILES) {
+		const absolute = resolve(cwd, candidate);
+		if (await exists(absolute)) return { configPath: candidate, configSource: "file" };
+	}
+	return { configPath: undefined, configSource: "none" };
+}
+
+async function collectCacheFiles(cwd: string, cacheEnabled: boolean): Promise<string[]> {
+	if (!cacheEnabled) return [];
+	const cacheDir = join(cwd, ".fallow");
+	if (!(await exists(cacheDir))) return [];
+	try {
+		const entries = await readdir(cacheDir, { withFileTypes: true });
+		return entries
+			.filter((entry) => entry.isFile() && entry.name.endsWith(".bin"))
+			.map((entry) => `.fallow/${entry.name}`)
+			.sort((a, b) => a.localeCompare(b));
+	} catch {
+		return [];
+	}
+}
 export function formatFallowProjectState(state: FallowProjectState | undefined): FallowSummaryLines | undefined {
 	if (!state) return undefined;
-	const config = state.configPath
-		? `${state.configPath}${state.configSource === "flag" ? " (--config)" : ""}`
-		: "none";
-	const cache = state.cacheEnabled
-		? state.cacheFiles.length ? state.cacheFiles.join(", ") : "none"
-		: "disabled (--no-cache)";
-	return { lines: [{ text: `Config: ${config}` }, { text: `Cache: ${cache}` }] };
+	return {
+		lines: [
+			{ text: `Config: ${formatProjectConfig(state)}` },
+			{ text: `Cache: ${formatProjectCache(state)}` },
+		],
+	};
+}
+
+function formatProjectConfig(state: FallowProjectState): string {
+	return state.configPath ? `${state.configPath}${state.configSource === "flag" ? " (--config)" : ""}` : "none";
+}
+
+function formatProjectCache(state: FallowProjectState): string {
+	if (!state.cacheEnabled) return "disabled (--no-cache)";
+	return state.cacheFiles.length ? state.cacheFiles.join(", ") : "none";
 }
 
 export async function detectFallowGitState(cwd: string): Promise<FallowGitState> {
 	const isGitRepo = await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
 	if (isGitRepo !== "true") return { isGitRepo: false };
-
 	const branchName = await git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
-	const detached = !branchName || branchName === "HEAD";
-	let baseRef: string | undefined;
-	for (const candidate of BASE_REF_CANDIDATES) {
-		const resolved = await git(cwd, ["rev-parse", "--verify", candidate]);
-		if (resolved) {
-			baseRef = candidate;
-			break;
-		}
-	}
-
+	const detached = isDetachedBranch(branchName);
+	const baseRef = await resolveBaseRef(cwd);
 	return {
 		isGitRepo: true,
 		detached,
@@ -118,8 +111,25 @@ export async function detectFallowGitState(cwd: string): Promise<FallowGitState>
 	};
 }
 
+function isDetachedBranch(branchName: string | undefined): boolean {
+	return !branchName || branchName === "HEAD";
+}
+
+async function resolveBaseRef(cwd: string): Promise<string | undefined> {
+	for (const candidate of BASE_REF_CANDIDATES) {
+		const resolved = await git(cwd, ["rev-parse", "--verify", candidate]);
+		if (resolved) return candidate;
+	}
+	return undefined;
+}
+
 export function formatFallowStatus(state: FallowGitState | undefined): string {
 	if (!state?.isGitRepo) return "fallow ready";
-	const location = state.detached ? "detached" : state.branch ? `branch ${state.branch}` : "git";
+	const location = describeLocation(state);
 	return `fallow ready · ${location}${state.baseRef ? ` · base ${state.baseRef}` : ""}`;
+}
+
+function describeLocation(state: FallowGitState): string {
+	if (state.detached) return "detached";
+	return state.branch ? `branch ${state.branch}` : "git";
 }
