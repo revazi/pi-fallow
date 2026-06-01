@@ -1,8 +1,5 @@
+import { asRecord } from "./data";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
-
-function asRecord(value: unknown): Record<string, any> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : undefined;
-}
 
 function asArray(value: unknown): any[] {
 	return Array.isArray(value) ? value : [];

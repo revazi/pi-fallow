@@ -1,12 +1,9 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext, ExecResult } from "@earendil-works/pi-coding-agent";
-import type { FallowRunParams } from "./schema";
+import { stripAtPrefix } from "./path";
 import { fallowEngine } from "./engine";
-
-function stripAt(path: string): string {
-	return path.startsWith("@") ? path.slice(1) : path;
-}
+import type { FallowRunParams } from "./schema";
 
 function addValue(args: string[], flag: string, value: unknown): void {
 	if (value === undefined || value === null || value === "") return;
@@ -154,13 +151,13 @@ function buildExplainArgs(args: string[], params: FallowRunParams): void {
 
 function buildTraceExportArgs(args: string[], params: FallowRunParams): void {
 	if (!params.file || !params.exportName) throw new Error("trace-export requires file and exportName.");
-	args.push("dead-code", "--trace", `${stripAt(params.file)}:${params.exportName}`);
+	args.push("dead-code", "--trace", `${stripAtPrefix(params.file)}:${params.exportName}`);
 	addCommonArgs(args, params);
 }
 
 function buildTraceFileArgs(args: string[], params: FallowRunParams): void {
 	if (!params.file) throw new Error("trace-file requires file.");
-	args.push("dead-code", "--trace-file", stripAt(params.file));
+	args.push("dead-code", "--trace-file", stripAtPrefix(params.file));
 	addCommonArgs(args, params);
 }
 
@@ -172,7 +169,7 @@ function buildTraceDependencyArgs(args: string[], params: FallowRunParams): void
 
 function buildTraceCloneArgs(args: string[], params: FallowRunParams): void {
 	if (!params.file || !params.line) throw new Error("trace-clone requires file and line.");
-	args.push("dupes", "--trace", `${stripAt(params.file)}:${params.line}`);
+	args.push("dupes", "--trace", `${stripAtPrefix(params.file)}:${params.line}`);
 	addCommonArgs(args, params);
 	addDupesOptions(args, params);
 }
@@ -285,7 +282,7 @@ function buildNpxArgs(args: string[]): string[] {
 
 async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext) {
 	const args = buildFallowArgs(params);
-	const cwd = params.root ? resolve(ctx.cwd, stripAt(params.root)) : ctx.cwd;
+	const cwd = params.root ? resolve(ctx.cwd, stripAtPrefix(params.root)) : ctx.cwd;
 	const timeoutSecs = params.timeoutSecs ?? Number(process.env.FALLOW_TIMEOUT_SECS || 120);
 	const { details, content } = await fallowEngine.runFallowWithExecutor({
 		pi,

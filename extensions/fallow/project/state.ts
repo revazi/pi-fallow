@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { access, readdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
+import { stripAtPrefix } from "../path";
 import type { FallowProjectState } from "../types";
 
 const CONFIG_FILES = [".fallowrc", ".fallowrc.json", ".fallowrc.jsonc", "fallow.toml"];
@@ -12,10 +13,6 @@ async function exists(path: string): Promise<boolean> {
 	} catch {
 		return false;
 	}
-}
-
-function stripAt(path: string): string {
-	return path.startsWith("@") ? path.slice(1) : path;
 }
 
 function relativePath(cwd: string, path: string): string {
@@ -44,7 +41,7 @@ export async function detectFallowProjectState(cwd: string, args: string[] = [])
 
 async function resolveProjectConfig(cwd: string, args: string[]): Promise<{ configPath?: string; configSource: FallowProjectState["configSource"] }> {
 	const configOverride = readFlagValue(args, "--config");
-	if (configOverride) return { configPath: stripAt(configOverride), configSource: "flag" };
+	if (configOverride) return { configPath: stripAtPrefix(configOverride), configSource: "flag" };
 	for (const candidate of CONFIG_FILES) {
 		const absolute = resolve(cwd, candidate);
 		if (await exists(absolute)) return { configPath: candidate, configSource: "file" };

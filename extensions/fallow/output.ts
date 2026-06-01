@@ -2,12 +2,9 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
+import { asRecord } from "./data";
 import { buildFallowOverview } from "./overview";
 import type { FallowOverview } from "./types";
-
-function asRecord(value: unknown): Record<string, any> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : undefined;
-}
 
 function stringifyCompact(value: unknown): string {
 	try {

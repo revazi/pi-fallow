@@ -1,6 +1,6 @@
-export function asRecord(value: unknown): Record<string, any> | undefined {
-	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : undefined;
-}
+import { asRecord } from "../data";
+
+export { asRecord } from "../data";
 
 export function findValue(root: unknown, keys: string[], maxDepth = 6): unknown {
 	const seen = new Set<unknown>();
