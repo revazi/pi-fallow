@@ -1,14 +1,30 @@
 {
   "name": "pi-fallow",
   "version": "0.1.0",
+  "type": "module",
   "description": "Pi coding agent extension for Fallow codebase intelligence.",
+  "license": "MIT",
   "keywords": [
     "pi-package",
     "pi-extension",
+    "pi-coding-agent",
     "pi-fallow",
     "fallow",
-    "codebase-intelligence"
+    "codebase-intelligence",
+    "static-analysis",
+    "typescript",
+    "javascript"
   ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "pack:check": "npm pack --dry-run",
+    "publish:public": "npm publish --access public"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/revazi/pi-fallow.git"
@@ -19,6 +35,7 @@
   },
   "files": [
     "README.md",
+    "LICENSE",
     "extensions/**/*.ts"
   ],
   "peerDependencies": {

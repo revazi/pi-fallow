@@ -68,18 +68,48 @@ pi install git:github.com/revazi/pi-fallow
 After publishing to npm, install with:
 
 ```bash
-pi install npm:pi-fallow-extension
+pi install npm:pi-fallow
 ```
 
 `package.json` declares the Pi package entrypoint:
 
 ```json
 {
+  "keywords": ["pi-package", "pi-extension"],
   "pi": {
     "extensions": ["./extensions/index.ts"]
   }
 }
 ```
+
+## Publishing to the Pi package gallery
+
+Pi's package gallery discovers npm packages tagged with the `pi-package` keyword. This package is set up for that flow:
+
+1. Pick and add a license before publishing if you want the package to be open source.
+2. Verify the npm tarball contents:
+
+   ```bash
+   npm run pack:check
+   ```
+
+3. Publish to npm:
+
+   ```bash
+   npm publish --access public
+   ```
+
+4. Install the published package in Pi:
+
+   ```bash
+   pi install npm:pi-fallow
+   ```
+
+After npm publishing, the Pi gallery should pick it up from the `pi-package` keyword. To add a gallery preview, add a public MP4 `pi.video` or PNG/JPEG/GIF/WebP `pi.image` URL in the `pi` manifest.
+
+## License
+
+MIT © Revaz Zakalashvili
 
 ## Examples
 
