@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-export
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";

@@ -4,9 +4,11 @@ import { Text } from "@earendil-works/pi-tui";
 import { fallowCompletions } from "./fallow/autocomplete";
 import { fallowCli } from "./fallow/cli";
 import { fallowEngine } from "./fallow/engine";
-import { detectFallowGitState, formatFallowProjectState, formatFallowStatus } from "./fallow/project";
-import { formatFallowPrSummary } from "./fallow/pr-summary";
-import { formatSummaryLines, renderSummaryLines } from "./fallow/summary";
+import { detectFallowGitState, formatFallowStatus } from "./fallow/project/git";
+import { renderFallowProjectState } from "./fallow/project/render";
+import { formatFallowProjectStateText } from "./fallow/project/text";
+import { renderFallowPrSummary } from "./fallow/pr-summary/render";
+import { formatFallowPrSummaryText } from "./fallow/pr-summary/text";
 import { fallowRunParams } from "./fallow/schema";
 import type { FallowDetails, FallowOverview, FallowPrSummary, FallowProjectState } from "./fallow/types";
 import { fallowPurple, FallowIssueNavigator, FallowOverviewComponent, type FallowNavigatorResult } from "./fallow/ui";
@@ -191,8 +193,8 @@ function runFallowWithLoader(
 }
 
 function buildFallowResultPrefix(projectState: FallowProjectState | undefined, prSummary: FallowPrSummary | undefined): string {
-	const projectStateText = formatSummaryLines(formatFallowProjectState(projectState));
-	const prSummaryText = formatSummaryLines(formatFallowPrSummary(prSummary));
+	const projectStateText = formatFallowProjectStateText(projectState);
+	const prSummaryText = formatFallowPrSummaryText(prSummary);
 	return [prSummaryText, projectStateText].filter(Boolean).join("\n");
 }
 
@@ -446,8 +448,8 @@ export default function (pi: ExtensionAPI) {
 
 	function buildCompactMessageSummary(details: FallowDetails, theme: any): string[] {
 		return [
-			renderSummaryLines(formatFallowPrSummary(details.prSummary), theme),
-			renderSummaryLines(formatFallowProjectState(details.projectState), theme),
+			renderFallowPrSummary(details.prSummary, theme),
+			renderFallowProjectState(details.projectState, theme),
 		].filter(Boolean);
 	}
 
@@ -502,8 +504,8 @@ export default function (pi: ExtensionAPI) {
 		details: { command?: string; args?: string[]; overview?: FallowOverview; compact?: boolean; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary },
 		theme: any,
 	): string {
-		const prSummaryLines = renderSummaryLines(formatFallowPrSummary(details.prSummary), theme);
-		const projectStateLines = renderSummaryLines(formatFallowProjectState(details.projectState), theme);
+		const prSummaryLines = renderFallowPrSummary(details.prSummary, theme);
+		const projectStateLines = renderFallowProjectState(details.projectState, theme);
 		return [prSummaryLines, projectStateLines].filter(Boolean).join("\n");
 	}
 

@@ -27,6 +27,7 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 
 ## File layout
 
+- `.fallowrc.json` — Fallow entry-point and component callback configuration for local health/dead-code checks
 - `extensions/index.ts` — extension entrypoint and Pi registration (shimmed via `extensions/fallow.ts` for compatibility)
 - `extensions/fallow/schema.ts` — tool parameter schema
 - `extensions/fallow/autocomplete.ts` — `/fallow` command and flag autocomplete
@@ -34,10 +35,10 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 - `extensions/fallow/output.ts` — JSON parsing, summaries, truncation
 - `extensions/fallow/overview.ts` — maps Fallow JSON to overview data
 - `extensions/fallow/ui.ts` — pi-tui overview component
-- `extensions/fallow/project.ts` — Fallow project/git status detection
-- `extensions/fallow/pr-summary.ts` — PR gate summary extraction
+- `extensions/fallow/project/` — Fallow project/git status detection and rendering helpers
+- `extensions/fallow/pr-summary/` — PR gate summary extraction and rendering helpers
 - `extensions/fallow/engine.ts` — unified command execution + formatting pipeline
-- `extensions/fallow/summary.ts` — shared summary rendering helpers
+- `extensions/fallow/summary/` — shared summary formatting/rendering helpers
 - `extensions/fallow/types.ts` — shared types
 
 ## Install / test

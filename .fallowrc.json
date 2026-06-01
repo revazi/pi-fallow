@@ -1,0 +1,13 @@
+{
+  "entry": [
+    "extensions/index.ts"
+  ],
+  "usedClassMembers": [
+    {
+      "implements": "Component",
+      "members": [
+        "handleInput"
+      ]
+    }
+  ]
+}

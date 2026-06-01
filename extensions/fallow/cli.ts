@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-export
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext, ExecResult } from "@earendil-works/pi-coding-agent";

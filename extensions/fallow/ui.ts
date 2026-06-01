@@ -1,8 +1,6 @@
-// fallow-ignore-file unused-export
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
-import { formatFallowProjectState } from "./project";
-import { formatFallowPrSummary } from "./pr-summary";
-import { renderSummaryLines } from "./summary";
+import { renderFallowProjectState } from "./project/render";
+import { renderFallowPrSummary } from "./pr-summary/render";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "./types";
 
 const ansi = (code: number, text: string) => `\x1b[38;5;${code}m${text}\x1b[39m`;
@@ -175,9 +173,9 @@ function getItemLocation(item: FallowIssueLine): string | undefined {
 	return `${item.path}${item.line ? `:${item.line}` : ""}`;
 }
 
-function collectSummaryBlocks(prSummary: unknown, projectState: unknown, theme: any): string[][] {
-	const summaryText = renderSummaryLines(formatFallowPrSummary(prSummary), theme);
-	const projectStateText = renderSummaryLines(formatFallowProjectState(projectState), theme);
+function collectSummaryBlocks(prSummary: FallowPrSummary | undefined, projectState: FallowProjectState | undefined, theme: any): string[][] {
+	const summaryText = renderFallowPrSummary(prSummary, theme);
+	const projectStateText = renderFallowProjectState(projectState, theme);
 	return [summaryText, projectStateText].filter(Boolean).map((text) => text.split("\n"));
 }
 
@@ -327,8 +325,8 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private renderFooterSummaryBlocks(theme: any, frameWidth: number, lines: string[]): void {
-		this.renderSummaryBlock(this.options.prSummary ? formatFallowPrSummary(this.options.prSummary) : undefined, theme, frameWidth, lines);
-		this.renderSummaryBlock(this.options.projectState ? formatFallowProjectState(this.options.projectState) : undefined, theme, frameWidth, lines);
+		this.renderSummaryBlock(renderFallowPrSummary(this.options.prSummary, theme), frameWidth, lines);
+		this.renderSummaryBlock(renderFallowProjectState(this.options.projectState, theme), frameWidth, lines);
 	}
 
 	private renderFooterMeta(theme: any, frameWidth: number, lines: string[]): void {
@@ -336,8 +334,7 @@ export class FallowIssueNavigator implements Component {
 		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
 	}
 
-	private renderSummaryBlock(summaryData: unknown, theme: any, frameWidth: number, lines: string[]): void {
-		const summaryText = renderSummaryLines(summaryData, theme);
+	private renderSummaryBlock(summaryText: string, frameWidth: number, lines: string[]): void {
 		if (!summaryText) return;
 		for (const line of summaryText.split("\n")) {
 			lines.push(this.frame(line, frameWidth));

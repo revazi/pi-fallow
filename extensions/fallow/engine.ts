@@ -1,8 +1,8 @@
-// fallow-ignore-file unused-export
 import type { ExtensionAPI, ExecResult } from "@earendil-works/pi-coding-agent";
-import { buildFallowPrSummary, formatFallowPrSummary } from "./pr-summary";
-import { detectFallowProjectState, formatFallowProjectState } from "./project";
-import { formatSummaryLines } from "./summary";
+import { buildFallowPrSummary } from "./pr-summary/build";
+import { formatFallowPrSummaryText } from "./pr-summary/text";
+import { detectFallowProjectState } from "./project/state";
+import { formatFallowProjectStateText } from "./project/text";
 import { formatToolOutput, parseJson } from "./output";
 import type { FallowDetails, FallowOverview, FallowPrSummary, FallowProjectState } from "./types";
 
@@ -142,8 +142,8 @@ function buildFallowResultContent(
 	projectState: FallowProjectState,
 	prSummary: FallowPrSummary | undefined,
 ): string {
-	const prSummaryText = formatSummaryLines(formatFallowPrSummary(prSummary));
-	const projectStateText = formatSummaryLines(formatFallowProjectState(projectState));
+	const prSummaryText = formatFallowPrSummaryText(prSummary);
+	const projectStateText = formatFallowProjectStateText(projectState);
 	const contentPrefix = [prSummaryText, projectStateText].filter(Boolean).join("\n");
 	return contentPrefix ? `${contentPrefix}\n\n${formatted.text}` : formatted.text;
 }
