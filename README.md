@@ -17,16 +17,17 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 ## What this extension adds
 
 - LLM tool: `fallow_run`
-- Slash command: `/fallow ...` with autocomplete for Fallow commands and common flags (type `/fallow` and press Tab to pick a subcommand)
+- Slash command: `/fallow ...` with autocomplete for Fallow commands and common flags (type `/fallow` and press Tab to pick a subcommand). Branch refs for `--base`/`--changed-since` are populated from the current repo when possible.
+- Command shortcuts: `/fallow pr` maps to `audit` with detected base ref and `new-only` gate default; `/fallow rerun` re-runs the previous slash command.
 - Automatic JSON + quiet output for modeled tool calls
 - Uses `FALLOW_BIN` if set, otherwise `fallow` from `PATH`, falling back to `npx -y fallow`
 - Truncates large output to Pi's default limits and saves full JSON to a temp file
 - Compact TUI rendering with expandable command/summary details
-- Interactive bordered issue navigator for `/fallow ...`: arrow keys or `j/k` move, Enter/Space expands the selected finding, `s` selects/unselects, `e` or `a` loads selected findings into the editor so you can add comments before submitting, `q`/Esc closes. The regular Pi transcript only gets a compact summary while details live in the navigator.
+- Interactive bordered issue navigator for `/fallow ...`: arrow keys or `j/k` move, Enter/Space expands the selected finding, `s` selects/unselects, `e`/`a` loads selected findings into the editor so you can add comments before submitting, `t` runs `trace-file` for the selected finding when possible, and `q`/Esc closes. The regular Pi transcript only gets a compact summary while details live in the navigator.
 
 ## File layout
 
-- `extensions/fallow.ts` — extension entrypoint and Pi registration
+- `extensions/index.ts` — extension entrypoint and Pi registration (shimmed via `extensions/fallow.ts` for compatibility)
 - `extensions/fallow/schema.ts` — tool parameter schema
 - `extensions/fallow/autocomplete.ts` — `/fallow` command and flag autocomplete
 - `extensions/fallow/cli.ts` — CLI argument building and process execution
@@ -35,6 +36,8 @@ Fetched Fallow's docs index plus the LLM bundle (`/llms.txt`, `/llms-full.txt`).
 - `extensions/fallow/ui.ts` — pi-tui overview component
 - `extensions/fallow/project.ts` — Fallow project/git status detection
 - `extensions/fallow/pr-summary.ts` — PR gate summary extraction
+- `extensions/fallow/engine.ts` — unified command execution + formatting pipeline
+- `extensions/fallow/summary.ts` — shared summary rendering helpers
 - `extensions/fallow/types.ts` — shared types
 
 ## Install / test
@@ -72,7 +75,7 @@ pi install npm:pi-fallow-extension
 ```json
 {
   "pi": {
-    "extensions": ["./extensions/fallow.ts"]
+    "extensions": ["./extensions/index.ts"]
   }
 }
 ```
@@ -89,6 +92,10 @@ Ask Pi:
 Or run manually in Pi:
 
 ```text
+/fallow all
+/fallow pr
+/fallow pr --base develop --gate all
+/fallow rerun
 /fallow audit --base main --gate new-only
 /fallow audit --base origin/main --gate new-only
 /fallow check-changed --changed-since main

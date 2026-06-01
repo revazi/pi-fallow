@@ -19,6 +19,7 @@ export interface FallowPrSummary {
 	newIssuesCount: number;
 	passed: boolean;
 	topAffectedFiles: string[];
+	severityBuckets?: Array<{ severity: string; count: number }>;
 }
 
 export interface FallowDetails {
@@ -34,6 +35,15 @@ export interface FallowDetails {
 	truncated?: boolean;
 	projectState?: FallowProjectState;
 	prSummary?: FallowPrSummary;
+}
+
+export interface FallowSummaryLine {
+	text: string;
+	tone?: "dim" | "muted" | "success" | "warning" | "error" | "accent" | "text";
+}
+
+export interface FallowSummaryLines {
+	lines: FallowSummaryLine[];
 }
 
 export interface FallowIssueLine {

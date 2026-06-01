@@ -1,6 +1,8 @@
+// fallow-ignore-file unused-export
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 import { formatFallowProjectState } from "./project";
 import { formatFallowPrSummary } from "./pr-summary";
+import { renderSummaryLines } from "./summary";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "./types";
 
 const ansi = (code: number, text: string) => `\x1b[38;5;${code}m${text}\x1b[39m`;
@@ -27,61 +29,99 @@ export class FallowOverviewComponent implements Component {
 
 	render(width: number): string[] {
 		if (this.cachedWidth === width && this.cachedLines) return this.cachedLines;
-		const theme = this.theme;
 		const lines: string[] = [];
-		const statusIcon = this.overview.status === "success" ? "✓" : this.overview.status === "error" ? "✗" : "●";
-		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
-		lines.push(truncateToWidth(`${theme.fg(statusColor, statusIcon)} ${theme.fg("toolTitle", theme.bold(this.overview.title))}`, width));
-
-		if (this.overview.stats.length) {
-			const statLine = this.overview.stats.slice(0, this.options.expanded ? 10 : 6)
-				.map((stat) => `${theme.fg("muted", stat.label)} ${theme.fg("accent", String(stat.value))}`)
-				.join(theme.fg("dim", " · "));
-			lines.push(...wrapTextWithAnsi(statLine, Math.max(10, width)));
-		}
-
-		const maxSections = this.options.expanded ? this.overview.sections.length : Math.min(this.overview.sections.length, 4);
-		for (const section of this.overview.sections.slice(0, maxSections)) {
-			const color = section.color ?? "accent";
-			const count = section.count !== undefined ? theme.fg("dim", ` (${section.count})`) : "";
-			lines.push(truncateToWidth(`  ${theme.fg(color, theme.bold(section.title))}${count}`, width));
-			const maxItems = this.options.expanded ? 8 : 3;
-			for (const item of section.items.slice(0, maxItems)) {
-				const loc = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : undefined;
-				const main = [theme.fg("text", item.label), loc ? theme.fg("muted", loc) : undefined, item.meta ? theme.fg("dim", item.meta) : undefined]
-					.filter(Boolean)
-					.join(theme.fg("dim", " · "));
-				lines.push(truncateToWidth(`    • ${main}`, width));
-				if (this.options.expanded && item.action) {
-					for (const wrapped of wrapTextWithAnsi(theme.fg("dim", `      ↳ ${item.action}`), Math.max(10, width))) {
-						lines.push(wrapped);
-					}
-				}
-			}
-			if (section.items.length > maxItems) {
-				lines.push(truncateToWidth(theme.fg("dim", `    … ${section.items.length - maxItems} more shown in JSON output`), width));
-			}
-		}
-		if (this.overview.sections.length > maxSections) {
-			lines.push(truncateToWidth(theme.fg("dim", `  … ${this.overview.sections.length - maxSections} more sections`), width));
-		}
-
-		for (const note of this.overview.notes.slice(0, this.options.expanded ? 5 : 2)) {
-			lines.push(...wrapTextWithAnsi(theme.fg("dim", `  ${note}`), Math.max(10, width)));
-		}
-		const prSummaryText = formatFallowPrSummary(this.options.prSummary);
-		if (prSummaryText) {
-			for (const line of prSummaryText.split("\n")) lines.push(truncateToWidth(theme.fg(line.includes("FAIL") ? "warning" : "dim", line), width));
-		}
-		const projectStateLine = formatFallowProjectState(this.options.projectState);
-		if (projectStateLine) lines.push(truncateToWidth(theme.fg("dim", projectStateLine), width));
-		if (this.options.expanded && this.options.command) lines.push(truncateToWidth(theme.fg("muted", this.options.command), width));
-		if (this.options.fullOutputPath) lines.push(truncateToWidth(theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), width));
-		if (this.options.truncated) lines.push(truncateToWidth(theme.fg("warning", "JSON output was truncated for context."), width));
+		this.renderTitle(width, lines);
+		this.renderStats(width, lines);
+		this.renderSections(width, lines);
+		this.renderNotes(width, lines);
+		this.renderSummaryBlocks(width, lines);
+		if (this.options.expanded && this.options.command) lines.push(truncateToWidth(this.theme.fg("muted", this.options.command), width));
+		if (this.options.fullOutputPath) lines.push(truncateToWidth(this.theme.fg("dim", `Full JSON: ${this.options.fullOutputPath}`), width));
+		if (this.options.truncated) lines.push(truncateToWidth(this.theme.fg("warning", "JSON output was truncated for context."), width));
 
 		this.cachedWidth = width;
 		this.cachedLines = lines;
 		return lines;
+	}
+
+	private renderTitle(width: number, lines: string[]): void {
+		const theme = this.theme;
+		const statusIcon = this.overview.status === "success" ? "✓" : this.overview.status === "error" ? "✗" : "●";
+		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
+		lines.push(truncateToWidth(`${theme.fg(statusColor, statusIcon)} ${theme.fg("toolTitle", theme.bold(this.overview.title))}`, width));
+	}
+
+	private renderStats(width: number, lines: string[]): void {
+		if (!this.overview.stats.length) return;
+		const statLine = this.overview.stats.slice(0, this.options.expanded ? 10 : 6)
+			.map((stat) => `${this.theme.fg("muted", stat.label)} ${this.theme.fg("accent", String(stat.value))}`)
+			.join(this.theme.fg("dim", " · "));
+		lines.push(...wrapTextWithAnsi(statLine, Math.max(10, width)));
+	}
+
+	private renderSections(width: number, lines: string[]): void {
+		const maxSections = this.options.expanded ? this.overview.sections.length : Math.min(this.overview.sections.length, 4);
+		for (const section of this.overview.sections.slice(0, maxSections)) {
+			this.renderSection(section, width, lines);
+		}
+		if (this.overview.sections.length > maxSections) {
+			lines.push(truncateToWidth(this.theme.fg("dim", `  … ${this.overview.sections.length - maxSections} more sections`), width));
+		}
+	}
+
+	private renderSection(section: FallowOverviewSection, width: number, lines: string[]): void {
+		const maxItems = this.options.expanded ? 8 : 3;
+		this.renderSectionHeader(section, width, lines);
+		this.renderSectionItems(section, width, lines, maxItems);
+		this.renderSectionOverflow(section, width, lines, maxItems);
+	}
+
+	private renderSectionHeader(section: FallowOverviewSection, width: number, lines: string[]): void {
+		const theme = this.theme;
+		const count = section.count !== undefined ? theme.fg("dim", ` (${section.count})`) : "";
+		const titleColor = section.color ?? "accent";
+		lines.push(truncateToWidth(`  ${theme.fg(titleColor, theme.bold(section.title))}${count}`, width));
+	}
+
+	private renderSectionItems(section: FallowOverviewSection, width: number, lines: string[], maxItems: number): void {
+		for (const item of section.items.slice(0, maxItems)) {
+			const loc = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : undefined;
+			const main = [
+				this.theme.fg("text", item.label),
+				loc ? this.theme.fg("muted", loc) : undefined,
+				item.meta ? this.theme.fg("dim", item.meta) : undefined,
+			]
+				.filter(Boolean)
+				.join(this.theme.fg("dim", " · "));
+			lines.push(truncateToWidth(`    • ${main}`, width));
+			if (!this.options.expanded || !item.action) continue;
+			for (const wrapped of wrapTextWithAnsi(this.theme.fg("dim", `      ↳ ${item.action}`), Math.max(10, width))) {
+				lines.push(wrapped);
+			}
+		}
+	}
+
+	private renderSectionOverflow(section: FallowOverviewSection, width: number, lines: string[], maxItems: number): void {
+		if (section.items.length <= maxItems) return;
+		lines.push(truncateToWidth(this.theme.fg("dim", `    … ${section.items.length - maxItems} more shown in JSON output`), width));
+	}
+
+	private renderNotes(width: number, lines: string[]): void {
+		for (const note of this.overview.notes.slice(0, this.options.expanded ? 5 : 2)) {
+			lines.push(...wrapTextWithAnsi(this.theme.fg("dim", `  ${note}`), Math.max(10, width)));
+		}
+	}
+
+	private renderSummaryBlocks(width: number, lines: string[]): void {
+		const theme = this.theme;
+		const summaryText = renderSummaryLines(formatFallowPrSummary(this.options.prSummary), theme);
+		if (summaryText) {
+			for (const line of summaryText.split("\n")) lines.push(truncateToWidth(line, width));
+		}
+		const projectStateText = renderSummaryLines(formatFallowProjectState(this.options.projectState), theme);
+		if (projectStateText) {
+			for (const line of projectStateText.split("\n")) lines.push(truncateToWidth(line, width));
+		}
 	}
 
 	invalidate(): void {
@@ -97,10 +137,9 @@ interface FlatIssue {
 	itemIndex: number;
 }
 
-export interface FallowNavigatorResult {
-	prompt: string;
-	issueCount: number;
-}
+export type FallowNavigatorResult =
+	| { type: "prompt"; prompt: string; issueCount: number }
+	| { type: "trace"; commandArgs: string[] };
 
 export class FallowIssueNavigator implements Component {
 	private issues: FlatIssue[];
@@ -124,85 +163,119 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	handleInput(data: string): void {
-		if (matchesKey(data, "escape") || data === "q") return this.onDone(null);
-		if (matchesKey(data, "up") || data === "k") return this.move(-1);
-		if (matchesKey(data, "down") || data === "j") return this.move(1);
-		if (matchesKey(data, "home")) return this.select(0);
-		if (matchesKey(data, "end")) return this.select(this.issues.length - 1);
-		if (data === "s" || matchesKey(data, "tab")) return this.toggleMarked();
-		if (data === "e" || data === "a") return this.onDone(this.buildResult());
-		if (matchesKey(data, "enter") || matchesKey(data, "space") || matchesKey(data, "right") || data === "l") {
-			if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
-			else {
-				this.expanded.clear();
-				this.expanded.add(this.selected);
+		const bindings: Array<{ matches: (value: string) => boolean; action: () => void }> = [
+			{ matches: (value) => matchesKey(value, "escape") || value === "q", action: () => this.onDone(null) },
+			{ matches: (value) => matchesKey(value, "up") || value === "k", action: () => this.move(-1) },
+			{ matches: (value) => matchesKey(value, "down") || value === "j", action: () => this.move(1) },
+			{ matches: (value) => matchesKey(value, "home"), action: () => this.select(0) },
+			{ matches: (value) => matchesKey(value, "end"), action: () => this.select(this.issues.length - 1) },
+			{ matches: (value) => value === "s" || matchesKey(value, "tab"), action: () => this.toggleMarked() },
+			{ matches: (value) => value === "e" || value === "a", action: () => this.onDone(this.buildPromptResult()) },
+			{ matches: (value) => value === "t", action: () => {
+				const trace = this.currentTraceCandidate();
+				if (!trace) return;
+				this.onDone({ type: "trace", commandArgs: ["dead-code", "--trace-file", trace] });
+			} },
+			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l",
+				action: () => {
+				if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
+				else {
+					this.expanded.clear();
+					this.expanded.add(this.selected);
+				}
+				this.changed();
+			} },
+			{ matches: (value) => matchesKey(value, "left") || value === "h", action: () => {
+				this.expanded.delete(this.selected);
+				this.changed();
+			} },
+		];
+
+		for (const binding of bindings) {
+			if (binding.matches(data)) {
+				binding.action();
+				return;
 			}
-			return this.changed();
-		}
-		if (matchesKey(data, "left") || data === "h") {
-			this.expanded.delete(this.selected);
-			return this.changed();
 		}
 	}
 
 	render(width: number): string[] {
 		if (this.cachedWidth === width && this.cachedLines) return this.cachedLines;
-
 		const frameWidth = Math.max(50, width);
 		const innerWidth = Math.max(10, frameWidth - 4);
-		const theme = this.theme;
 		const lines: string[] = [];
-		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
 
-		const issueCount = this.issues.length;
-		const title = `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(this.overview.title))}${theme.fg("dim", " · ")}${pill(`${issueCount} finding${issueCount === 1 ? "" : "s"}`, issueCount ? pink : cyan)} `;
-		lines.push(this.topBorder(frameWidth, title));
-		for (const statLine of this.statLines(innerWidth)) lines.push(this.frame(statLine, frameWidth));
-		lines.push(this.frame(this.helpLine(), frameWidth));
-		lines.push(this.separator(frameWidth));
-
+		this.renderHeader(frameWidth, innerWidth, lines);
 		if (!this.issues.length) {
-			lines.push(this.frame(theme.fg("success", "No navigable findings in this Fallow report."), frameWidth));
+			lines.push(this.frame(this.theme.fg("success", "No navigable findings in this Fallow report."), frameWidth));
 			lines.push(this.bottomBorder(frameWidth));
 			return this.cache(width, lines);
 		}
 
+		this.renderIssues(frameWidth, innerWidth, lines);
+		this.renderFooter(frameWidth, lines);
+		lines.push(this.bottomBorder(frameWidth));
+		return this.cache(width, lines);
+	}
+
+	private renderHeader(frameWidth: number, innerWidth: number, lines: string[]): void {
+		const theme = this.theme;
+		const statusColor = this.overview.status === "success" ? "success" : this.overview.status === "error" ? "error" : "warning";
+		const issueCount = this.issues.length;
+		const title = `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(this.overview.title))}${theme.fg("dim", " · ")}${pill(`${issueCount} finding${issueCount === 1 ? "" : "s"}`, issueCount ? pink : cyan)} `;
+		lines.push(this.topBorder(frameWidth, title));
+		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
+		lines.push(this.frame(this.helpLine(), frameWidth));
+		lines.push(this.separator(frameWidth));
+	}
+
+	private renderIssues(frameWidth: number, innerWidth: number, lines: string[]): void {
 		const listHeight = 10;
 		this.ensureVisible(listHeight);
 		const start = this.scrollStart;
 		const end = Math.min(this.issues.length, start + listHeight);
-		if (start > 0) lines.push(this.frame(theme.fg("dim", `… ${start} earlier findings`), frameWidth));
+		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier findings`), frameWidth));
 
+		for (const row of this.renderIssueRows(start, end, innerWidth)) {
+			lines.push(this.frame(row, frameWidth));
+		}
+		if (end < this.issues.length) lines.push(this.frame(this.theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
+	}
+
+	private renderIssueRows(start: number, end: number, innerWidth: number): string[] {
+		const rows: string[] = [];
 		let lastSection = -1;
 		for (let index = start; index < end; index++) {
 			const entry = this.issues[index]!;
 			if (entry.sectionIndex !== lastSection) {
 				lastSection = entry.sectionIndex;
-				const count = entry.section.count !== undefined ? theme.fg("dim", ` (${entry.section.count})`) : "";
-				lines.push(this.frame(`  ${violet("●")} ${theme.fg(entry.section.color ?? "accent", theme.bold(entry.section.title))}${count}`, frameWidth));
+				const count = entry.section.count !== undefined ? this.theme.fg("dim", ` (${entry.section.count})`) : "";
+				rows.push(`  ${violet("●")} ${this.theme.fg(entry.section.color ?? "accent", this.theme.bold(entry.section.title))}${count}`);
 			}
-			lines.push(this.frame(this.issueLine(index, innerWidth), frameWidth));
+			rows.push(this.issueLine(index, innerWidth));
 			if (this.expanded.has(index)) {
-				for (const detailLine of this.detailLines(entry, innerWidth)) {
-					lines.push(this.frame(detailLine, frameWidth));
-				}
+				rows.push(...this.detailLines(this.issues[index]!, innerWidth));
 			}
 		}
+		return rows;
+	}
 
-		if (end < this.issues.length) lines.push(this.frame(theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
+	private renderFooter(frameWidth: number, lines: string[]): void {
+		const theme = this.theme;
 		lines.push(this.separator(frameWidth));
 		lines.push(this.frame(`${pill(`${this.selection().length} selected`, purple)} ${theme.fg("muted", "e/a loads prompt into editor for your comments")}`, frameWidth));
-		const prSummaryText = formatFallowPrSummary(this.options.prSummary);
-		if (prSummaryText) {
-			for (const line of prSummaryText.split("\n")) lines.push(this.frame(`${pink("PR")} ${theme.fg(line.includes("FAIL") ? "warning" : "dim", line)}`, frameWidth));
-		}
-		const projectStateLine = formatFallowProjectState(this.options.projectState);
-		if (projectStateLine) lines.push(this.frame(`${cyan("Project")} ${theme.fg("dim", projectStateLine)}`, frameWidth));
+		this.renderSummaryBlock(this.options.prSummary ? formatFallowPrSummary(this.options.prSummary) : undefined, theme, frameWidth, lines);
+		this.renderSummaryBlock(this.options.projectState ? formatFallowProjectState(this.options.projectState) : undefined, theme, frameWidth, lines);
 		if (this.options.fullOutputPath) lines.push(this.frame(`${cyan("Full JSON")} ${theme.fg("dim", this.options.fullOutputPath)}`, frameWidth));
 		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
-		lines.push(this.bottomBorder(frameWidth));
+	}
 
-		return this.cache(width, lines);
+	private renderSummaryBlock(summaryData: unknown, theme: any, frameWidth: number, lines: string[]): void {
+		const summaryText = renderSummaryLines(summaryData, theme);
+		if (!summaryText) return;
+		for (const line of summaryText.split("\n")) {
+			lines.push(this.frame(line, frameWidth));
+		}
 	}
 
 	invalidate(): void {
@@ -241,9 +314,30 @@ export class FallowIssueNavigator implements Component {
 		return indices.map((index) => this.issues[index]).filter(Boolean) as FlatIssue[];
 	}
 
-	private buildResult(): FallowNavigatorResult {
+	private buildPromptResult(): FallowNavigatorResult {
 		const issues = this.selection();
-		return { issueCount: issues.length, prompt: this.buildPrompt(issues) };
+		return { type: "prompt", issueCount: issues.length, prompt: this.buildPrompt(issues) };
+	}
+
+	private currentTraceCandidate(): string | null {
+		const selected = this.issues[this.selected];
+		if (!selected) return null;
+		const path = selected.item.path ? this.stripTraceSuffix(selected.item.path) : this.pathFromAction(selected.item.action);
+		return path ?? null;
+	}
+
+	private pathFromAction(action: string | undefined): string | null {
+		if (!action) return null;
+		const pathWithLine = action.match(/(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+:\d+)(?:\s|$)/);
+		if (pathWithLine?.[1]) return this.stripTraceSuffix(pathWithLine[1]);
+		const barePath = action.match(/(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+)(?:\s|$)/);
+		return barePath?.[1] ? this.stripTraceSuffix(barePath[1]) : null;
+	}
+
+	private stripTraceSuffix(path: string): string {
+		return path
+			.replace(/[\]\)>,.;:!?]+$/u, "")
+			.replace(/:\d+$/, "");
 	}
 
 	private buildPrompt(issues: FlatIssue[]): string {
@@ -294,7 +388,7 @@ export class FallowIssueNavigator implements Component {
 
 	private helpLine(): string {
 		const key = (text: string) => pill(text, violet);
-		return `${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}  ${key("enter")} ${this.theme.fg("muted", "expand")}  ${key("s")} ${this.theme.fg("muted", "select")}  ${key("e/a")} ${this.theme.fg("muted", "load")}  ${key("q")} ${this.theme.fg("muted", "close")}`;
+		return `${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}  ${key("enter")} ${this.theme.fg("muted", "expand")}  ${key("s")} ${this.theme.fg("muted", "select")}  ${key("e/a")} ${this.theme.fg("muted", "load")}  ${key("t")} ${this.theme.fg("muted", "trace")}  ${key("q")} ${this.theme.fg("muted", "close")}`;
 	}
 
 	private issueLine(index: number, width: number): string {

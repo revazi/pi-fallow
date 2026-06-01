@@ -29,7 +29,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions/fallow.ts"
+      "./extensions/index.ts"
     ]
   }
 }

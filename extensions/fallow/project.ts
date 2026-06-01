@@ -1,8 +1,9 @@
+// fallow-ignore-file unused-export
 import { execFile } from "node:child_process";
 import { constants } from "node:fs";
 import { access, readdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
-import type { FallowGitState, FallowProjectState } from "./types";
+import type { FallowGitState, FallowProjectState, FallowSummaryLines } from "./types";
 
 const CONFIG_FILES = [".fallowrc", ".fallowrc.json", ".fallowrc.jsonc", "fallow.toml"];
 const BASE_REF_CANDIDATES = ["origin/main", "main", "origin/master", "master"];
@@ -35,12 +36,10 @@ function relativePath(cwd: string, path: string): string {
 }
 
 function readFlagValue(args: string[], flag: string): string | undefined {
-	for (let index = 0; index < args.length; index++) {
-		const arg = args[index];
-		if (arg === flag) return args[index + 1];
-		if (arg?.startsWith(`${flag}=`)) return arg.slice(flag.length + 1);
-	}
-	return undefined;
+	const index = args.findIndex((entry) => entry === flag);
+	if (index >= 0 && index + 1 < args.length) return args[index + 1];
+	const withAssignment = args.find((entry) => entry.startsWith(`${flag}=`));
+	return withAssignment?.slice(flag.length + 1);
 }
 
 export async function detectFallowProjectState(cwd: string, args: string[] = []): Promise<FallowProjectState> {
@@ -85,7 +84,7 @@ export async function detectFallowProjectState(cwd: string, args: string[] = [])
 	};
 }
 
-export function formatFallowProjectState(state: FallowProjectState | undefined): string | undefined {
+export function formatFallowProjectState(state: FallowProjectState | undefined): FallowSummaryLines | undefined {
 	if (!state) return undefined;
 	const config = state.configPath
 		? `${state.configPath}${state.configSource === "flag" ? " (--config)" : ""}`
@@ -93,7 +92,7 @@ export function formatFallowProjectState(state: FallowProjectState | undefined):
 	const cache = state.cacheEnabled
 		? state.cacheFiles.length ? state.cacheFiles.join(", ") : "none"
 		: "disabled (--no-cache)";
-	return `Config: ${config} · Cache: ${cache}`;
+	return { lines: [{ text: `Config: ${config}` }, { text: `Cache: ${cache}` }] };
 }
 
 export async function detectFallowGitState(cwd: string): Promise<FallowGitState> {

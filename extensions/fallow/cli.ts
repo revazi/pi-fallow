@@ -1,11 +1,9 @@
+// fallow-ignore-file unused-export
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext, ExecResult } from "@earendil-works/pi-coding-agent";
-import { formatToolOutput, parseJson } from "./output";
-import { detectFallowProjectState, formatFallowProjectState } from "./project";
-import { buildFallowPrSummary, formatFallowPrSummary } from "./pr-summary";
 import type { FallowRunParams } from "./schema";
-import type { FallowDetails } from "./types";
+import { fallowEngine } from "./engine";
 
 function stripAt(path: string): string {
 	return path.startsWith("@") ? path.slice(1) : path;
@@ -32,181 +30,190 @@ function rejectFormatOverride(extraArgs?: string[]): void {
 	}
 }
 
-export function buildFallowArgs(params: FallowRunParams): string[] {
+function addCoverageOptions(args: string[], params: FallowRunParams): void {
+	addValue(args, "--coverage", params.coverage);
+	addValue(args, "--coverage-root", params.coverageRoot);
+	addValue(args, "--runtime-coverage", params.runtimeCoverage);
+	addValue(args, "--max-crap", params.maxCrap);
+}
+
+function addDupesOptions(args: string[], params: FallowRunParams): void {
+	addValue(args, "--min-tokens", params.minTokens);
+	addValue(args, "--min-lines", params.minLines);
+	addValue(args, "--threshold", params.threshold);
+	addValue(args, "--min-occurrences", params.minOccurrences);
+	addBool(args, "--skip-local", params.skipLocal);
+	addBool(args, "--cross-language", params.crossLanguage);
+	addBool(args, "--ignore-imports", params.ignoreImports);
+}
+
+type CommandArgsBuilder = (args: string[], params: FallowRunParams) => void;
+
+function addCommonArgs(args: string[], params: FallowRunParams): void {
+	args.push("--format", "json", "--quiet");
+	addValue(args, "--config", params.config);
+	addWorkspace(args, params.workspace);
+	addBool(args, "--production", params.production);
+	addBool(args, "--no-cache", params.noCache);
+	addValue(args, "--threads", params.threads);
+}
+
+function buildAllArgs(args: string[], params: FallowRunParams): void {
+	addCommonArgs(args, params);
+	addValue(args, "--changed-since", params.changedSince);
+	addBool(args, "--score", params.score);
+}
+
+function buildDeadCodeArgs(args: string[], params: FallowRunParams): void {
+	args.push("dead-code");
+	addCommonArgs(args, params);
+	addValue(args, "--changed-since", params.changedSince);
+	addBool(args, "--include-entry-exports", params.includeEntryExports);
+	addValue(args, "--group-by", params.groupBy);
+}
+
+function buildCheckChangedArgs(args: string[], params: FallowRunParams): void {
+	args.push("check-changed");
+	addCommonArgs(args, params);
+	if (!params.changedSince && !params.base) throw new Error("check-changed requires changedSince or base.");
+	addValue(args, "--changed-since", params.changedSince ?? params.base);
+	addBool(args, "--include-entry-exports", params.includeEntryExports);
+}
+
+function buildDupeArgs(args: string[], params: FallowRunParams): void {
+	args.push("dupes");
+	addCommonArgs(args, params);
+	addValue(args, "--changed-since", params.changedSince);
+	addValue(args, "--top", params.top);
+	addDupesOptions(args, params);
+}
+
+function buildHealthArgs(args: string[], params: FallowRunParams): void {
+	args.push("health");
+	addCommonArgs(args, params);
+	addValue(args, "--changed-since", params.changedSince);
+	addValue(args, "--top", params.top);
+	addValue(args, "--group-by", params.groupBy);
+	addBool(args, "--file-scores", params.fileScores);
+	addBool(args, "--hotspots", params.hotspots);
+	addBool(args, "--targets", params.targets);
+	addBool(args, "--score", params.score);
+	addBool(args, "--trend", params.trend);
+	addCoverageOptions(args, params);
+}
+
+function buildAuditArgs(args: string[], params: FallowRunParams): void {
+	args.push("audit");
+	addCommonArgs(args, params);
+	addValue(args, "--base", params.base ?? params.changedSince);
+	addValue(args, "--gate", params.gate);
+	addBool(args, "--explain", params.explain);
+	addBool(args, "--include-entry-exports", params.includeEntryExports);
+	addCoverageOptions(args, params);
+	addValue(args, "--diff-file", params.diffFile);
+}
+
+function buildFixPreviewArgs(args: string[], params: FallowRunParams): void {
+	args.push("fix", "--dry-run");
+	addCommonArgs(args, params);
+	addBool(args, "--include-entry-exports", params.includeEntryExports);
+	addBool(args, "--no-create-config", params.noCreateConfig);
+}
+
+function buildFixApplyArgs(args: string[], params: FallowRunParams): void {
+	args.push("fix", "--yes");
+	addCommonArgs(args, params);
+	addBool(args, "--include-entry-exports", params.includeEntryExports);
+	addBool(args, "--no-create-config", params.noCreateConfig);
+}
+
+function buildFlagsArgs(args: string[], params: FallowRunParams): void {
+	args.push("flags");
+	addCommonArgs(args, params);
+	addValue(args, "--top", params.top);
+}
+
+function buildProjectInfoArgs(args: string[], params: FallowRunParams): void {
+	args.push("list");
+	addCommonArgs(args, params);
+	addBool(args, "--entry-points", params.entryPoints);
+	addBool(args, "--files", params.files);
+	addBool(args, "--plugins", params.plugins);
+	addBool(args, "--boundaries", params.boundaries);
+}
+
+function buildListBoundariesArgs(args: string[], params: FallowRunParams): void {
+	args.push("list", "--boundaries");
+	addCommonArgs(args, params);
+}
+
+function buildExplainArgs(args: string[], params: FallowRunParams): void {
+	if (!params.issueType) throw new Error("explain requires issueType.");
+	args.push("explain", params.issueType);
+	addCommonArgs(args, params);
+}
+
+function buildTraceExportArgs(args: string[], params: FallowRunParams): void {
+	if (!params.file || !params.exportName) throw new Error("trace-export requires file and exportName.");
+	args.push("dead-code", "--trace", `${stripAt(params.file)}:${params.exportName}`);
+	addCommonArgs(args, params);
+}
+
+function buildTraceFileArgs(args: string[], params: FallowRunParams): void {
+	if (!params.file) throw new Error("trace-file requires file.");
+	args.push("dead-code", "--trace-file", stripAt(params.file));
+	addCommonArgs(args, params);
+}
+
+function buildTraceDependencyArgs(args: string[], params: FallowRunParams): void {
+	if (!params.packageName) throw new Error("trace-dependency requires packageName.");
+	args.push("dead-code", "--trace-dependency", params.packageName);
+	addCommonArgs(args, params);
+}
+
+function buildTraceCloneArgs(args: string[], params: FallowRunParams): void {
+	if (!params.file || !params.line) throw new Error("trace-clone requires file and line.");
+	args.push("dupes", "--trace", `${stripAt(params.file)}:${params.line}`);
+	addCommonArgs(args, params);
+	addDupesOptions(args, params);
+}
+
+function buildCoverageAnalyzeArgs(args: string[], params: FallowRunParams): void {
+	args.push("coverage", "analyze");
+	addCommonArgs(args, params);
+	addValue(args, "--runtime-coverage", params.runtimeCoverage ?? params.coverage);
+	addValue(args, "--top", params.top);
+	addValue(args, "--group-by", params.groupBy);
+}
+
+const commandBuilders: Record<string, CommandArgsBuilder> = {
+	all: buildAllArgs,
+	"dead-code": buildDeadCodeArgs,
+	"check-changed": buildCheckChangedArgs,
+	dupes: buildDupeArgs,
+	health: buildHealthArgs,
+	audit: buildAuditArgs,
+	"fix-preview": buildFixPreviewArgs,
+	"fix-apply": buildFixApplyArgs,
+	flags: buildFlagsArgs,
+	"project-info": buildProjectInfoArgs,
+	"list-boundaries": buildListBoundariesArgs,
+	explain: buildExplainArgs,
+	"trace-export": buildTraceExportArgs,
+	"trace-file": buildTraceFileArgs,
+	"trace-dependency": buildTraceDependencyArgs,
+	"trace-clone": buildTraceCloneArgs,
+	"coverage-analyze": buildCoverageAnalyzeArgs,
+};
+
+function buildFallowArgs(params: FallowRunParams): string[] {
 	rejectFormatOverride(params.extraArgs);
-
 	const args: string[] = [];
-	const common = () => {
-		args.push("--format", "json", "--quiet");
-		addValue(args, "--config", params.config);
-		addWorkspace(args, params.workspace);
-		addBool(args, "--production", params.production);
-		addBool(args, "--no-cache", params.noCache);
-		addValue(args, "--threads", params.threads);
-	};
-
-	switch (params.command) {
-		case "all":
-			common();
-			addValue(args, "--changed-since", params.changedSince);
-			addBool(args, "--score", params.score);
-			break;
-
-		case "dead-code":
-			args.push("dead-code");
-			common();
-			addValue(args, "--changed-since", params.changedSince);
-			addBool(args, "--include-entry-exports", params.includeEntryExports);
-			addValue(args, "--group-by", params.groupBy);
-			break;
-
-		case "check-changed":
-			args.push("check-changed");
-			common();
-			addValue(args, "--changed-since", params.changedSince ?? params.base);
-			addBool(args, "--include-entry-exports", params.includeEntryExports);
-			if (!params.changedSince && !params.base) throw new Error("check-changed requires changedSince or base.");
-			break;
-
-		case "dupes":
-			args.push("dupes");
-			common();
-			addValue(args, "--changed-since", params.changedSince);
-			addValue(args, "--top", params.top);
-			addValue(args, "--min-tokens", params.minTokens);
-			addValue(args, "--min-lines", params.minLines);
-			addValue(args, "--threshold", params.threshold);
-			addValue(args, "--min-occurrences", params.minOccurrences);
-			addBool(args, "--skip-local", params.skipLocal);
-			addBool(args, "--cross-language", params.crossLanguage);
-			addBool(args, "--ignore-imports", params.ignoreImports);
-			break;
-
-		case "health":
-			args.push("health");
-			common();
-			addValue(args, "--changed-since", params.changedSince);
-			addValue(args, "--top", params.top);
-			addValue(args, "--group-by", params.groupBy);
-			addBool(args, "--file-scores", params.fileScores);
-			addBool(args, "--hotspots", params.hotspots);
-			addBool(args, "--targets", params.targets);
-			addBool(args, "--score", params.score);
-			addBool(args, "--trend", params.trend);
-			addValue(args, "--coverage", params.coverage);
-			addValue(args, "--coverage-root", params.coverageRoot);
-			addValue(args, "--runtime-coverage", params.runtimeCoverage);
-			addValue(args, "--max-crap", params.maxCrap);
-			break;
-
-		case "audit":
-			args.push("audit");
-			common();
-			addValue(args, "--base", params.base ?? params.changedSince);
-			addValue(args, "--gate", params.gate);
-			addBool(args, "--explain", params.explain);
-			addBool(args, "--include-entry-exports", params.includeEntryExports);
-			addValue(args, "--coverage", params.coverage);
-			addValue(args, "--coverage-root", params.coverageRoot);
-			addValue(args, "--runtime-coverage", params.runtimeCoverage);
-			addValue(args, "--max-crap", params.maxCrap);
-			addValue(args, "--diff-file", params.diffFile);
-			break;
-
-		case "fix-preview":
-			args.push("fix", "--dry-run");
-			common();
-			addBool(args, "--include-entry-exports", params.includeEntryExports);
-			addBool(args, "--no-create-config", params.noCreateConfig);
-			break;
-
-		case "fix-apply":
-			args.push("fix", "--yes");
-			common();
-			addBool(args, "--include-entry-exports", params.includeEntryExports);
-			addBool(args, "--no-create-config", params.noCreateConfig);
-			break;
-
-		case "flags":
-			args.push("flags");
-			common();
-			addValue(args, "--top", params.top);
-			break;
-
-		case "project-info":
-			args.push("list");
-			common();
-			addBool(args, "--entry-points", params.entryPoints);
-			addBool(args, "--files", params.files);
-			addBool(args, "--plugins", params.plugins);
-			addBool(args, "--boundaries", params.boundaries);
-			break;
-
-		case "list-boundaries":
-			args.push("list", "--boundaries");
-			common();
-			break;
-
-		case "explain":
-			if (!params.issueType) throw new Error("explain requires issueType.");
-			args.push("explain", params.issueType);
-			common();
-			break;
-
-		case "trace-export":
-			if (!params.file || !params.exportName) throw new Error("trace-export requires file and exportName.");
-			args.push("dead-code", "--trace", `${stripAt(params.file)}:${params.exportName}`);
-			common();
-			break;
-
-		case "trace-file":
-			if (!params.file) throw new Error("trace-file requires file.");
-			args.push("trace-file", stripAt(params.file));
-			common();
-			break;
-
-		case "trace-dependency":
-			if (!params.packageName) throw new Error("trace-dependency requires packageName.");
-			args.push("dead-code", "--trace-dependency", params.packageName);
-			common();
-			break;
-
-		case "trace-clone":
-			if (!params.file || !params.line) throw new Error("trace-clone requires file and line.");
-			args.push("dupes", "--trace", `${stripAt(params.file)}:${params.line}`);
-			common();
-			addValue(args, "--min-tokens", params.minTokens);
-			addValue(args, "--min-lines", params.minLines);
-			addValue(args, "--threshold", params.threshold);
-			addValue(args, "--min-occurrences", params.minOccurrences);
-			addBool(args, "--skip-local", params.skipLocal);
-			addBool(args, "--cross-language", params.crossLanguage);
-			addBool(args, "--ignore-imports", params.ignoreImports);
-			break;
-
-		case "coverage-analyze":
-			args.push("coverage", "analyze");
-			common();
-			addValue(args, "--runtime-coverage", params.runtimeCoverage ?? params.coverage);
-			addValue(args, "--top", params.top);
-			addValue(args, "--group-by", params.groupBy);
-			break;
-	}
-
+	const builder = commandBuilders[params.command];
+	if (!builder) throw new Error(`Unsupported fallow command: ${params.command}`);
+	builder(args, params);
 	args.push(...(params.extraArgs ?? []));
 	return args;
-}
-
-
-export function commandDisplay(binary: string, args: string[]): string {
-	return [binary, ...args].map((arg) => /\s/.test(arg) ? JSON.stringify(arg) : arg).join(" ");
-}
-
-export function fallowExitLabel(code: number, killed = false): string {
-	if (killed) return "killed";
-	if (code === 0) return "ok";
-	if (code === 1) return "findings";
-	return "error";
 }
 
 async function execCommand(command: string, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<ExecResult> {
@@ -248,7 +255,7 @@ async function execCommand(command: string, args: string[], cwd: string, signal:
 	});
 }
 
-export async function execFallow(_pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<{ binary: string; args: string[]; result: ExecResult }> {
+async function execFallow(_pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<{ binary: string; args: string[]; result: ExecResult }> {
 	const configuredBin = process.env.FALLOW_BIN;
 	const binary = configuredBin || "fallow";
 	const result = await execCommand(binary, args, cwd, signal, timeoutSecs);
@@ -263,49 +270,22 @@ export async function execFallow(_pi: ExtensionAPI, args: string[], cwd: string,
 	return { binary, args, result };
 }
 
-export async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext) {
+async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext) {
 	const args = buildFallowArgs(params);
 	const cwd = params.root ? resolve(ctx.cwd, stripAt(params.root)) : ctx.cwd;
 	const timeoutSecs = params.timeoutSecs ?? Number(process.env.FALLOW_TIMEOUT_SECS || 120);
-	const started = Date.now();
-	const { binary, args: executedArgs, result } = await execFallow(pi, args, cwd, ctx.signal, timeoutSecs);
-	const projectState = await detectFallowProjectState(cwd, args);
-	const elapsedMs = Date.now() - started;
-	const parsed = parseJson(result.stdout, result.stderr);
-	const formatted = await formatToolOutput(parsed, cwd, result.code);
-	const projectStateLine = formatFallowProjectState(projectState);
-	const prSummary = buildFallowPrSummary(parsed.data, executedArgs, result.code);
-	const prSummaryText = formatFallowPrSummary(prSummary);
-
-	// Fallow uses exit code 1 for "issues found" on gate/check commands. Treat only 2+ as execution errors.
-	if (result.code >= 2 || result.killed) {
-		throw new Error([
-			`Fallow command failed (${commandDisplay(binary, executedArgs)})`,
-			`exitCode=${result.code}${result.killed ? " killed=true" : ""}`,
-			formatted.text,
-		].join("\n"));
-	}
-
-	const details: FallowDetails = {
-		command: binary,
-		args: executedArgs,
+	const { details, content } = await fallowEngine.runFallowWithExecutor({
+		pi,
 		cwd,
-		exitCode: result.code,
-		elapsedMs,
-		parsed: parsed.parsed,
-		summary: formatted.summary,
-		overview: formatted.overview,
-		fullOutputPath: formatted.fullOutputPath,
-		truncated: formatted.truncated,
-		projectState,
-		prSummary,
-	};
-
-	const prefixes = [prSummaryText, projectStateLine].filter(Boolean).join("\n");
-	return { content: [{ type: "text" as const, text: prefixes ? `${prefixes}\n\n${formatted.text}` : formatted.text }], details };
+		args,
+		signal: ctx.signal,
+		timeoutSecs,
+		executor: execFallow,
+	});
+	return { content: [{ type: "text" as const, text: content }], details };
 }
 
-export function splitArgs(input: string): string[] {
+function splitArgs(input: string): string[] {
 	const args: string[] = [];
 	let current = "";
 	let quote: "'" | '"' | undefined;
@@ -342,4 +322,11 @@ export function splitArgs(input: string): string[] {
 	if (current) args.push(current);
 	return args;
 }
+
+export const fallowCli = {
+	runFallow,
+	execFallow,
+	splitArgs,
+	buildFallowArgs,
+};
 

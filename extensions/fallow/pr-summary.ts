@@ -1,4 +1,5 @@
-import type { FallowPrSummary } from "./types";
+// fallow-ignore-file unused-export
+import type { FallowPrSummary, FallowSummaryLine, FallowSummaryLines } from "./types";
 
 function asRecord(value: unknown): Record<string, any> | undefined {
 	return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : undefined;
@@ -85,25 +86,23 @@ function collectFindingLikeObjects(root: unknown, maxDepth = 7): Record<string, 
 	return findings;
 }
 
+function addPathsFromEntries(paths: Set<string>, entries: unknown): void {
+	if (!Array.isArray(entries)) return;
+	for (const entry of entries) {
+		const record = asRecord(entry);
+		if (!record) continue;
+		if (typeof record.path === "string") paths.add(record.path);
+		if (typeof record.file === "string") paths.add(record.file);
+	}
+}
+
 function pathsFromFinding(finding: Record<string, any>): string[] {
 	const paths = new Set<string>();
 	for (const key of ["path", "file", "filename", "source", "target"]) {
 		if (typeof finding[key] === "string") paths.add(finding[key]);
 	}
-	if (Array.isArray(finding.imported_from)) {
-		for (const entry of finding.imported_from) {
-			const record = asRecord(entry);
-			if (typeof record?.path === "string") paths.add(record.path);
-			if (typeof record?.file === "string") paths.add(record.file);
-		}
-	}
-	if (Array.isArray(finding.instances)) {
-		for (const entry of finding.instances) {
-			const record = asRecord(entry);
-			if (typeof record?.path === "string") paths.add(record.path);
-			if (typeof record?.file === "string") paths.add(record.file);
-		}
-	}
+	addPathsFromEntries(paths, finding.imported_from);
+	addPathsFromEntries(paths, finding.instances);
 	return [...paths];
 }
 
@@ -116,6 +115,24 @@ function countTopFiles(findings: Record<string, any>[]): string[] {
 		.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
 		.slice(0, 5)
 		.map(([path, count]) => count > 1 ? `${path} (${count})` : path);
+}
+
+function countSeverityBuckets(findings: Record<string, any>[]): Array<{ severity: string; count: number }> {
+	const counts = new Map<string, number>();
+	for (const finding of findings) {
+		const severity = String(finding.severity ?? "unknown").toLowerCase().trim() || "unknown";
+		counts.set(severity, (counts.get(severity) ?? 0) + 1);
+	}
+	const order = ["critical", "high", "medium", "low", "info", "warning", "error", "unknown"];
+	const sorted = [...counts.entries()].sort((left, right) => {
+		const [severityLeft, countLeft] = left;
+		const [severityRight, countRight] = right;
+		const aIndex = order.indexOf(severityLeft);
+		const bIndex = order.indexOf(severityRight);
+		if (aIndex !== bIndex) return (aIndex === -1 ? order.length : aIndex) - (bIndex === -1 ? order.length : bIndex);
+		return countRight - countLeft;
+	});
+	return sorted.map(([severity, count]) => ({ severity, count }));
 }
 
 export function buildFallowPrSummary(data: unknown, args: string[], exitCode: number): FallowPrSummary | undefined {
@@ -134,6 +151,7 @@ export function buildFallowPrSummary(data: unknown, args: string[], exitCode: nu
 	const explicitIssueCount = toNumber(findValue(root, ["new_issues_count", "newIssuesCount", "new_issues", "total_issues", "totalIssues"]));
 	const newIssuesCount = explicitIssueCount ?? findings.length;
 	const passed = exitCode === 0 && newIssuesCount === 0;
+	const severityBuckets = findings.length ? countSeverityBuckets(findings) : [];
 
 	return {
 		baseRef,
@@ -142,17 +160,34 @@ export function buildFallowPrSummary(data: unknown, args: string[], exitCode: nu
 		newIssuesCount,
 		passed,
 		topAffectedFiles: countTopFiles(findings),
+		severityBuckets,
 	};
 }
 
-export function formatFallowPrSummary(summary: FallowPrSummary | undefined): string | undefined {
+function severityLine(summary: FallowPrSummary): FallowSummaryLine | undefined {
+	if (!summary.severityBuckets || !summary.severityBuckets.length) return undefined;
+	const text = summary.severityBuckets
+		.map((entry) => `${entry.severity}: ${entry.count}`)
+		.join(", ");
+	if (!text) return undefined;
+	return { tone: "muted", text: `Severity: ${text}` };
+}
+
+function buildTopAffectedLine(summary: FallowPrSummary): FallowSummaryLine | undefined {
+	if (!summary.topAffectedFiles.length) return undefined;
+	return { tone: "muted", text: `Top affected files: ${summary.topAffectedFiles.join(", ")}` };
+}
+
+export function formatFallowPrSummary(summary: FallowPrSummary | undefined): FallowSummaryLines | undefined {
 	if (!summary) return undefined;
-	const lines = [
-		`PR audit: ${summary.passed ? "PASS" : "FAIL"}`,
-		`Base ref: ${summary.baseRef ?? "unknown"}`,
-		`Changed files: ${summary.changedFilesCount ?? "unknown"}`,
-		`New issues: ${summary.newIssuesCount}`,
-	];
-	if (summary.topAffectedFiles.length) lines.push(`Top affected files: ${summary.topAffectedFiles.join(", ")}`);
-	return lines.join("\n");
+	const lines: FallowSummaryLine[] = [];
+	lines.push({ tone: summary.passed ? "success" : "warning", text: `PR audit: ${summary.passed ? "PASS" : "FAIL"}` });
+	lines.push({ tone: "dim", text: `Base ref: ${summary.baseRef ?? "unknown"}` });
+	lines.push({ tone: "dim", text: `Changed files: ${summary.changedFilesCount ?? "unknown"}` });
+	lines.push({ tone: "dim", text: `New issues: ${summary.newIssuesCount}` });
+	const severitySummaryLine = severityLine(summary);
+	if (severitySummaryLine) lines.push(severitySummaryLine);
+	const topAffected = buildTopAffectedLine(summary);
+	if (topAffected) lines.push(topAffected);
+	return { lines };
 }

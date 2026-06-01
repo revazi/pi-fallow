@@ -185,67 +185,104 @@ function addSummaryStats(stats: Array<{ label: string; value: string | number }>
 	}
 }
 
-export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview | undefined {
-	const root = asRecord(data);
-	if (!root) return undefined;
-	const stats: Array<{ label: string; value: string | number }> = [];
-	const sections: FallowOverviewSection[] = [];
-	const notes: string[] = [];
-	let title = "Fallow";
-
+function addRootStats(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>): void {
+	const rootSummary = asRecord(root.summary);
 	if (root.verdict) stats.push({ label: "verdict", value: root.verdict });
 	if (root.total_issues !== undefined) stats.push({ label: "issues", value: root.total_issues });
 	if (root.elapsed_ms !== undefined) stats.push({ label: "elapsed", value: `${root.elapsed_ms}ms` });
 	if (root.health_score) {
 		stats.push({ label: "score", value: `${fmt(root.health_score.score)} ${root.health_score.grade ?? ""}`.trim() });
 	}
-
-	const rootSummary = asRecord(root.summary);
 	addSummaryStats(stats, rootSummary, ["total_issues", "files_analyzed", "functions_above_threshold", "severity_critical_count", "clone_groups", "duplicated_lines", "average_maintainability"]);
+}
 
-	if (root.check || root.dead_code) {
-		title = "Fallow full analysis";
-		const check = asRecord(root.check ?? root.dead_code);
-		if (check) sections.push(...buildDeadCodeSections(check).map((section) => ({ ...section, title: `Dead code · ${section.title}` })));
-	}
-	if (root.dupes || root.duplication) {
-		title = title === "Fallow" ? "Fallow duplication" : title;
-		const dupes = asRecord(root.dupes ?? root.duplication);
-		if (dupes) sections.push(...buildDupesSections(dupes).map((section) => ({ ...section, title: `Dupes · ${section.title}` })));
-	}
-	if (root.health) {
-		title = title === "Fallow" ? "Fallow health" : title;
-		const health = asRecord(root.health);
-		if (health) sections.push(...buildHealthSections(health).map((section) => ({ ...section, title: `Health · ${section.title}` })));
-	}
+function addPrimarySections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+	const specs: Array<{
+		isPresent: (root: Record<string, any>) => boolean;
+		forceTitle: string;
+		sectionsFor: (data: Record<string, any> | undefined) => FallowOverviewSection[];
+		selector: (root: Record<string, any>) => Record<string, any> | undefined;
+		prefix: string;
+	}> = [
+		{
+			isPresent: (entry) => !!(entry.check || entry.dead_code),
+			forceTitle: "Fallow full analysis",
+			sectionsFor: (data) => buildDeadCodeSections(data),
+			selector: (entry) => asRecord(entry.check ?? entry.dead_code),
+			prefix: "Dead code",
+		},
+		{
+			isPresent: (entry) => !!(entry.dupes || entry.duplication),
+			forceTitle: "Fallow duplication",
+			sectionsFor: (data) => buildDupesSections(data),
+			selector: (entry) => asRecord(entry.dupes ?? entry.duplication),
+			prefix: "Dupes",
+		},
+		{
+			isPresent: (entry) => !!entry.health,
+			forceTitle: "Fallow health",
+			sectionsFor: buildHealthSections,
+			selector: (entry) => asRecord(entry.health),
+			prefix: "Health",
+		},
+	];
 
-	if (!sections.length) {
-		const deadSections = buildDeadCodeSections(root);
-		const healthSections = buildHealthSections(root);
-		const dupeSections = buildDupesSections(root);
-		sections.push(...deadSections, ...healthSections, ...dupeSections);
-		if (healthSections.length) title = "Fallow health";
-		else if (dupeSections.length) title = "Fallow duplication";
-		else if (deadSections.length) title = "Fallow dead code";
+	for (const spec of specs) {
+		if (!spec.isPresent(root)) continue;
+		if (title.value === "Fallow") title.value = spec.forceTitle;
+		const sectionData = spec.selector(root);
+		if (!sectionData) continue;
+		for (const section of spec.sectionsFor(sectionData)) {
+			sections.push({ ...section, title: `${spec.prefix} · ${section.title}` });
+		}
 	}
+}
 
-	if (root.feature_flags) {
-		title = "Fallow feature flags";
-		const flags = asArray(root.feature_flags);
-		sections.push({
-			title: "Feature flags",
-			count: flags.length,
-			color: "accent",
-			items: flags.slice(0, 8).map((entry) => makeIssue("flag", asRecord(entry) ?? {})),
-		});
-	}
+function addFallbackSections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+	if (sections.length) return;
+	const deadSections = buildDeadCodeSections(root);
+	const healthSections = buildHealthSections(root);
+	const dupeSections = buildDupesSections(root);
+	sections.push(...deadSections, ...healthSections, ...dupeSections);
+	if (healthSections.length) title.value = "Fallow health";
+	else if (dupeSections.length) title.value = "Fallow duplication";
+	else if (deadSections.length) title.value = "Fallow dead code";
+}
 
+function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+	if (!root.feature_flags) return;
+	title.value = "Fallow feature flags";
+	const flags = asArray(root.feature_flags);
+	sections.push({
+		title: "Feature flags",
+		count: flags.length,
+		color: "accent",
+		items: flags.slice(0, 8).map((entry) => makeIssue("flag", asRecord(entry) ?? {})),
+	});
+}
+
+function addDefaultNotes(root: Record<string, any>, sections: FallowOverviewSection[], stats: Array<{ label: string; value: string | number }>, notes: string[]): void {
 	if (root.entry_point_count !== undefined) stats.push({ label: "entry points", value: root.entry_point_count });
 	if (root.file_count !== undefined) stats.push({ label: "files", value: root.file_count });
 	if (!sections.length && root.message) notes.push(String(root.message));
 	if (!sections.length && stats.length <= 1) notes.push("No issues found in the selected report sections.");
+}
+
+export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview | undefined {
+	const root = asRecord(data);
+	if (!root) return undefined;
+	const stats: Array<{ label: string; value: string | number }> = [];
+	const sections: FallowOverviewSection[] = [];
+	const notes: string[] = [];
+	const title = { value: "Fallow" };
+
+	addRootStats(root, stats);
+	addPrimarySections(root, sections, title);
+	addFallbackSections(root, sections, title);
+	addFeatureFlags(root, sections, title);
+	addDefaultNotes(root, sections, stats, notes);
 	if (exitCode === 1) notes.push("Fallow exit 1 means findings/gate failure, not a crashed command.");
 
 	const status = exitCode >= 2 || root.error ? "error" : sections.length || exitCode === 1 ? "warning" : "success";
-	return { title, status, stats, sections, notes };
+	return { title: title.value, status, stats, sections, notes };
 }

@@ -27,39 +27,69 @@ function summarizeObject(data: any, label?: string): string[] {
 	if (!data || typeof data !== "object") return [];
 	const lines: string[] = [];
 	const prefix = label ? `${label}: ` : "";
+	const maybePush = (value: unknown, key: string): void => {
+		if (value !== undefined && value !== null && value !== "") lines.push(`${prefix}${key}: ${value}`);
+	};
 
-	if (data.error) lines.push(`${prefix}error: ${data.message ?? stringifyCompact(data.error)}`);
-	if (data.verdict) lines.push(`${prefix}verdict: ${data.verdict}`);
-	if (typeof data.total_issues === "number") lines.push(`${prefix}total_issues: ${data.total_issues}`);
-	if (data.health_score) {
-		const score = data.health_score.score ?? data.health_score.value;
-		const grade = data.health_score.grade ? ` (${data.health_score.grade})` : "";
-		if (score !== undefined) lines.push(`${prefix}health_score: ${score}${grade}`);
-	}
-	if (data.summary && typeof data.summary === "object") {
-		lines.push(`${prefix}summary: ${stringifyCompact(data.summary)}`);
-	}
-	if (data.stats && typeof data.stats === "object") {
-		lines.push(`${prefix}stats: ${stringifyCompact(data.stats)}`);
-	}
-	if (Array.isArray(data.findings)) lines.push(`${prefix}findings: ${data.findings.length}`);
-	if (Array.isArray(data.clone_groups)) lines.push(`${prefix}clone_groups: ${data.clone_groups.length}`);
-	if (Array.isArray(data.file_scores)) lines.push(`${prefix}file_scores: ${data.file_scores.length}`);
-	if (Array.isArray(data.hotspots)) lines.push(`${prefix}hotspots: ${data.hotspots.length}`);
-	if (Array.isArray(data.targets)) lines.push(`${prefix}targets: ${data.targets.length}`);
-
-	const counts = countArrayFields(data);
-	if (counts.length) lines.push(`${prefix}${counts.join(", ")}`);
-
-	for (const section of ["check", "dead_code", "dupes", "duplication", "health", "runtime_coverage"] as const) {
-		if (data[section] && typeof data[section] === "object") {
-			lines.push(...summarizeObject(data[section], section));
-		}
-	}
+	addCoreSummaries(data, prefix, maybePush, lines);
+	addKnownArraySummaries(data, prefix, lines);
+	addCountSummaries(lines, data, prefix);
+	addNestedSummaries(lines, data);
 
 	return [...new Set(lines)];
 }
 
+function addCoreSummaries(
+	data: any,
+	prefix: string,
+	maybePush: (value: unknown, key: string) => void,
+	lines: string[],
+): void {
+	addSimpleSummaryField(maybePush, data.verdict, "verdict");
+	addSimpleSummaryField(maybePush, data.error && (data.message ?? stringifyCompact(data.error)), "error");
+	addSimpleSummaryField(maybePush, typeof data.total_issues === "number" ? data.total_issues : undefined, "total_issues");
+	addHealthScoreSummary(data, prefix, lines);
+	addObjectSummary(data.summary, "summary", prefix, lines);
+	addObjectSummary(data.stats, "stats", prefix, lines);
+}
+
+function addSimpleSummaryField(
+	maybePush: (value: unknown, key: string) => void,
+	value: unknown,
+	key: string,
+): void {
+	maybePush(value, key);
+}
+
+function addHealthScoreSummary(data: any, prefix: string, lines: string[]): void {
+	const score = data.health_score?.score ?? data.health_score?.value;
+	const grade = data.health_score?.grade ? ` (${data.health_score.grade})` : "";
+	if (score === undefined) return;
+	lines.push(`${prefix}health_score: ${score}${grade}`);
+}
+
+function addObjectSummary(data: unknown, key: string, prefix: string, lines: string[]): void {
+	if (!data || typeof data !== "object") return;
+	lines.push(`${prefix}${key}: ${stringifyCompact(data)}`);
+}
+function addKnownArraySummaries(data: any, prefix: string, lines: string[]): void {
+	for (const key of ["findings", "clone_groups", "file_scores", "hotspots", "targets"] as const) {
+		const value = data[key];
+		if (Array.isArray(value)) lines.push(`${prefix}${key}: ${value.length}`);
+	}
+}
+
+function addCountSummaries(lines: string[], data: any, prefix: string): void {
+	const counts = countArrayFields(data);
+	if (counts.length) lines.push(`${prefix}${counts.join(", ")}`);
+}
+
+function addNestedSummaries(lines: string[], data: any): void {
+	for (const section of ["check", "dead_code", "dupes", "duplication", "health", "runtime_coverage"] as const) {
+		const nested = data[section];
+		if (nested && typeof nested === "object") lines.push(...summarizeObject(nested, section));
+	}
+}
 function tryParseJson(raw: string): { ok: true; data: unknown; raw: string } | { ok: false } {
 	const trimmed = raw.trim();
 	if (!trimmed) return { ok: false };
