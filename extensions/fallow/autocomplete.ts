@@ -129,7 +129,15 @@ const CHANGED_FILE_FLAGS: FlagSpec[] = [
 	{ flag: "--include-entry-exports", description: "Also report unused exports in entry files" },
 ];
 
+const PROJECT_INFO_FLAGS: FlagSpec[] = [
+	{ flag: "--entry-points", description: "Include entry points" },
+	{ flag: "--files", description: "Include discovered files" },
+	{ flag: "--plugins", description: "Include active framework plugins" },
+	{ flag: "--boundaries", description: "Include architecture boundary zones/rules" },
+];
+
 const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
+	all: ROOT_FLAGS,
 	"dead-code": [
 		{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: getRefValues },
 		{ flag: "--include-entry-exports", description: "Also report unused exports in entry files" },
@@ -186,12 +194,11 @@ const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 	flags: [
 		{ flag: "--top", description: "Limit top feature-flag findings", values: ["5", "10", "20", "50"] },
 	],
-	list: [
-		{ flag: "--entry-points", description: "Include entry points" },
-		{ flag: "--files", description: "Include discovered files" },
-		{ flag: "--plugins", description: "Include active framework plugins" },
-		{ flag: "--boundaries", description: "Include architecture boundary zones/rules" },
-	],
+	list: PROJECT_INFO_FLAGS,
+	"project-info": PROJECT_INFO_FLAGS,
+	"list-boundaries": [],
+	"fix-preview": [],
+	"fix-apply": [],
 	"coverage analyze": [
 		{ flag: "--runtime-coverage", description: "V8/Istanbul runtime coverage input" },
 		{ flag: "--top", description: "Limit top coverage findings", values: ["5", "10", "20", "50"] },

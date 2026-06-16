@@ -48,9 +48,20 @@ function hasFlag(args: string[], flag: string): boolean {
 function resolveFallbackArgs(rawArgs: string[]): string[] {
 	const normalized = [...rawArgs];
 	const command = normalized[0] ?? "";
+	const alias = commandAliasMap[command];
+	if (alias) return alias(normalized);
 	const translator = traceCommandMap[command];
 	return translator ? translator(normalized) : normalized;
 }
+
+const commandAliasMap: Record<string, (args: string[]) => string[]> = {
+	all: (args) => args.slice(1),
+	"project-info": (args) => ["list", ...args.slice(1)],
+	"list-boundaries": (args) => ["list", "--boundaries", ...args.slice(1)],
+	"fix-preview": (args) => ["fix", "--dry-run", ...args.slice(1)],
+	"fix-apply": (args) => ["fix", "--yes", ...args.slice(1)],
+	"coverage-analyze": (args) => ["coverage", "analyze", ...args.slice(1)],
+};
 
 const traceCommandMap: Record<string, (args: string[]) => string[]> = {
 	"trace-file": (args) => {

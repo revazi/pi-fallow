@@ -103,7 +103,7 @@ function tryParseJson(raw: string): { ok: true; data: unknown; raw: string } | {
 	const trimmed = raw.trim();
 	if (!trimmed) return { ok: false };
 	const direct = parseJsonText(trimmed);
-	if (direct.ok) return direct;
+	if (direct) return direct;
 	const embedded = parseEmbeddedJson(trimmed);
 	return embedded ?? { ok: false };
 }
@@ -117,23 +117,25 @@ function parseJsonText(raw: string): { ok: true; data: unknown; raw: string } | 
 }
 
 function parseEmbeddedJson(raw: string): { ok: true; data: unknown; raw: string } | undefined {
-	const start = findFirstJsonStart(raw);
-	if (start < 0) return undefined;
-	const end = findLastJsonEnd(raw);
-	if (end <= start) return undefined;
-	const candidate = raw.slice(start, end + 1);
-	return parseJsonText(candidate);
+	for (const start of findJsonStartCandidates(raw)) {
+		const end = findJsonEndForStart(raw, start);
+		if (end <= start) continue;
+		const parsed = parseJsonText(raw.slice(start, end + 1));
+		if (parsed) return parsed;
+	}
+	return undefined;
 }
 
-function findFirstJsonStart(raw: string): number {
-	const firstObject = raw.indexOf("{");
-	const firstArray = raw.indexOf("[");
-	const starts = [firstObject, firstArray].filter((index) => index >= 0);
-	return starts.length ? Math.min(...starts) : -1;
+function findJsonStartCandidates(raw: string): number[] {
+	const starts: number[] = [];
+	for (let index = 0; index < raw.length; index++) {
+		if (raw[index] === "{" || raw[index] === "[") starts.push(index);
+	}
+	return starts;
 }
 
-function findLastJsonEnd(raw: string): number {
-	return Math.max(raw.lastIndexOf("}"), raw.lastIndexOf("]"));
+function findJsonEndForStart(raw: string, start: number): number {
+	return raw[start] === "{" ? raw.lastIndexOf("}") : raw.lastIndexOf("]");
 }
 
 export function parseJson(stdout: string, stderr: string): { parsed: boolean; data?: unknown; raw: string } {
