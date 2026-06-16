@@ -1,0 +1,115 @@
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { formatFallowProjectStateText } from "../project/text";
+import { formatFallowPrSummaryText } from "../pr-summary/text";
+import { commandDisplay, fallowExitLabel } from "../tool-render";
+import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from "../types";
+import { FallowIssueNavigator } from "../ui";
+import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
+import type { FallowCommandContext } from "./types";
+
+export async function executeFallowResult(
+	pi: ExtensionAPI,
+	ctx: FallowCommandContext,
+	rawCommandArgs: string[],
+	rememberLast: boolean,
+	setLastFallowArgs: (args: string[] | null) => void,
+): Promise<FallowNavigatorResult | null | undefined> {
+	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
+	if (rememberLast) setLastFallowArgs([...finalArgs]);
+	return runFallowResultFlow(pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs));
+}
+
+async function runFallowResultFlow(
+	pi: ExtensionAPI,
+	ctx: FallowCommandContext,
+	finalArgs: string[],
+	executeCommand: FallowCommandExecutor,
+): Promise<FallowNavigatorResult | null | undefined> {
+	const commandResult = await runFallowWithLoaderIfUi(ctx, executeCommand, finalArgs);
+	if (!commandResult) return handleMissingFallowResult(ctx);
+
+	const { binary, args: executedArgs, result, projectState, prSummary } = commandResult;
+	const resultPrefix = buildFallowResultPrefix(projectState, prSummary);
+	notifyFallowCompletion(ctx, result, binary, executedArgs);
+	renderFallowResultMessage(pi, ctx, commandResult, resultPrefix);
+	return openFallowNavigator(ctx, commandResult, binary, executedArgs, projectState, prSummary);
+}
+
+function handleMissingFallowResult(ctx: FallowCommandContext): null {
+	if (ctx.hasUI) ctx.ui.notify("fallow cancelled", "info");
+	return null;
+}
+
+function buildFallowResultPrefix(projectState: FallowProjectState | undefined, prSummary: FallowPrSummary | undefined): string {
+	const projectStateText = formatFallowProjectStateText(projectState);
+	const prSummaryText = formatFallowPrSummaryText(prSummary);
+	return [prSummaryText, projectStateText].filter(Boolean).join("\n");
+}
+
+function notifyFallowCompletion(ctx: FallowCommandContext, result: FallowCommandResult["result"], binary: string, args: string[]): void {
+	if (!ctx.hasUI) return;
+	ctx.ui.notify(buildFallowCompletionMessage(result.code, result.killed, binary, args), shouldNotifyAsError(result) ? "error" : "info");
+}
+
+function buildFallowCompletionMessage(code: number, killed: boolean, binary: string, args: string[]): string {
+	const display = commandDisplay(binary, args);
+	if (code === 1) return `fallow found issues: ${display}`;
+	return `fallow ${fallowExitLabel(code, killed)}: ${display}`;
+}
+
+function shouldNotifyAsError(result: { code: number; killed: boolean }): boolean {
+	return result.code >= 2 || result.killed;
+}
+
+function renderFallowResultMessage(
+	pi: ExtensionAPI,
+	ctx: FallowCommandContext,
+	result: FallowCommandResult,
+	resultPrefix: string,
+): void {
+	const { details: commandDetails, formatted, content } = result;
+	const hasNavigator = formatted.overview?.sections.some((section) => section.items.length > 0);
+	pi.sendMessage({
+		customType: "fallow-result",
+		content: hasNavigator ? buildNavigatorOpenedMessage(resultPrefix, formatted.summary) : content,
+		display: true,
+		details: {
+			...commandDetails,
+			compact: !!(ctx.hasUI && hasNavigator),
+		},
+	});
+}
+
+function buildNavigatorOpenedMessage(resultPrefix: string, summary: string): string {
+	return `Opened Fallow issue navigator.\n${resultPrefix ? `${resultPrefix}\n` : ""}${summary}`;
+}
+
+function openFallowNavigator(
+	ctx: FallowCommandContext,
+	result: FallowCommandResult,
+	binary: string,
+	executedArgs: string[],
+	projectState: FallowProjectState,
+	prSummary: FallowPrSummary | undefined,
+): Promise<FallowNavigatorResult | null> {
+	const { formatted } = result;
+	if (!ctx.hasUI || !formatted.overview) return Promise.resolve(null);
+	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
+		return new FallowIssueNavigator(
+			formatted.overview!,
+			theme,
+			done,
+			() => tui.requestRender(),
+			{
+				command: commandDisplay(binary, executedArgs),
+				fullOutputPath: formatted.fullOutputPath,
+				truncated: formatted.truncated,
+				projectState,
+				prSummary,
+			},
+		);
+	}, {
+		overlay: true,
+		overlayOptions: { width: "90%", maxHeight: "80%", anchor: "top-center", row: "25%" },
+	});
+}

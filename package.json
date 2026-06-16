@@ -2,8 +2,9 @@
   "name": "pi-fallow",
   "version": "0.1.0",
   "type": "module",
-  "description": "Pi coding agent extension for Fallow codebase intelligence.",
+  "description": "Pi extension that brings Fallow codebase intelligence into Pi as an agent tool and slash command.",
   "license": "MIT",
+  "author": "Revaz Zakalashvili",
   "keywords": [
     "pi-package",
     "pi-extension",
@@ -12,6 +13,9 @@
     "fallow",
     "codebase-intelligence",
     "static-analysis",
+    "dead-code",
+    "duplication",
+    "maintainability",
     "typescript",
     "javascript"
   ],
@@ -19,6 +23,11 @@
     "node": ">=20"
   },
   "scripts": {
+    "check": "npm run check:bundle && npm run health",
+    "check:bundle": "npx -y esbuild extensions/fallow.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild && npx -y esbuild extensions/index.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild",
+    "health": "npx -y fallow health --format json --quiet",
+    "dupes": "npx -y fallow dupes --format json --quiet",
+    "dead-code": "npx -y fallow dead-code --format json --quiet",
     "pack:check": "npm pack --dry-run",
     "publish:public": "npm publish --access public"
   },
@@ -36,6 +45,7 @@
   "files": [
     "README.md",
     "LICENSE",
+    "pi-fallow.png",
     "extensions/**/*.ts"
   ],
   "peerDependencies": {
@@ -47,6 +57,7 @@
   "pi": {
     "extensions": [
       "./extensions/index.ts"
-    ]
+    ],
+    "image": "https://raw.githubusercontent.com/revazi/pi-fallow/main/pi-fallow.png"
   }
 }

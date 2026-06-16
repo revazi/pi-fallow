@@ -6,7 +6,8 @@
     {
       "implements": "Component",
       "members": [
-        "handleInput"
+        "handleInput",
+        "invalidate"
       ]
     }
   ]

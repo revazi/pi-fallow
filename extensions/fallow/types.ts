@@ -69,3 +69,8 @@ export interface FallowOverview {
 	stats: Array<{ label: string; value: string | number }>;
 	sections: FallowOverviewSection[];
 	notes: string[];
+}
+
+export type FallowNavigatorResult =
+	| { type: "prompt"; prompt: string; issueCount: number }
+	| { type: "trace"; commandArgs: string[] };
