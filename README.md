@@ -111,6 +111,8 @@ The Pi package declares Pi libraries as peer dependencies, as recommended for Pi
 
 ## Development
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines and [SECURITY.md](./SECURITY.md) for vulnerability reporting.
+
 Useful checks:
 
 ```bash

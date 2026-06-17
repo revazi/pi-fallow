@@ -44,6 +44,8 @@
   },
   "files": [
     "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
     "LICENSE",
     "pi-fallow.png",
     "extensions/**/*.ts"
