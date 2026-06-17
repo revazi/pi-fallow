@@ -53,14 +53,7 @@ export class FallowIssueNavigator implements Component {
 				this.onDone({ type: "trace", commandArgs: ["dead-code", "--trace-file", trace] });
 			} },
 			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l",
-				action: () => {
-				if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
-				else {
-					this.expanded.clear();
-					this.expanded.add(this.selected);
-				}
-				this.changed();
-			} },
+				action: () => this.toggleExpanded() },
 			{ matches: (value) => matchesKey(value, "left") || value === "h", action: () => {
 				this.expanded.delete(this.selected);
 				this.changed();
@@ -180,6 +173,20 @@ export class FallowIssueNavigator implements Component {
 		if (this.marked.has(this.selected)) this.marked.delete(this.selected);
 		else this.marked.add(this.selected);
 		this.changed();
+	}
+
+	private toggleExpanded(): void {
+		if (!this.hasExpandableDetails(this.selected)) return;
+		if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
+		else {
+			this.expanded.clear();
+			this.expanded.add(this.selected);
+		}
+		this.changed();
+	}
+
+	private hasExpandableDetails(index: number): boolean {
+		return !!this.issues[index]?.item.action;
 	}
 
 	private ensureVisible(listHeight: number): void {
@@ -305,7 +312,7 @@ export class FallowIssueNavigator implements Component {
 		const entry = this.issues[index]!;
 		const marker = this.issueLineMarker(index);
 		const check = this.issueLineCheck(index);
-		const expandMarker = this.expanded.has(index) ? amber("▾") : violet("▸");
+		const expandMarker = this.issueExpandMarker(index);
 		const main = this.buildIssueLineMain(entry);
 		const raw = `    ${marker} ${check} ${expandMarker} ${main}`;
 		return truncateToWidth(this.selected === index ? this.theme.bg("selectedBg", raw) : raw, width);
@@ -333,22 +340,19 @@ export class FallowIssueNavigator implements Component {
 	private issueLineCheck(index: number): string {
 		return this.marked.has(index) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
 	}
+
+	private issueExpandMarker(index: number): string {
+		if (!this.hasExpandableDetails(index)) return this.theme.fg("dim", "·");
+		return this.expanded.has(index) ? amber("▾") : violet("▸");
+	}
+
 	private detailLines(entry: FlatIssue, width: number): string[] {
-		const item = entry.item;
-		return [
-			...this.buildDetailActionLines(item, width),
-			...this.buildDetailLocationLines(item, width),
-		];
+		return this.buildDetailActionLines(entry.item, width);
 	}
 
 	private buildDetailActionLines(item: FallowIssueLine, width: number): string[] {
 		if (!item.action) return [];
-		return [wrapTextWithAnsi(`${amber("      ↳")} ${this.theme.fg("muted", item.action)}`, width)];
-	}
-
-	private buildDetailLocationLines(item: FallowIssueLine, width: number): string[] {
-		if (item.action || !item.path) return [];
-		return [`${cyan("      Location")} ${this.theme.fg("dim", `${item.path}${item.line ? `:${item.line}` : ""}`)}`];
+		return wrapTextWithAnsi(`${amber("      ↳")} ${this.theme.fg("muted", item.action)}`, width);
 	}
 
 	private topBorder(width: number, title: string): string {

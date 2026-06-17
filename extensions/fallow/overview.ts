@@ -173,6 +173,7 @@ function buildHotspotIssue(entry: unknown): FallowIssueLine {
 		label: `hotspot ${fmt(issue.score)}`,
 		path: issue.path,
 		meta: `${buildHotspotCommitSummary(issue)} commits · churn ${buildHotspotChurn(issue)} · ${buildHotspotTrend(issue)}`,
+		action: primaryAction(issue),
 		raw: issue,
 	};
 }
