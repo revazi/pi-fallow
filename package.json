@@ -28,6 +28,7 @@
     "health": "npx -y fallow health --format json --quiet",
     "dupes": "npx -y fallow dupes --format json --quiet",
     "dead-code": "npx -y fallow dead-code --format json --quiet",
+    "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "pack:check": "npm pack --dry-run",
     "publish:public": "npm publish --access public"
   },
@@ -61,5 +62,8 @@
       "./extensions/index.ts"
     ],
     "image": "https://raw.githubusercontent.com/revazi/pi-fallow/main/pi-fallow.png"
+  },
+  "devDependencies": {
+    "jiti": "^2.7.0"
   }
 }
