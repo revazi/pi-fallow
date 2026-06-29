@@ -56,12 +56,22 @@ function resolveFallbackArgs(rawArgs: string[]): string[] {
 
 const commandAliasMap: Record<string, (args: string[]) => string[]> = {
 	all: (args) => args.slice(1),
+	"check-changed": buildCheckChangedFallowArgs,
 	"project-info": (args) => ["list", ...args.slice(1)],
 	"list-boundaries": (args) => ["list", "--boundaries", ...args.slice(1)],
 	"fix-preview": (args) => ["fix", "--dry-run", ...args.slice(1)],
 	"fix-apply": (args) => ["fix", "--yes", ...args.slice(1)],
 	"coverage-analyze": (args) => ["coverage", "analyze", ...args.slice(1)],
 };
+
+function buildCheckChangedFallowArgs(args: string[]): string[] {
+	const changedArgs = args.slice(1);
+	const wantsHelp = changedArgs.some((arg) => arg === "--help" || arg === "-h");
+	if (!wantsHelp && !hasFlag(changedArgs, "--changed-since") && !hasFlag(changedArgs, "--base")) {
+		throw new Error("check-changed requires --changed-since or --base.");
+	}
+	return changedArgs;
+}
 
 const traceCommandMap: Record<string, (args: string[]) => string[]> = {
 	"trace-file": (args) => {

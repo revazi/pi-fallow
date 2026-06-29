@@ -35,7 +35,7 @@ export const fallowRunParams = Type.Object({
 		Type.Array(Type.String(), { description: "Workspace names/globs; passed comma-separated." }),
 	])),
 	production: Type.Optional(Type.Boolean({ description: "Exclude test/story/dev-only code paths where supported." })),
-	changedSince: Type.Optional(Type.String({ description: "Git ref for changed-file analysis (for check-changed, dead-code, dupes, or health), e.g. main or origin/main." })),
+	changedSince: Type.Optional(Type.String({ description: "Git ref for changed-file analysis (check-changed maps to Fallow's root --changed-since; also for dead-code, dupes, or health), e.g. main or origin/main." })),
 	base: Type.Optional(Type.String({ description: "Audit base ref for PR/new-issue gates, e.g. main or origin/main. Alias of changedSince for check-changed." })),
 	noCache: Type.Optional(Type.Boolean({ description: "Pass --no-cache." })),
 	threads: Type.Optional(Type.Number({ description: "Worker thread count." })),
