@@ -129,6 +129,70 @@ function buildFlagsArgs(args: string[], params: FallowRunParams): void {
 	addValue(args, "--top", params.top);
 }
 
+function buildInspectArgs(args: string[], params: FallowRunParams): void {
+	args.push("inspect");
+	addCommonArgs(args, params);
+	if (params.symbol || params.exportName) addValue(args, "--symbol", buildSymbolTarget(params, "inspect"));
+	else if (params.file) addValue(args, "--file", stripAtPrefix(params.file));
+	else throw new Error("inspect requires file, symbol, or file plus exportName.");
+	addBool(args, "--symbol-chain", params.symbolChain);
+}
+
+function buildTraceSymbolArgs(args: string[], params: FallowRunParams): void {
+	args.push("trace", buildSymbolTarget(params, "trace-symbol"));
+	addCommonArgs(args, params);
+	addBool(args, "--callers", params.callers);
+	addBool(args, "--callees", params.callees);
+	addValue(args, "--depth", params.depth);
+}
+
+function buildSymbolTarget(params: FallowRunParams, commandName: string): string {
+	if (params.symbol) return stripAtPrefix(params.symbol);
+	if (params.file && params.exportName) return `${stripAtPrefix(params.file)}:${params.exportName}`;
+	throw new Error(`${commandName} requires symbol or file and exportName.`);
+}
+
+function buildSecurityArgs(args: string[], params: FallowRunParams): void {
+	args.push("security");
+	addCommonArgs(args, params);
+	addValue(args, "--changed-since", params.changedSince ?? params.base);
+	addValue(args, "--diff-file", params.diffFile);
+	addValue(args, "--runtime-coverage", params.runtimeCoverage);
+	addValue(args, "--min-invocations-hot", params.minInvocationsHot);
+	addValue(args, "--file", params.file ? stripAtPrefix(params.file) : undefined);
+	addValue(args, "--gate", params.securityGate);
+	addBool(args, "--surface", params.surface);
+	addBool(args, "--explain", params.explain);
+}
+
+function buildWorkspacesArgs(args: string[], params: FallowRunParams): void {
+	args.push("workspaces");
+	addCommonArgs(args, params);
+}
+
+function buildConfigArgs(args: string[], params: FallowRunParams): void {
+	args.push("config");
+	addCommonArgs(args, params);
+}
+
+function buildSchemaArgs(args: string[], params: FallowRunParams): void {
+	args.push("schema");
+	addCommonArgs(args, params);
+}
+
+function buildDecisionSurfaceArgs(args: string[], params: FallowRunParams): void {
+	args.push("decision-surface");
+	addCommonArgs(args, params);
+	addValue(args, "--changed-since", params.changedSince ?? params.base);
+	addValue(args, "--diff-file", params.diffFile);
+	addValue(args, "--max-decisions", params.maxDecisions);
+}
+
+function buildImpactArgs(args: string[], params: FallowRunParams): void {
+	args.push("impact");
+	addCommonArgs(args, params);
+}
+
 function buildProjectInfoArgs(args: string[], params: FallowRunParams): void {
 	args.push("list");
 	addCommonArgs(args, params);
@@ -136,6 +200,7 @@ function buildProjectInfoArgs(args: string[], params: FallowRunParams): void {
 	addBool(args, "--files", params.files);
 	addBool(args, "--plugins", params.plugins);
 	addBool(args, "--boundaries", params.boundaries);
+	addBool(args, "--workspaces", params.listWorkspaces);
 }
 
 function buildListBoundariesArgs(args: string[], params: FallowRunParams): void {
@@ -192,6 +257,14 @@ const commandBuilders: Record<string, CommandArgsBuilder> = {
 	"fix-preview": buildFixPreviewArgs,
 	"fix-apply": buildFixApplyArgs,
 	flags: buildFlagsArgs,
+	inspect: buildInspectArgs,
+	"trace-symbol": buildTraceSymbolArgs,
+	security: buildSecurityArgs,
+	workspaces: buildWorkspacesArgs,
+	config: buildConfigArgs,
+	schema: buildSchemaArgs,
+	"decision-surface": buildDecisionSurfaceArgs,
+	impact: buildImpactArgs,
 	"project-info": buildProjectInfoArgs,
 	"list-boundaries": buildListBoundariesArgs,
 	explain: buildExplainArgs,

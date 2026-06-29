@@ -39,20 +39,21 @@ function registerFallowTool(pi: ExtensionAPI): void {
 }
 
 function buildFallowToolDescription(): string {
-	return `Run Fallow codebase intelligence for TypeScript/JavaScript: PR/new-issue audits (audit --base ... --gate new-only), changed-file checks, dead code, duplication, health, auto-fix preview/apply, project info, file traces, feature flags, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Uses FALLOW_BIN if set, otherwise fallow from PATH, falling back to npx -y fallow.`;
+	return `Run Fallow codebase intelligence for TypeScript/JavaScript: PR/new-issue audits (audit --base ... --gate new-only), changed-file checks, dead code, duplication, health, inspect/trace evidence, security candidates, decision surfaces, project/config/schema info, feature flags, impact, auto-fix preview/apply, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Uses FALLOW_BIN if set, otherwise fallow from PATH, falling back to npx -y fallow.`;
 }
 
 const fallowToolPromptGuidelines = [
 	"Use fallow_run after making TypeScript/JavaScript changes when the user asks for cleanup, quality, dead-code, duplication, architecture, complexity, or PR-readiness checks.",
 	"Use fallow_run with command=\"audit\", base=\"main\" or \"origin/main\", and gate=\"new-only\" for PR/new-issue checks; use command=\"check-changed\" with changedSince for changed-file checks.",
 	"Use command=\"all\" for full-repo context; command=\"fix-preview\" before command=\"fix-apply\" unless the user explicitly requested automatic cleanup.",
-	"Use fallow_run trace commands, especially command=\"trace-file\" with file, before deleting exports, files, dependencies, or clone groups when confidence is low.",
+	"Use fallow_run command=\"inspect\" with file or symbol before editing unfamiliar code when bundled evidence would reduce risk.",
+	"Use fallow_run trace commands, especially command=\"trace-file\" with file or command=\"trace-symbol\" with symbol/file+exportName, before deleting exports, files, dependencies, or clone groups when confidence is low.",
 ];
 
 function registerFallowCommand(pi: ExtensionAPI, commandState: FallowCommandState): void {
 	pi.registerCommand("fallow", {
 		description: "Run fallow with raw CLI args. JSON/quiet are added if no --format is supplied.",
-		argumentHint: "[all|pr|rerun|dead-code|dupes|health|audit|fix|project-info|list|flags|coverage analyze|explain|trace-file|trace-export|trace-dependency|trace-clone] [options]",
+		argumentHint: "[all|pr|rerun|dead-code|dupes|health|audit|inspect|trace|security|decision-surface|workspaces|config|schema|impact|fix|project-info|list|flags|coverage analyze|explain] [options]",
 		getArgumentCompletions: fallowCompletions.getFallowArgumentCompletions,
 		handler: (rawArgs, ctx) => runFallowCommandHandler(pi, ctx, commandState, rawArgs),
 	});
