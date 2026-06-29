@@ -1,6 +1,7 @@
 {
   "entry": [
-    "extensions/index.ts"
+    "extensions/index.ts",
+    "tests/*.test.mjs"
   ],
   "usedClassMembers": [
     {

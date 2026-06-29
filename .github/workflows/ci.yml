@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Bundle and health checks
+      - name: Unit, bundle, and health checks
         run: npm run check
 
       - name: Duplication check

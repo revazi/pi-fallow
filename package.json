@@ -23,11 +23,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "check": "npm run check:bundle && npm run health",
+    "check": "npm test && npm run check:bundle && npm run health",
     "check:bundle": "npx -y esbuild extensions/fallow.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild && npx -y esbuild extensions/index.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild",
     "health": "npx -y fallow health --format json --quiet",
     "dupes": "npx -y fallow dupes --format json --quiet",
     "dead-code": "npx -y fallow dead-code --format json --quiet",
+    "test": "node --test",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "pack:check": "npm pack --dry-run",
     "publish:public": "npm publish --access public"

@@ -42,6 +42,8 @@ npm run pack:check
 
 What these cover:
 
+- `npm run check` runs unit tests, bundle checks, and Fallow health checks.
+- `npm test` runs fast Node-based regression tests for argument mapping and overview parsing.
 - `npm run check:bundle` bundles the extension entrypoints with external Pi peer dependencies.
 - `npm run health` runs Fallow health checks.
 - `npm run dupes` checks for duplicate code.
