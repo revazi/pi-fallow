@@ -29,6 +29,7 @@
     "dupes": "npx -y fallow dupes --format json --quiet",
     "dead-code": "npx -y fallow dead-code --format json --quiet",
     "test": "node --test",
+    "coverage": "node -e \"require('node:fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "pack:check": "npm pack --dry-run",
     "publish:public": "npm publish --access public"
