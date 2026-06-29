@@ -29,13 +29,22 @@ const COMMANDS: CompletionSpec[] = [
 	{ value: "dupes", description: "Find duplicated code and clone groups" },
 	{ value: "health", description: "Show maintainability, complexity, churn, and health metrics" },
 	{ value: "audit", description: "Run a PR/change gate; use --base main --gate new-only for PRs" },
+	{ value: "inspect --file ", label: "inspect file", description: "Inspect one file as a bundled evidence query" },
+	{ value: "inspect --symbol ", label: "inspect symbol", description: "Inspect an exported symbol as file.ts:exportName" },
+	{ value: "trace", description: "Trace a symbol call chain: trace path/to/file.ts:exportName" },
 	{ value: "trace-file", description: "Investigate one file: trace-file path/to/file.ts" },
 	{ value: "trace-export", description: "Trace a specific export: trace-export path/to/file.ts exportName" },
 	{ value: "trace-dependency", description: "Trace a package dependency" },
 	{ value: "trace-clone", description: "Trace a duplication clone at path/to/file.ts:line" },
+	{ value: "security", description: "Surface local security candidates for agent verification" },
+	{ value: "decision-surface --changed-since main", label: "decision-surface (main)", description: "Surface structural decisions embedded in the current change" },
+	{ value: "workspaces", description: "Show monorepo workspace discovery diagnostics" },
+	{ value: "config", description: "Show resolved Fallow config" },
+	{ value: "schema", description: "Dump Fallow's machine-readable CLI capability schema" },
+	{ value: "impact", description: "Show local Fallow impact metrics" },
 	{ value: "fix", description: "Preview/apply safe cleanup fixes; usually add --dry-run first" },
 	{ value: "flags", description: "Analyze feature flags" },
-	{ value: "list", description: "List project info, files, plugins, entry points, or boundaries" },
+	{ value: "list", description: "List project info, files, plugins, entry points, boundaries, or workspaces" },
 	{ value: "explain", description: "Explain a Fallow issue type/rule id" },
 	{ value: "coverage analyze", description: "Analyze runtime coverage and cold paths" },
 	{ value: "--help", description: "Show Fallow CLI help" },
@@ -134,6 +143,42 @@ const PROJECT_INFO_FLAGS: FlagSpec[] = [
 	{ flag: "--files", description: "Include discovered files" },
 	{ flag: "--plugins", description: "Include active framework plugins" },
 	{ flag: "--boundaries", description: "Include architecture boundary zones/rules" },
+	{ flag: "--workspaces", description: "Include monorepo workspaces and diagnostics" },
+];
+
+const INSPECT_FLAGS: FlagSpec[] = [
+	{ flag: "--file", description: "File to inspect" },
+	{ flag: "--symbol", description: "Exported symbol to inspect, formatted as file.ts:exportName" },
+	{ flag: "--symbol-chain", description: "Include best-effort symbol-level call-chain evidence" },
+];
+
+const TRACE_FLAGS: FlagSpec[] = [
+	{ flag: "--callers", description: "Walk upward to callers" },
+	{ flag: "--callees", description: "Walk downward to callees" },
+	{ flag: "--depth", description: "Call-chain depth bound", values: ["1", "2", "3", "4"] },
+];
+
+const SECURITY_FLAGS: FlagSpec[] = [
+	{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: getRefValues },
+	{ flag: "--diff-file", description: "Diff file path for line-scoped security gating" },
+	{ flag: "--runtime-coverage", description: "V8/Istanbul runtime coverage input" },
+	{ flag: "--min-invocations-hot", description: "Runtime coverage hot-path threshold", values: ["100", "500", "1000"] },
+	{ flag: "--file", description: "Only report candidates in or reachable from a file" },
+	{ flag: "--gate", description: "Security regression gate mode", values: ["new", "newly-reachable"] },
+	{ flag: "--surface", description: "Include attack-surface inventory in JSON output" },
+	{ flag: "--explain", description: "Include metric definitions and rule descriptions" },
+];
+
+const DECISION_SURFACE_FLAGS: FlagSpec[] = [
+	{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: getRefValues },
+	{ flag: "--diff-file", description: "Diff file path for line-scoped review" },
+	{ flag: "--max-decisions", description: "Maximum surfaced structural decisions", values: ["3", "4", "5"] },
+];
+
+const IMPACT_FLAGS: FlagSpec[] = [
+	{ flag: "--all", description: "Aggregate every tracked project" },
+	{ flag: "--sort", description: "Sort --all rows", values: ["recent", "resolved", "contained", "name"] },
+	{ flag: "--limit", description: "Limit --all rows", values: ["10", "25", "50"] },
 ];
 
 const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
@@ -194,6 +239,14 @@ const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 	flags: [
 		{ flag: "--top", description: "Limit top feature-flag findings", values: ["5", "10", "20", "50"] },
 	],
+	inspect: INSPECT_FLAGS,
+	trace: TRACE_FLAGS,
+	security: SECURITY_FLAGS,
+	"decision-surface": DECISION_SURFACE_FLAGS,
+	workspaces: [],
+	config: [],
+	schema: [],
+	impact: IMPACT_FLAGS,
 	list: PROJECT_INFO_FLAGS,
 	"project-info": PROJECT_INFO_FLAGS,
 	"list-boundaries": [],

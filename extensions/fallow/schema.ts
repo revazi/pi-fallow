@@ -11,6 +11,14 @@ const FallowCommand = StringEnum([
 	"fix-preview",
 	"fix-apply",
 	"flags",
+	"inspect",
+	"trace-symbol",
+	"security",
+	"workspaces",
+	"config",
+	"schema",
+	"decision-surface",
+	"impact",
 	"project-info",
 	"list-boundaries",
 	"explain",
@@ -23,6 +31,7 @@ const FallowCommand = StringEnum([
 
 const GroupBy = StringEnum(["owner", "directory", "package", "section"] as const);
 const AuditGate = StringEnum(["new-only", "all"] as const);
+const SecurityGate = StringEnum(["new", "newly-reachable"] as const);
 
 export const fallowRunParams = Type.Object({
 	command: FallowCommand,
@@ -43,8 +52,13 @@ export const fallowRunParams = Type.Object({
 
 	// Dead-code / traces
 	includeEntryExports: Type.Optional(Type.Boolean({ description: "Also report unused exports in entry files." })),
-	file: Type.Optional(Type.String({ description: "File for trace-file, trace-export, or trace-clone." })),
-	exportName: Type.Optional(Type.String({ description: "Export name for trace-export." })),
+	file: Type.Optional(Type.String({ description: "File for inspect, security scoping, trace-file, trace-export, trace-symbol, or trace-clone." })),
+	exportName: Type.Optional(Type.String({ description: "Export name for trace-export, trace-symbol, or inspect symbol queries." })),
+	symbol: Type.Optional(Type.String({ description: "Symbol target for inspect or trace-symbol, formatted as file.ts:exportName." })),
+	symbolChain: Type.Optional(Type.Boolean({ description: "Inspect: include best-effort symbol-level call chain evidence for symbol targets." })),
+	callers: Type.Optional(Type.Boolean({ description: "trace-symbol: walk upward to callers." })),
+	callees: Type.Optional(Type.Boolean({ description: "trace-symbol: walk downward to callees." })),
+	depth: Type.Optional(Type.Number({ description: "trace-symbol: call-chain depth bound." })),
 	packageName: Type.Optional(Type.String({ description: "Package name for trace-dependency." })),
 	line: Type.Optional(Type.Number({ description: "Line number for trace-clone." })),
 
@@ -67,7 +81,11 @@ export const fallowRunParams = Type.Object({
 	coverageRoot: Type.Optional(Type.String({ description: "Absolute source root prefix to strip from coverage paths." })),
 	runtimeCoverage: Type.Optional(Type.String({ description: "Health/audit runtime coverage input: V8 dir, V8 JSON, or Istanbul JSON." })),
 	maxCrap: Type.Optional(Type.Number({ description: "Maximum CRAP score threshold where supported." })),
-	diffFile: Type.Optional(Type.String({ description: "Audit diff file path for line-scoped review/runtime verdicts." })),
+	diffFile: Type.Optional(Type.String({ description: "Audit/security diff file path for line-scoped review/runtime verdicts." })),
+	securityGate: Type.Optional(SecurityGate),
+	surface: Type.Optional(Type.Boolean({ description: "Security: include the agent-facing attack-surface inventory in JSON output." })),
+	minInvocationsHot: Type.Optional(Type.Number({ description: "Runtime coverage hot-path threshold for audit/security sidecar enrichment." })),
+	maxDecisions: Type.Optional(Type.Number({ description: "decision-surface/audit brief: maximum surfaced structural decisions." })),
 
 	// Audit/fix/list/explain
 	gate: Type.Optional(AuditGate),
@@ -77,6 +95,7 @@ export const fallowRunParams = Type.Object({
 	files: Type.Optional(Type.Boolean({ description: "project-info: include discovered files." })),
 	plugins: Type.Optional(Type.Boolean({ description: "project-info: include active framework plugins." })),
 	boundaries: Type.Optional(Type.Boolean({ description: "project-info: include architecture boundary zones/rules." })),
+	listWorkspaces: Type.Optional(Type.Boolean({ description: "project-info: include monorepo workspaces and diagnostics." })),
 	noCreateConfig: Type.Optional(Type.Boolean({ description: "fix: do not create .fallowrc.json for add-to-config actions." })),
 
 	extraArgs: Type.Optional(Type.Array(Type.String(), {

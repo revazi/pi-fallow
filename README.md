@@ -57,6 +57,8 @@ Ask Pi things like:
 
 - “Run a Fallow audit for this PR and fix introduced dead code.”
 - “Find duplicate code, trace the largest clone group, then suggest a refactor.”
+- “Inspect this file with Fallow before editing it.”
+- “Run Fallow security candidates for the changed files and explain what needs verification.”
 - “Run Fallow health and tell me the safest maintainability improvement.”
 - “Preview Fallow auto-fixes before applying anything.”
 
@@ -70,8 +72,15 @@ Manual slash command examples:
 /fallow dead-code --changed-since main
 /fallow dupes --changed-since main
 /fallow health --file-scores --targets --score
+/fallow inspect --file extensions/fallow/cli.ts
+/fallow inspect --symbol extensions/fallow/cli.ts:fallowCli
+/fallow trace extensions/fallow/cli.ts:fallowCli
 /fallow trace-file extensions/fallow/ui.ts
 /fallow trace-export extensions/fallow/ui.ts FallowIssueNavigator
+/fallow security --changed-since main --gate new
+/fallow decision-surface --changed-since main
+/fallow workspaces
+/fallow schema
 /fallow coverage analyze
 ```
 
@@ -142,7 +151,7 @@ This repo includes `.fallowrc.json` so Fallow knows the Pi entrypoint is `extens
 - `extensions/fallow/path.ts` — path/text extraction helpers
 - `extensions/fallow/pr-summary/` — PR audit summary extraction and rendering helpers
 - `extensions/fallow/project/` — config/cache/git status helpers
-- `extensions/fallow/schema.ts` — tool parameter schema
+- `extensions/fallow/schema.ts` — tool parameter schema, aligned with current read-only Fallow CLI surfaces
 - `extensions/fallow/session.ts` — session startup and autocomplete provider registration
 - `extensions/fallow/status.ts` — status bar update helper
 - `extensions/fallow/summary/` — summary text/render helpers

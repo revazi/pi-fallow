@@ -357,6 +357,119 @@ function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSect
 	});
 }
 
+function addSecurity(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+	if (!root.security_findings) return;
+	title.value = "Fallow security";
+	const findings = asArray(root.security_findings);
+	if (!findings.length) return;
+	sections.push({
+		title: "Security candidates",
+		count: findings.length,
+		color: "warning",
+		items: findings.slice(0, 8).map(buildSecurityIssue),
+	});
+}
+
+function buildSecurityIssue(entry: unknown): FallowIssueLine {
+	const issue = asRecord(entry) ?? {};
+	const labelParts = [issue.kind ?? "security", issue.category].filter(Boolean);
+	return {
+		label: labelParts.join(": "),
+		path: issue.path,
+		line: issue.line,
+		meta: formatSecurityMeta(issue),
+		action: primaryAction(issue) ?? issue.evidence,
+		severity: issue.severity,
+		raw: issue,
+	};
+}
+
+function formatSecurityMeta(issue: Record<string, any>): string | undefined {
+	const parts = [issue.severity, issue.cwe ? `CWE-${issue.cwe}` : undefined].filter(Boolean);
+	return parts.length ? parts.join(" · ") : undefined;
+}
+
+function addDecisionSurface(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+	if (!root.decisions) return;
+	title.value = "Fallow decision surface";
+	const decisions = asArray(root.decisions);
+	if (!decisions.length) return;
+	sections.push({
+		title: "Structural decisions",
+		count: decisions.length,
+		color: "accent",
+		items: decisions.slice(0, 8).map(buildDecisionIssue),
+	});
+}
+
+function buildDecisionIssue(entry: unknown): FallowIssueLine {
+	const issue = asRecord(entry) ?? {};
+	return {
+		label: decisionLabel(issue),
+		path: firstStringValue([issue.path, issue.file]),
+		line: issue.line,
+		meta: joinDefinedValues([issue.expert, issue.severity, issue.confidence]),
+		action: firstStringValue([issue.prompt, issue.rationale]),
+		raw: issue,
+	};
+}
+
+function decisionLabel(issue: Record<string, any>): string {
+	return firstStringValue([issue.question, issue.title, issue.kind]) ?? "decision";
+}
+
+function firstStringValue(values: unknown[]): string | undefined {
+	const value = firstDefinedValue(values);
+	return typeof value === "string" && value ? value : undefined;
+}
+
+function joinDefinedValues(values: unknown[]): string | undefined {
+	const parts = values.filter((value) => value !== undefined && value !== null && value !== "").map(String);
+	return parts.length ? parts.join(" · ") : undefined;
+}
+
+function addInspectionStats(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>, title: { value: string }, notes: string[]): void {
+	if (root.kind !== "inspect_target") return;
+	title.value = "Fallow inspect";
+	const identity = asRecord(root.identity);
+	if (!identity) return;
+	addIfDefined(stats, "target", identity.file);
+	addIfDefined(stats, "reachable", String(!!identity.is_reachable));
+	addIfDefined(stats, "exports", identity.export_count);
+	addIfDefined(stats, "imports", identity.import_count);
+	addIfDefined(stats, "importers", identity.imported_by_count);
+	for (const warning of asArray(root.warnings).slice(0, 3)) notes.push(String(warning));
+}
+
+function addWorkspaceStats(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>, title: { value: string }, notes: string[]): void {
+	if (root.kind !== "list-workspaces") return;
+	title.value = "Fallow workspaces";
+	addIfDefined(stats, "workspaces", root.workspace_count);
+	const diagnostics = asArray(root.workspace_diagnostics);
+	if (diagnostics.length) notes.push(`${diagnostics.length} workspace diagnostic(s)`);
+}
+
+function addSchemaStats(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>, title: { value: string }): void {
+	if (root.name !== "fallow" || !Array.isArray(root.commands)) return;
+	title.value = "Fallow schema";
+	addIfDefined(stats, "version", root.version);
+	addIfDefined(stats, "commands", root.commands.length);
+	addIfDefined(stats, "issue types", asArray(root.issue_types).length || undefined);
+}
+
+function addConfigStats(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>, title: { value: string }): void {
+	if (!isConfigOutput(root)) return;
+	title.value = "Fallow config";
+	addIfDefined(stats, "entries", asArray(root.entry).length);
+	addIfDefined(stats, "rules", Object.keys(asRecord(root.rules) ?? {}).length);
+}
+
+function isConfigOutput(root: Record<string, any>): boolean {
+	if (!Array.isArray(root.entry)) return false;
+	if (root.kind) return false;
+	return ["rules", "duplicates", "health"].every((key) => Boolean(root[key]));
+}
+
 function addDefaultNotes(root: Record<string, any>, sections: FallowOverviewSection[], stats: Array<{ label: string; value: string | number }>, notes: string[]): void {
 	addIfDefined(stats, "entry points", root.entry_point_count);
 	addIfDefined(stats, "files", root.file_count);
@@ -387,9 +500,17 @@ export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview
 	const title = { value: "Fallow" };
 
 	addRootStats(root, stats);
-	addPrimarySections(root, sections, title);
-	addFallbackSections(root, sections, title);
+	addConfigStats(root, stats, title);
+	if (!isConfigOutput(root)) {
+		addPrimarySections(root, sections, title);
+		addFallbackSections(root, sections, title);
+	}
 	addFeatureFlags(root, sections, title);
+	addSecurity(root, sections, title);
+	addDecisionSurface(root, sections, title);
+	addInspectionStats(root, stats, title, notes);
+	addWorkspaceStats(root, stats, title, notes);
+	addSchemaStats(root, stats, title);
 	addDefaultNotes(root, sections, stats, notes);
 	if (exitCode === 1) notes.push("Fallow exit 1 means findings/gate failure, not a crashed command.");
 
