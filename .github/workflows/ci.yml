@@ -10,8 +10,29 @@ permissions:
   contents: read
 
 jobs:
-  checks:
-    name: Checks
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+  fallow:
+    name: Fallow
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -30,8 +51,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Unit, bundle, and health checks
-        run: npm run check
+      - name: Health check
+        run: npm run health
 
       - name: Duplication check
         run: npm run dupes
@@ -41,6 +62,63 @@ jobs:
 
       - name: Fallow CLI smoke checks
         run: npm run smoke:fallow
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test coverage
+        run: npm run coverage
+
+      - name: Upload coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: codecov/codecov-action@v5
+        timeout-minutes: 2
+        continue-on-error: true
+        with:
+          files: ./coverage/lcov.info
+          flags: unit
+          name: pi-fallow
+          fail_ci_if_error: false
+          use_oidc: true
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bundle check
+        run: npm run check:bundle
 
       - name: Package contents check
         run: npm run pack:check

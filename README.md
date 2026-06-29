@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/pi-fallow.svg)](https://www.npmjs.com/package/pi-fallow)
 [![npm downloads](https://img.shields.io/npm/dm/pi-fallow.svg)](https://www.npmjs.com/package/pi-fallow)
 [![CI](https://github.com/revazi/pi-fallow/actions/workflows/ci.yml/badge.svg)](https://github.com/revazi/pi-fallow/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/revazi/pi-fallow/branch/main/graph/badge.svg)](https://codecov.io/gh/revazi/pi-fallow)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Pi Fallow connects [Fallow](https://fallow.tools/docs/) to the [Pi coding agent](https://github.com/earendil-works/pi): you get a `fallow_run` tool for agent workflows and a `/fallow` slash command for interactive checks.
@@ -135,31 +136,6 @@ npm run pack:check
 ```
 
 This repo includes `.fallowrc.json` so Fallow knows the Pi entrypoint is `extensions/index.ts` and treats TUI component callbacks such as `handleInput` and `invalidate` as framework-used.
-
-## File layout
-
-- `.fallowrc.json` — local Fallow config for entrypoint and Pi TUI lifecycle methods
-- `extensions/index.ts` — Pi package entrypoint
-- `extensions/fallow.ts` — extension registration
-- `extensions/fallow/autocomplete.ts` — `/fallow` autocomplete
-- `extensions/fallow/cli.ts` — CLI argument building and process execution
-- `extensions/fallow/colors.ts` — shared ANSI color helpers
-- `extensions/fallow/command/` — slash-command argument normalization, loading, result flow, and prompt handoff
-- `extensions/fallow/data.ts` — small data helpers
-- `extensions/fallow/engine.ts` — command execution and formatting pipeline
-- `extensions/fallow/output.ts` — JSON parsing, summaries, and output truncation
-- `extensions/fallow/overview.ts` — maps Fallow JSON to overview data
-- `extensions/fallow/path.ts` — path/text extraction helpers
-- `extensions/fallow/pr-summary/` — PR audit summary extraction and rendering helpers
-- `extensions/fallow/project/` — config/cache/git status helpers
-- `extensions/fallow/schema.ts` — tool parameter schema, aligned with current read-only Fallow CLI surfaces
-- `extensions/fallow/session.ts` — session startup and autocomplete provider registration
-- `extensions/fallow/status.ts` — status bar update helper
-- `extensions/fallow/summary/` — summary text/render helpers
-- `extensions/fallow/tool-render.ts` — tool call/result and transcript message rendering
-- `extensions/fallow/types.ts` — shared types
-- `extensions/fallow/ui.ts` — TUI component re-exports
-- `extensions/fallow/ui/` — overview and issue navigator TUI components
 
 ## License
 

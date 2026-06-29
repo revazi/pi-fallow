@@ -1,5 +1,6 @@
 node_modules/
 *.tgz
+coverage/
 .fallow/
 .pi/
 .DS_Store
