@@ -66,6 +66,10 @@
     "image": "https://raw.githubusercontent.com/revazi/pi-fallow/main/pi-fallow.png"
   },
   "devDependencies": {
-    "jiti": "^2.7.0"
+    "@earendil-works/pi-ai": "^0.80.2",
+    "@earendil-works/pi-coding-agent": "^0.80.2",
+    "@earendil-works/pi-tui": "^0.80.2",
+    "jiti": "^2.7.0",
+    "typebox": "^1.3.2"
   }
 }
