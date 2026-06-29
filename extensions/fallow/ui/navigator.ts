@@ -144,6 +144,7 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private renderFooterMeta(theme: any, frameWidth: number, lines: string[]): void {
+		lines.push(this.frame(`${pink("Contribute")} ${theme.fg("muted", "Ideas, issues, and PRs are welcome: https://github.com/revazi/pi-fallow")}`, frameWidth));
 		if (this.options.fullOutputPath) lines.push(this.frame(`${cyan("Full JSON")} ${theme.fg("dim", this.options.fullOutputPath)}`, frameWidth));
 		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
 	}

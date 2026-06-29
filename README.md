@@ -75,6 +75,8 @@ Manual slash command examples:
 /fallow coverage analyze
 ```
 
+`/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
+
 In the interactive navigator:
 
 - `↑↓` or `j/k` — move

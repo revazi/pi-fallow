@@ -69,7 +69,7 @@ function buildDeadCodeArgs(args: string[], params: FallowRunParams): void {
 }
 
 function buildCheckChangedArgs(args: string[], params: FallowRunParams): void {
-	args.push("check-changed");
+	// Fallow exposes changed-file combined checks through the root command plus --changed-since.
 	addCommonArgs(args, params);
 	if (!params.changedSince && !params.base) throw new Error("check-changed requires changedSince or base.");
 	addValue(args, "--changed-since", params.changedSince ?? params.base);
