@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { detectFallowGitState } from "../project/git";
 import type { FallowNavigatorResult } from "../types";
+import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs } from "./args";
 import { executeFallowResult } from "./result-flow";
 import type { FallowCommandContext, FallowCommandState } from "./types";
@@ -12,18 +13,26 @@ export async function runFallowCommandHandler(
 	commandState: FallowCommandState,
 	rawArgs: string,
 ): Promise<void> {
-	const args = await normalizeFallowHandlerArgs(ctx, commandState, rawArgs);
+	const parsedArgs = rawArgs.trim() ? fallowCli.splitArgs(rawArgs) : [];
+	if (isFallowAboutCommand(parsedArgs)) {
+		await sendFallowAboutMessage(pi, ctx);
+		return;
+	}
+	const args = await normalizeFallowHandlerArgs(ctx, commandState, parsedArgs);
 	if (!args) return;
 	const result = await executeFallowCommandLoop(pi, ctx, commandState, args);
 	applyFallowPrompt(ctx, result);
 }
 
+function isFallowAboutCommand(args: string[]): boolean {
+	return args.length === 1 && ["about", "version", "update"].includes(args[0]!);
+}
+
 async function normalizeFallowHandlerArgs(
 	ctx: FallowCommandContext,
 	commandState: FallowCommandState,
-	rawArgs: string,
+	parsedArgs: string[],
 ): Promise<string[] | null> {
-	const parsedArgs = rawArgs.trim() ? fallowCli.splitArgs(rawArgs) : [];
 	const baseRef = (await detectFallowGitState(ctx.cwd)).baseRef ?? "main";
 	return normalizeFallowArgs(parsedArgs, baseRef, commandState.lastArgs, (message, level) => {
 		if (ctx.hasUI) ctx.ui.notify(message, level);

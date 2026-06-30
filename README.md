@@ -69,6 +69,7 @@ Manual slash command examples:
 ```text
 /fallow pr
 /fallow rerun
+/fallow about
 /fallow audit --base origin/main --gate new-only
 /fallow check-changed --changed-since main
 /fallow dead-code --changed-since main
@@ -87,6 +88,8 @@ Manual slash command examples:
 ```
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
+
+`/fallow about` shows the installed Pi Fallow version, latest npm version, update command, and project links. Pi Fallow also checks npm once per TUI session and shows a non-blocking update notice when a newer version is available. Set `PI_FALLOW_DISABLE_UPDATE_NOTICE=1` to disable startup update notices.
 
 In the interactive navigator:
 

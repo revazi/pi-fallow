@@ -7,6 +7,7 @@ import type { FallowCommandState } from "./fallow/command/types";
 import { fallowRunParams } from "./fallow/schema";
 import { registerFallowSessionStart } from "./fallow/session";
 import { renderFallowMessageRenderer, renderFallowToolCall, renderFallowToolResult } from "./fallow/tool-render";
+import { renderFallowAboutMessage } from "./fallow/update-notice";
 
 export default function (pi: ExtensionAPI) {
 	const commandState: FallowCommandState = { lastArgs: null };
@@ -53,7 +54,7 @@ const fallowToolPromptGuidelines = [
 function registerFallowCommand(pi: ExtensionAPI, commandState: FallowCommandState): void {
 	pi.registerCommand("fallow", {
 		description: "Run fallow with raw CLI args. JSON/quiet are added if no --format is supplied.",
-		argumentHint: "[all|pr|rerun|dead-code|dupes|health|audit|inspect|trace|security|decision-surface|workspaces|config|schema|impact|fix|project-info|list|flags|coverage analyze|explain] [options]",
+		argumentHint: "[about|all|pr|rerun|dead-code|dupes|health|audit|inspect|trace|security|decision-surface|workspaces|config|schema|impact|fix|project-info|list|flags|coverage analyze|explain] [options]",
 		getArgumentCompletions: fallowCompletions.getFallowArgumentCompletions,
 		handler: (rawArgs, ctx) => runFallowCommandHandler(pi, ctx, commandState, rawArgs),
 	});
@@ -62,5 +63,8 @@ function registerFallowCommand(pi: ExtensionAPI, commandState: FallowCommandStat
 function registerFallowResultRenderer(pi: ExtensionAPI): void {
 	pi.registerMessageRenderer("fallow-result", (message, options, theme) =>
 		renderFallowMessageRenderer(message, options, theme),
+	);
+	pi.registerMessageRenderer("fallow-about", (message, options, theme) =>
+		renderFallowAboutMessage(message, options, theme),
 	);
 }

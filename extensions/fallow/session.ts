@@ -1,11 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCompletions } from "./autocomplete";
 import { setFallowReadyStatus } from "./status";
+import { scheduleFallowUpdateNotice } from "./update-notice";
 
 export function registerFallowSessionStart(pi: ExtensionAPI): void {
 	pi.on("session_start", (_event, ctx) => {
 		if (!ctx.hasUI) return;
 		void setFallowReadyStatus(ctx);
+		scheduleFallowUpdateNotice(pi, ctx);
 		ctx.ui.addAutocompleteProvider((current) => ({
 			async getSuggestions(lines, cursorLine, cursorCol, options) {
 				const slashPrefix = getFallowSlashPrefix(lines, cursorLine, cursorCol);
