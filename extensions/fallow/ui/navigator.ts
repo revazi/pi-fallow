@@ -4,6 +4,11 @@ import { renderFallowPrSummary } from "../pr-summary/render";
 import type { FallowIssueLine, FallowNavigatorResult, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "../types";
 import { amber, cyan, getOverviewStatusColor, pill, pink, purple, violet } from "./shared";
 
+const MIN_NAVIGATOR_WIDTH = 50;
+const FRAME_BORDER_WIDTH = 4;
+const HEADER_BORDER_WIDTH = 2;
+const VISIBLE_ISSUE_ROWS = 10;
+
 function buildHeaderTitle(issueCount: number, title: string, status: FallowOverview["status"], theme: any): string {
 	const statusColor = getOverviewStatusColor(status);
 	const findingText = `${issueCount} finding${issueCount === 1 ? "" : "s"}`;
@@ -38,6 +43,12 @@ export class FallowIssueNavigator implements Component {
 		);
 	}
 
+	preferredWidth(maxWidth: number): number {
+		const boundedMax = normalizeMaxWidth(maxWidth);
+		const measuredWidth = Math.max(MIN_NAVIGATOR_WIDTH, this.measurePreferredWidth());
+		return Math.min(measuredWidth, boundedMax);
+	}
+
 	handleInput(data: string): void {
 		const bindings: Array<{ matches: (value: string) => boolean; action: () => void }> = [
 			{ matches: (value) => matchesKey(value, "escape") || value === "q", action: () => this.onDone(null) },
@@ -70,8 +81,8 @@ export class FallowIssueNavigator implements Component {
 
 	render(width: number): string[] {
 		if (this.cachedWidth === width && this.cachedLines) return this.cachedLines;
-		const frameWidth = Math.max(50, width);
-		const innerWidth = Math.max(10, frameWidth - 4);
+		const frameWidth = Math.max(FRAME_BORDER_WIDTH, width);
+		const innerWidth = Math.max(1, frameWidth - FRAME_BORDER_WIDTH);
 		const lines: string[] = [];
 
 		this.renderHeader(frameWidth, innerWidth, lines);
@@ -97,7 +108,7 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private renderIssues(frameWidth: number, innerWidth: number, lines: string[]): void {
-		const listHeight = 10;
+		const listHeight = VISIBLE_ISSUE_ROWS;
 		this.ensureVisible(listHeight);
 		const start = this.scrollStart;
 		const end = Math.min(this.issues.length, start + listHeight);
@@ -126,34 +137,93 @@ export class FallowIssueNavigator implements Component {
 
 	private renderIssueRowsSectionHeader(entry: FlatIssue, index: number, lastSection: number): string[] {
 		if (entry.sectionIndex === lastSection) return [];
+		return [this.sectionHeaderLine(entry)];
+	}
+
+	private sectionHeaderLine(entry: FlatIssue): string {
 		const count = entry.section.count !== undefined ? this.theme.fg("dim", ` (${entry.section.count})`) : "";
-		return [`  ${violet("●")} ${this.theme.fg(entry.section.color ?? "accent", this.theme.bold(entry.section.title))}${count}`];
+		return `  ${violet("●")} ${this.theme.fg(entry.section.color ?? "accent", this.theme.bold(entry.section.title))}${count}`;
 	}
 
 	private renderFooter(frameWidth: number, lines: string[]): void {
-		const theme = this.theme;
 		lines.push(this.separator(frameWidth));
-		lines.push(this.frame(`${pill(`${this.selection().length} selected`, purple)} ${theme.fg("muted", "e/a loads prompt into editor for your comments")}`, frameWidth));
-		this.renderFooterSummaryBlocks(theme, frameWidth, lines);
-		this.renderFooterMeta(theme, frameWidth, lines);
+		lines.push(this.frame(this.footerSelectionLine(), frameWidth));
+		this.renderFooterSummaryBlocks(frameWidth, lines);
+		this.renderFooterMeta(frameWidth, lines);
 	}
 
-	private renderFooterSummaryBlocks(theme: any, frameWidth: number, lines: string[]): void {
-		this.renderSummaryBlock(renderFallowPrSummary(this.options.prSummary, theme), frameWidth, lines);
-		this.renderSummaryBlock(renderFallowProjectState(this.options.projectState, theme), frameWidth, lines);
+	private footerSelectionLine(): string {
+		return `${pill(`${this.selection().length} selected`, purple)} ${this.theme.fg("muted", "e/a loads prompt into editor for your comments")}`;
 	}
 
-	private renderFooterMeta(theme: any, frameWidth: number, lines: string[]): void {
-		lines.push(this.frame(`${pink("Contribute")} ${theme.fg("muted", "Ideas, issues, and PRs are welcome: https://github.com/revazi/pi-fallow")}`, frameWidth));
-		if (this.options.fullOutputPath) lines.push(this.frame(`${cyan("Full JSON")} ${theme.fg("dim", this.options.fullOutputPath)}`, frameWidth));
-		if (this.options.command) lines.push(this.frame(`${violet("Command")} ${theme.fg("muted", this.options.command)}`, frameWidth));
-	}
-
-	private renderSummaryBlock(summaryText: string, frameWidth: number, lines: string[]): void {
-		if (!summaryText) return;
-		for (const line of summaryText.split("\n")) {
+	private renderFooterSummaryBlocks(frameWidth: number, lines: string[]): void {
+		for (const line of this.summaryBlockLines()) {
 			lines.push(this.frame(line, frameWidth));
 		}
+	}
+
+	private summaryBlockLines(): string[] {
+		return [
+			renderFallowPrSummary(this.options.prSummary, this.theme),
+			renderFallowProjectState(this.options.projectState, this.theme),
+		].filter(Boolean).flatMap((summary) => summary.split("\n"));
+	}
+
+	private renderFooterMeta(frameWidth: number, lines: string[]): void {
+		for (const line of this.footerMetaLines()) {
+			lines.push(this.frame(line, frameWidth));
+		}
+	}
+
+	private footerMetaLines(): string[] {
+		return [
+			`${pink("Contribute")} ${this.theme.fg("muted", "Ideas, issues, and PRs are welcome: https://github.com/revazi/pi-fallow")}`,
+			this.options.fullOutputPath ? `${cyan("Full JSON")} ${this.theme.fg("dim", this.options.fullOutputPath)}` : undefined,
+			this.options.command ? `${violet("Command")} ${this.theme.fg("muted", this.options.command)}` : undefined,
+		].filter(Boolean) as string[];
+	}
+
+	private measurePreferredWidth(): number {
+		const issueCount = this.issues.length;
+		const headerTitle = buildHeaderTitle(issueCount, this.overview.title, this.overview.status, this.theme);
+		const frameCandidates = [
+			...this.preferredHeaderLines(),
+			...this.preferredIssueLines(),
+			this.footerSelectionLine(),
+			...this.summaryBlockLines(),
+			...this.footerMetaLines(),
+		];
+		const contentWidth = Math.max(0, ...frameCandidates.map((line) => visibleWidth(line)));
+		return Math.max(visibleWidth(headerTitle) + HEADER_BORDER_WIDTH, contentWidth + FRAME_BORDER_WIDTH);
+	}
+
+	private preferredHeaderLines(): string[] {
+		return [this.statLine(), this.helpLine()].filter(Boolean) as string[];
+	}
+
+	private preferredIssueLines(): string[] {
+		if (!this.issues.length) return [this.theme.fg("success", "No navigable findings in this Fallow report.")];
+		return this.visibleIssueEntries().flatMap((entry, index, entries) => this.preferredIssueEntryLines(entry, index, entries));
+	}
+
+	private visibleIssueEntries(): FlatIssue[] {
+		return this.issues.slice(0, VISIBLE_ISSUE_ROWS);
+	}
+
+	private preferredIssueEntryLines(entry: FlatIssue, index: number, entries: FlatIssue[]): string[] {
+		return [
+			...this.preferredSectionHeaderLines(entry, index, entries),
+			this.issueLineRaw(index),
+			...this.preferredActionLines(entry.item),
+		];
+	}
+
+	private preferredSectionHeaderLines(entry: FlatIssue, index: number, entries: FlatIssue[]): string[] {
+		return entries[index - 1]?.sectionIndex === entry.sectionIndex ? [] : [this.sectionHeaderLine(entry)];
+	}
+
+	private preferredActionLines(item: FallowIssueLine): string[] {
+		return item.action ? [this.detailActionLine(item)] : [];
 	}
 
 	invalidate(): void {
@@ -296,12 +366,16 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private statLines(width: number): string[] {
-		if (!this.overview.stats.length) return [];
+		const statLine = this.statLine();
+		return statLine ? wrapTextWithAnsi(statLine, width) : [];
+	}
+
+	private statLine(): string | undefined {
+		if (!this.overview.stats.length) return undefined;
 		const colors = [purple, cyan, amber, pink, violet];
-		const statLine = this.overview.stats.slice(0, 8)
+		return this.overview.stats.slice(0, 8)
 			.map((stat, index) => `${colors[index % colors.length]!("◆")} ${this.theme.fg("muted", stat.label)} ${this.theme.fg("accent", this.theme.bold(String(stat.value)))}`)
 			.join(this.theme.fg("dim", "   "));
-		return wrapTextWithAnsi(statLine, width);
 	}
 
 	private helpLine(): string {
@@ -310,13 +384,17 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private issueLine(index: number, width: number): string {
+		const raw = this.issueLineRaw(index);
+		return truncateToWidth(this.selected === index ? this.theme.bg("selectedBg", raw) : raw, width);
+	}
+
+	private issueLineRaw(index: number): string {
 		const entry = this.issues[index]!;
 		const marker = this.issueLineMarker(index);
 		const check = this.issueLineCheck(index);
 		const expandMarker = this.issueExpandMarker(index);
 		const main = this.buildIssueLineMain(entry);
-		const raw = `    ${marker} ${check} ${expandMarker} ${main}`;
-		return truncateToWidth(this.selected === index ? this.theme.bg("selectedBg", raw) : raw, width);
+		return `    ${marker} ${check} ${expandMarker} ${main}`;
 	}
 
 	private buildIssueLineMain(entry: FlatIssue): string {
@@ -353,13 +431,18 @@ export class FallowIssueNavigator implements Component {
 
 	private buildDetailActionLines(item: FallowIssueLine, width: number): string[] {
 		if (!item.action) return [];
-		return wrapTextWithAnsi(`${amber("      ↳")} ${this.theme.fg("muted", item.action)}`, width);
+		return wrapTextWithAnsi(this.detailActionLine(item), width);
+	}
+
+	private detailActionLine(item: FallowIssueLine): string {
+		return `${amber("      ↳")} ${this.theme.fg("muted", item.action ?? "")}`;
 	}
 
 	private topBorder(width: number, title: string): string {
-		const titleWidth = visibleWidth(title);
-		const fill = Math.max(0, width - titleWidth - 2);
-		return purple("╭") + title + purple("─".repeat(fill) + "╮");
+		const clippedTitle = truncateToWidth(title, Math.max(0, width - HEADER_BORDER_WIDTH));
+		const titleWidth = visibleWidth(clippedTitle);
+		const fill = Math.max(0, width - titleWidth - HEADER_BORDER_WIDTH);
+		return purple("╭") + clippedTitle + purple("─".repeat(fill) + "╮");
 	}
 
 	private separator(width: number): string {
@@ -371,7 +454,7 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private frame(content: string, width: number): string {
-		const innerWidth = Math.max(0, width - 4);
+		const innerWidth = Math.max(0, width - FRAME_BORDER_WIDTH);
 		const truncated = truncateToWidth(content, innerWidth);
 		const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(truncated)));
 		return purple("│ ") + truncated + padding + purple(" │");
@@ -387,4 +470,9 @@ export class FallowIssueNavigator implements Component {
 function pickPathFromText(text: string, pattern: RegExp): string | null {
 	const match = text.match(pattern);
 	return match?.[1] ?? null;
+}
+
+function normalizeMaxWidth(maxWidth: number): number {
+	if (!Number.isFinite(maxWidth)) return Number.POSITIVE_INFINITY;
+	return Math.max(1, Math.floor(maxWidth));
 }

@@ -7,6 +7,10 @@ import { FallowIssueNavigator } from "../ui";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import type { FallowCommandContext } from "./types";
 
+const FALLOW_NAVIGATOR_MAX_WIDTH_RATIO = 0.9;
+const FALLBACK_FALLOW_NAVIGATOR_MAX_WIDTH = 100;
+const FALLOW_NAVIGATOR_MIN_WIDTH = 50;
+
 export async function executeFallowResult(
 	pi: ExtensionAPI,
 	ctx: FallowCommandContext,
@@ -94,8 +98,9 @@ function openFallowNavigator(
 ): Promise<FallowNavigatorResult | null> {
 	const { formatted } = result;
 	if (!ctx.hasUI || !formatted.overview) return Promise.resolve(null);
+	let navigator: FallowIssueNavigator | undefined;
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
-		return new FallowIssueNavigator(
+		navigator = new FallowIssueNavigator(
 			formatted.overview!,
 			theme,
 			done,
@@ -108,8 +113,26 @@ function openFallowNavigator(
 				prSummary,
 			},
 		);
+		return navigator;
 	}, {
 		overlay: true,
-		overlayOptions: { width: "90%", maxHeight: "80%", anchor: "top-center", row: "25%" },
+		overlayOptions: () => ({
+			width: resolveFallowNavigatorOverlayWidth(navigator),
+			minWidth: FALLOW_NAVIGATOR_MIN_WIDTH,
+			maxHeight: "80%",
+			anchor: "top-center",
+			row: "25%",
+		}),
 	});
+}
+
+function resolveFallowNavigatorOverlayWidth(navigator: FallowIssueNavigator | undefined): number {
+	const maxWidth = resolveFallowNavigatorMaxWidth();
+	return navigator?.preferredWidth(maxWidth) ?? maxWidth;
+}
+
+function resolveFallowNavigatorMaxWidth(): number {
+	const terminalWidth = process.stdout.columns;
+	if (!terminalWidth || terminalWidth < 1) return FALLBACK_FALLOW_NAVIGATOR_MAX_WIDTH;
+	return Math.max(1, Math.floor(terminalWidth * FALLOW_NAVIGATOR_MAX_WIDTH_RATIO));
 }
