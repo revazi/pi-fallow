@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { createJiti } from "jiti";
 
 const jiti = createJiti(import.meta.url);
@@ -89,5 +90,21 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.equal(result?.issueCount, 1);
 		assert.doesNotMatch(result.prompt, /unused helper/);
 		assert.match(result.prompt, /## 1\. Unused exports: dead file/);
+	});
+
+	it("chooses a fluid overlay width capped by the available maximum", () => {
+		const navigator = new FallowIssueNavigator(createOverview(), theme, () => {}, () => {});
+
+		assert.equal(navigator.preferredWidth(60), 60);
+		assert.ok(navigator.preferredWidth(200) < 200);
+	});
+
+	it("renders within the width provided by the overlay", () => {
+		const navigator = new FallowIssueNavigator(createOverview(), theme, () => {}, () => {});
+		const width = 60;
+
+		for (const line of navigator.render(width)) {
+			assert.ok(visibleWidth(line) <= width, line);
+		}
 	});
 });
