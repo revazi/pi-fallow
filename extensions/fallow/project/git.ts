@@ -38,13 +38,3 @@ async function resolveBaseRef(cwd: string): Promise<string | undefined> {
 	return undefined;
 }
 
-export function formatFallowStatus(state: FallowGitState | undefined): string {
-	if (!state?.isGitRepo) return "fallow ready";
-	const location = describeLocation(state);
-	return `fallow ready · ${location}${state.baseRef ? ` · base ${state.baseRef}` : ""}`;
-}
-
-function describeLocation(state: FallowGitState): string {
-	if (state.detached) return "detached";
-	return state.branch ? `branch ${state.branch}` : "git";
-}
