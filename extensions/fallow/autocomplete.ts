@@ -19,6 +19,7 @@ type FlagSpec = {
 const COMMANDS: CompletionSpec[] = [
 	{ value: "pr", label: "pr", description: "Run audit with detected PR base (new-only)" },
 	{ value: "rerun", label: "rerun", description: "Rerun the last /fallow command" },
+	{ value: "about", label: "about", description: "Show Pi Fallow version, update, and project links" },
 	{ value: "all", description: "Run full repository checks and checks summary" },
 	{ value: "audit --base main --gate new-only", label: "audit PR (main)", description: "Report only issues introduced by the PR diff vs main" },
 	{ value: "audit --base origin/main --gate new-only", label: "audit PR (origin/main)", description: "Report only issues introduced by the PR diff vs origin/main" },
@@ -299,11 +300,25 @@ function isCoverageAnalyze(first: string, second: string | undefined): boolean {
 	return first === "coverage" && second === "analyze";
 }
 
+const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update"]);
+
 function allFlags(command: string | undefined): FlagSpec[] {
-	if (command === "rerun") return [];
-	const commandFlags = command ? FLAGS_BY_COMMAND[command] ?? [] : ROOT_FLAGS;
+	if (isCommandWithoutFlags(command)) return [];
+	return uniqueFlags([...commandSpecificFlags(command), ...COMMON_FLAGS]);
+}
+
+function commandSpecificFlags(command: string | undefined): FlagSpec[] {
+	if (!command) return ROOT_FLAGS;
+	return FLAGS_BY_COMMAND[command] ?? [];
+}
+
+function isCommandWithoutFlags(command: string | undefined): boolean {
+	return !!command && COMMANDS_WITHOUT_FLAGS.has(command);
+}
+
+function uniqueFlags(flags: FlagSpec[]): FlagSpec[] {
 	const seen = new Set<string>();
-	return [...commandFlags, ...COMMON_FLAGS].filter((flag) => {
+	return flags.filter((flag) => {
 		if (seen.has(flag.flag)) return false;
 		seen.add(flag.flag);
 		return true;
