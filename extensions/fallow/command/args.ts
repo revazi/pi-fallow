@@ -1,5 +1,12 @@
 type Notify = (message: string, level: "info" | "warning") => void;
 
+export function needsFallowBaseDetection(rawArgs: string[]): boolean {
+	if (rawArgs[0] !== "pr") return false;
+	const prArgs = rawArgs.slice(1);
+	if (prArgs.some((arg) => arg === "--help" || arg === "-h")) return false;
+	return !hasFlag(prArgs, "--base");
+}
+
 export function normalizeFallowArgs(
 	rawArgs: string[],
 	baseRef: string,

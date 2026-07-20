@@ -1,5 +1,5 @@
-import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
 type CompletionSpec = {
@@ -52,15 +52,17 @@ const COMMANDS: CompletionSpec[] = [
 ];
 
 const STATIC_REF_VALUES = ["main", "master", "HEAD~1", "origin/main", "origin/master"];
-const REF_CACHE_TTL_MS = 3_000;
 const MAX_DYNAMIC_REF_VALUES = 40;
+const GIT_REF_TIMEOUT_MS = 1_200;
+const DEFAULT_REF_VALUES = prioritizeRefs(STATIC_REF_VALUES);
 
 interface GitRefCacheEntry {
 	references: string[];
-	expiresAt: number;
+	refresh?: Promise<void>;
 }
 
 const gitRefCache = new Map<string, GitRefCacheEntry>();
+let activeGitCwd: string | undefined;
 
 function uniqueValues(values: string[]): string[] {
 	const seen = new Set<string>();
@@ -85,37 +87,52 @@ function prioritizeRefs(values: string[]): string[] {
 	return [...ordered, ...[...unique].sort((a, b) => a.localeCompare(b))].slice(0, MAX_DYNAMIC_REF_VALUES);
 }
 
-function readGitReferences(cwd: string): string[] {
-	const output = execFileSync("git", ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"], {
-		cwd,
-		timeout: 1200,
-	});
-	const refs = String(output)
+function parseGitReferences(output: string): string[] {
+	return uniqueValues(output
 		.split(/\r?\n/)
 		.map((value) => value.trim())
-		.filter((value) => Boolean(value) && value !== "HEAD" && !value.endsWith("/HEAD"));
-	return uniqueValues(refs);
+		.filter((value) => Boolean(value) && value !== "HEAD" && !value.endsWith("/HEAD")));
 }
 
-function getRefValuesFromGit(): string[] {
-	const cwd = resolve(process.cwd());
-	const now = Date.now();
-	const cached = gitRefCache.get(cwd);
-	if (cached && cached.expiresAt > now) return cached.references;
-	let refs = STATIC_REF_VALUES;
-	try {
-		refs = prioritizeRefs(readGitReferences(cwd));
-	} catch {
-		refs = [...STATIC_REF_VALUES];
-	}
-	const merged = uniqueValues([...refs, ...STATIC_REF_VALUES]);
-	const result = prioritizeRefs(merged);
-	gitRefCache.set(cwd, { references: result, expiresAt: now + REF_CACHE_TTL_MS });
-	return result;
+function mergeGitReferences(references: string[]): string[] {
+	return prioritizeRefs(uniqueValues([...references, ...STATIC_REF_VALUES]));
+}
+
+function refCacheEntry(cwd: string): GitRefCacheEntry {
+	const existing = gitRefCache.get(cwd);
+	if (existing) return existing;
+	const created = { references: DEFAULT_REF_VALUES };
+	gitRefCache.set(cwd, created);
+	return created;
+}
+
+async function readGitReferences(pi: Pick<ExtensionAPI, "exec">, cwd: string): Promise<string[] | undefined> {
+	const result = await pi.exec(
+		"git",
+		["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"],
+		{ cwd, timeout: GIT_REF_TIMEOUT_MS },
+	);
+	return result.code === 0 ? parseGitReferences(result.stdout) : undefined;
+}
+
+function preloadGitReferences(pi: Pick<ExtensionAPI, "exec">, cwd: string): Promise<void> {
+	const resolvedCwd = resolve(cwd);
+	activeGitCwd = resolvedCwd;
+	const entry = refCacheEntry(resolvedCwd);
+	if (entry.refresh) return entry.refresh;
+	const refresh = readGitReferences(pi, resolvedCwd)
+		.then((references) => {
+			if (references) entry.references = mergeGitReferences(references);
+		})
+		.catch(() => {})
+		.finally(() => { entry.refresh = undefined; });
+	entry.refresh = refresh;
+	return refresh;
 }
 
 function getRefValues(): string[] {
-	return getRefValuesFromGit();
+	if (!activeGitCwd) return DEFAULT_REF_VALUES;
+	return refCacheEntry(activeGitCwd).references;
 }
 
 const COMMON_FLAGS: FlagSpec[] = [
@@ -337,12 +354,13 @@ function getFallowRootCommandCompletions(): AutocompleteItem[] {
 	}));
 }
 
-const fallbackCompletion = {
+const completionApi = {
 	getFallowRootCommandCompletions,
 	getFallowArgumentCompletions,
+	preloadGitReferences,
 };
 
-export const fallowCompletions = fallbackCompletion;
+export const fallowCompletions = completionApi;
 
 function completeToken(beforeCurrent: string, current: string, specs: CompletionSpec[]): AutocompleteItem[] {
 	return specs

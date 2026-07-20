@@ -1,6 +1,9 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-export type FallowCommandState = { lastArgs: string[] | null };
+export type FallowCommandState = {
+	lastArgs: string[] | null;
+	baseRefs: Map<string, string>;
+};
 export type FallowRunMode = ExtensionContext["mode"];
 
 export type FallowCommandContext = {

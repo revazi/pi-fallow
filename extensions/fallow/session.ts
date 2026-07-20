@@ -4,7 +4,8 @@ import { scheduleFallowUpdateNotice } from "./update-notice";
 
 export function registerFallowSessionStart(pi: ExtensionAPI): void {
 	pi.on("session_start", (_event, ctx) => {
-		if (!ctx.hasUI) return;
+		if (ctx.mode !== "tui") return;
+		void fallowCompletions.preloadGitReferences(pi, ctx.cwd);
 		scheduleFallowUpdateNotice(pi, ctx);
 		ctx.ui.addAutocompleteProvider((current) => ({
 			async getSuggestions(lines, cursorLine, cursorCol, options) {

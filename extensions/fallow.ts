@@ -10,7 +10,7 @@ import { renderFallowMessageRenderer, renderFallowToolCall, renderFallowToolResu
 import { renderFallowAboutMessage } from "./fallow/update-notice";
 
 export default function (pi: ExtensionAPI) {
-	const commandState: FallowCommandState = { lastArgs: null };
+	const commandState: FallowCommandState = { lastArgs: null, baseRefs: new Map() };
 	registerFallowTool(pi);
 	registerFallowCommand(pi, commandState);
 	registerFallowResultRenderer(pi);

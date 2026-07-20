@@ -5,13 +5,6 @@ export interface FallowProjectState {
 	cacheFiles: string[];
 }
 
-export interface FallowGitState {
-	isGitRepo: boolean;
-	branch?: string;
-	detached?: boolean;
-	baseRef?: string;
-}
-
 export interface FallowPrSummary {
 	baseRef?: string;
 	gate: string;

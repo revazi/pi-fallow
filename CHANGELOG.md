@@ -10,6 +10,7 @@ All notable changes to Pi Fallow are documented here.
 ### Changed
 - Raised the minimum Node.js version to 22.19 to match the current Pi peer packages.
 - Pinned Fallow, esbuild, and coverage tooling for reproducible development and CI checks.
+- Made Git ref autocomplete non-blocking and keyed it to Pi's project directory; base-ref detection now runs only for `/fallow pr` without an explicit base and is cached per project.
 
 ### Fixed
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.
