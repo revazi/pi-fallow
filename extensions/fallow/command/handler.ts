@@ -3,7 +3,7 @@ import { fallowCli } from "../cli";
 import { detectFallowBaseRef } from "../project/git";
 import type { FallowNavigatorResult } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
-import { normalizeFallowArgs } from "./args";
+import { normalizeFallowArgs, resolveFallowRunArgs } from "./args";
 import { resolveFallowCommandBaseRef } from "./base";
 import { isFallowTuiMode } from "./mode";
 import { executeFallowResult } from "./result-flow";
@@ -15,7 +15,8 @@ export async function runFallowCommandHandler(
 	commandState: FallowCommandState,
 	rawArgs: string,
 ): Promise<void> {
-	const parsedArgs = rawArgs.trim() ? fallowCli.splitArgs(rawArgs) : [];
+	const parsedArgs = parseFallowHandlerArgs(ctx, rawArgs);
+	if (!parsedArgs) return;
 	if (isFallowAboutCommand(parsedArgs)) {
 		await sendFallowAboutMessage(pi, ctx);
 		return;
@@ -24,6 +25,20 @@ export async function runFallowCommandHandler(
 	if (!args) return;
 	const result = await executeFallowCommandLoop(pi, ctx, commandState, args);
 	applyFallowPrompt(ctx, result);
+}
+
+function parseFallowHandlerArgs(ctx: FallowCommandContext, rawArgs: string): string[] | null {
+	try {
+		const explicitArgs = splitOptionalFallowArgs(rawArgs);
+		const configuredArgs = splitOptionalFallowArgs(process.env.PI_FALLOW_DEFAULT_COMMAND ?? "");
+		return resolveFallowRunArgs(explicitArgs, configuredArgs);
+	} catch (error) {
+		return reportFallowInputError(ctx, error);
+	}
+}
+
+function splitOptionalFallowArgs(value: string): string[] {
+	return value.trim() ? fallowCli.splitArgs(value) : [];
 }
 
 function isFallowAboutCommand(args: string[]): boolean {
@@ -41,10 +56,14 @@ async function normalizeFallowHandlerArgs(
 			if (ctx.hasUI) ctx.ui.notify(message, level);
 		});
 	} catch (error) {
-		if (!ctx.hasUI) throw error;
-		ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-		return null;
+		return reportFallowInputError(ctx, error);
 	}
+}
+
+function reportFallowInputError(ctx: FallowCommandContext, error: unknown): null {
+	if (!ctx.hasUI) throw error;
+	ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+	return null;
 }
 
 async function executeFallowCommandLoop(

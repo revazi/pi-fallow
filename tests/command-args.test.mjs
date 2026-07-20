@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { createJiti } from "jiti";
 
 const jiti = createJiti(import.meta.url);
-const { normalizeFallowArgs } = await jiti.import("../extensions/fallow/command/args.ts");
+const { normalizeFallowArgs, resolveFallowRunArgs } = await jiti.import("../extensions/fallow/command/args.ts");
 
 function normalize(rawArgs, options = {}) {
 	const notifications = [];
@@ -15,6 +15,26 @@ function normalize(rawArgs, options = {}) {
 	);
 	return { result, notifications };
 }
+
+describe("resolveFallowRunArgs", () => {
+	it("defaults empty and run commands to health", () => {
+		assert.deepEqual(resolveFallowRunArgs([], []), ["health"]);
+		assert.deepEqual(resolveFallowRunArgs(["run"], []), ["health"]);
+		assert.deepEqual(resolveFallowRunArgs(["run", "--score"], []), ["health", "--score"]);
+	});
+
+	it("uses configured shell-free command tokens without changing explicit commands", () => {
+		assert.deepEqual(resolveFallowRunArgs(["run"], ["health", "--complexity", "--targets"]), ["health", "--complexity", "--targets"]);
+		assert.deepEqual(resolveFallowRunArgs(["run", "--score"], ["dead-code", "--production"]), ["dead-code", "--production", "--score"]);
+		assert.deepEqual(resolveFallowRunArgs(["dupes"], ["health"]), ["dupes"]);
+	});
+
+	it("rejects recursive or extension-only defaults", () => {
+		for (const command of ["run", "rerun", "about", "version", "update"]) {
+			assert.throws(() => resolveFallowRunArgs([], [command]), /PI_FALLOW_DEFAULT_COMMAND must start/);
+		}
+	});
+});
 
 describe("normalizeFallowArgs", () => {
 	it("adds PR audit defaults", () => {

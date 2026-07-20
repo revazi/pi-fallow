@@ -17,7 +17,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 ## Highlights
 
 - **Compact agent tool:** `fallow_run` uses a small command-plus-args contract while preserving internal validation and older-session compatibility.
-- **Slash command:** `/fallow ...` runs the Fallow CLI from inside Pi.
+- **Slash command:** `/fallow ...` runs the Fallow CLI from inside Pi; `/fallow` and `/fallow run` use a configurable default command.
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
 - **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
@@ -69,6 +69,9 @@ Ask Pi things like:
 Manual slash command examples:
 
 ```text
+/fallow
+/fallow run
+/fallow run --score
 /fallow pr
 /fallow rerun
 /fallow about
@@ -89,6 +92,14 @@ Manual slash command examples:
 /fallow schema
 /fallow coverage analyze
 ```
+
+`/fallow` and `/fallow run` execute `health` by default. Set `PI_FALLOW_DEFAULT_COMMAND` to a shell-free Fallow command string to change it, for example:
+
+```bash
+export PI_FALLOW_DEFAULT_COMMAND='health --complexity --targets --score'
+```
+
+Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive/extension-only defaults such as `run`, `rerun`, or `about` are rejected.
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 

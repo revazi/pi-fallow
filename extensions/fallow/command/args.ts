@@ -1,5 +1,33 @@
 type Notify = (message: string, level: "info" | "warning") => void;
 
+const FALLBACK_DEFAULT_COMMAND = ["health"];
+const INVALID_DEFAULT_COMMANDS = new Set(["run", "rerun", "about", "version", "update"]);
+
+export function resolveFallowRunArgs(rawArgs: string[], configuredDefaultArgs: string[]): string[] {
+	if (isExplicitFallowCommand(rawArgs)) return rawArgs;
+	const defaultArgs = resolveDefaultArgs(configuredDefaultArgs);
+	validateDefaultCommand(defaultArgs);
+	return [...defaultArgs, ...runOverrides(rawArgs)];
+}
+
+function isExplicitFallowCommand(args: string[]): boolean {
+	return args.length > 0 && args[0] !== "run";
+}
+
+function resolveDefaultArgs(configured: string[]): string[] {
+	return configured.length ? configured : FALLBACK_DEFAULT_COMMAND;
+}
+
+function runOverrides(args: string[]): string[] {
+	return args[0] === "run" ? args.slice(1) : [];
+}
+
+function validateDefaultCommand(args: string[]): void {
+	if (!args[0] || INVALID_DEFAULT_COMMANDS.has(args[0])) {
+		throw new Error("PI_FALLOW_DEFAULT_COMMAND must start with an executable Fallow command such as health or dead-code.");
+	}
+}
+
 export function needsFallowBaseDetection(rawArgs: string[]): boolean {
 	if (rawArgs[0] !== "pr") return false;
 	const prArgs = rawArgs.slice(1);

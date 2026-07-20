@@ -38,12 +38,26 @@ function git(cwd, args) {
 describe("Fallow autocomplete", () => {
 	it("returns command, flag, and fixed-value completions", () => {
 		assert.ok(labels(fallowCompletions.getFallowRootCommandCompletions()).includes("health"));
+		assert.ok(labels(fallowCompletions.getFallowRootCommandCompletions()).includes("run"));
 		assert.ok(completionLabels("").includes("audit PR (main)"));
 		assert.ok(completionLabels("health --").includes("--group-by"));
+		assert.ok(completionLabels("run --").includes("--file-scores"));
 		assert.deepEqual(completionLabels("health --group-by o"), ["owner"]);
 		assert.ok(completionLabels("health --group-by=o").includes("--group-by=owner"));
 		assert.deepEqual(completionLabels("coverage "), ["analyze"]);
 		assert.equal(fallowCompletions.getFallowArgumentCompletions("rerun "), null);
+	});
+
+	it("uses the configured default command for run flag completion", () => {
+		const previous = process.env.PI_FALLOW_DEFAULT_COMMAND;
+		try {
+			process.env.PI_FALLOW_DEFAULT_COMMAND = "dead-code --production";
+			assert.ok(completionLabels("run --").includes("--include-entry-exports"));
+			assert.equal(completionLabels("run --").includes("--file-scores"), false);
+		} finally {
+			if (previous === undefined) delete process.env.PI_FALLOW_DEFAULT_COMMAND;
+			else process.env.PI_FALLOW_DEFAULT_COMMAND = previous;
+		}
 	});
 
 	it("returns static refs immediately while asynchronously loading project refs", async () => {

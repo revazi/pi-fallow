@@ -18,6 +18,7 @@ type FlagSpec = {
 
 const COMMANDS: CompletionSpec[] = [
 	{ value: "pr", label: "pr", description: "Run audit with detected PR base (new-only)" },
+	{ value: "run", label: "run", description: "Run the configured default command (health unless overridden)" },
 	{ value: "rerun", label: "rerun", description: "Rerun the last /fallow command" },
 	{ value: "about", label: "about", description: "Show Pi Fallow version, update, and project links" },
 	{ value: "all", description: "Run full repository checks and checks summary" },
@@ -310,7 +311,20 @@ function commandKey(tokens: string[]): string | undefined {
 }
 
 function normalizeRootCommand(command: string): string {
-	return command === "pr" ? "audit" : command;
+	if (command === "pr") return "audit";
+	if (command === "run") return configuredDefaultCommandKey();
+	return command;
+}
+
+function configuredDefaultCommandKey(): string {
+	const configured = process.env.PI_FALLOW_DEFAULT_COMMAND;
+	const tokens = configured ? configured.trim().split(/\s+/).filter(Boolean) : [];
+	return defaultCommandKeyFromTokens(tokens);
+}
+
+function defaultCommandKeyFromTokens(tokens: string[]): string {
+	if (isCoverageAnalyze(tokens[0] ?? "", tokens[1])) return "coverage analyze";
+	return tokens[0] ?? "health";
 }
 
 function isCoverageAnalyze(first: string, second: string | undefined): boolean {
