@@ -15,6 +15,8 @@ All notable changes to Pi Fallow are documented here.
 - Slimmed completed engine results to bounded execution and formatting metadata, releasing raw stdout, stderr, and parsed report roots before navigator or transcript retention.
 - Replaced overlapping embedded-JSON parse retries with a balanced linear scanner that handles nesting, quoted delimiters, escapes, malformed candidates, and split stdout/stderr output.
 - Reduced the `fallow_run` contract to command, CLI-token args, root, timeout, and output detail while translating wide-schema calls stored by older Pi sessions before validation.
+- Kept every normalized finding available in the TUI navigator and added search, section/severity filters, select-all-visible, and persistent multi-selection across filters.
+- Saved complete JSON whenever navigator normalization omits raw fields; generated report artifacts are never automatically deleted by Pi Fallow.
 
 ### Fixed
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.

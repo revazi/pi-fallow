@@ -21,10 +21,10 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
 - **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
-- **Interactive navigator:** findings open in a bordered TUI view where you can inspect, select, trace, or load issues into the editor.
+- **Interactive navigator:** every normalized finding remains navigable with search, section/severity filters, multi-selection, tracing, and editor loading.
 - **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
 - **Robust output parsing:** direct or noisy embedded JSON is scanned once with nesting, strings, and escapes handled correctly.
-- **Safe defaults:** JSON and quiet output are added when appropriate; large output is truncated for the transcript, saved to a temp file, and released from retained engine state after formatting.
+- **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
 - **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
 
 ## Installation
@@ -95,14 +95,20 @@ The agent-facing `fallow_run` tool passes command-specific flags as separate `ar
 
 `/fallow about` shows the installed Pi Fallow version, latest npm version, update command, and project links. Pi Fallow also checks npm once per TUI session and shows a non-blocking update notice when a newer version is available. Set `PI_FALLOW_DISABLE_UPDATE_NOTICE=1` to disable startup update notices.
 
+Saved full reports remain in the operating system's temporary directory. Pi Fallow never deletes them automatically; the operating system's own temporary-file retention policy still applies.
+
 In the interactive navigator:
 
 - `↑↓` or `j/k` — move
 - `Enter` / `Space` — expand the selected finding
 - `s` — select/unselect
+- `A` — select/unselect all findings visible under the active filters
+- `/` — search section, label, path, severity, details, and suggested action
+- `f` / `v` — cycle section/severity filters
+- `x` — clear filters; `c` — clear explicit selections
 - `e` or `a` — load selected findings into the editor
 - `t` — run a trace for the selected finding when possible
-- `q` / `Esc` — close
+- `q` / `Esc` — close (`Esc` first cancels an active search)
 
 ## Requirements
 

@@ -105,6 +105,7 @@ export async function formatToolOutput(
 	parsed: ParsedFallowOutput,
 	cwd: string,
 	exitCode = 0,
+	preserveNavigatorDetails = false,
 ): Promise<{
 	text: string;
 	summary: string;
@@ -115,7 +116,11 @@ export async function formatToolOutput(
 	const { overview, summary } = buildToolOutputSummary(parsed, exitCode);
 	const rawText = getFormattedRawText(parsed);
 	const truncation = truncateHead(rawText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
-	const fullOutputPath = await writeOutputPathIfTruncated(truncation, rawText);
+	const fullOutputPath = await writeOutputPathIfNeeded(
+		truncation,
+		rawText,
+		preserveNavigatorDetails && overviewOmitsRawFindings(overview),
+	);
 	const text = buildToolOutputText(parsed, summary, truncation, fullOutputPath);
 
 	return { text, summary, overview, fullOutputPath, truncated: truncation.truncated };
@@ -135,8 +140,17 @@ function getFormattedRawText(parsed: ParsedFallowOutput): string {
 	return parsed.parsed ? JSON.stringify(parsed.data, null, 2) : parsed.raw;
 }
 
-async function writeOutputPathIfTruncated(truncation: ReturnType<typeof truncateHead>, rawText: string): Promise<string | undefined> {
-	if (!truncation.truncated) return undefined;
+function overviewOmitsRawFindings(overview: FallowOverview | undefined): boolean {
+	if (!overview) return false;
+	return overview.sections.some((section) => section.items.some((item) => item.raw === undefined));
+}
+
+async function writeOutputPathIfNeeded(
+	truncation: ReturnType<typeof truncateHead>,
+	rawText: string,
+	overviewOmitsRaw: boolean,
+): Promise<string | undefined> {
+	if (!truncation.truncated && !overviewOmitsRaw) return undefined;
 	const tempDir = await mkdtemp(join(tmpdir(), "pi-fallow-"));
 	const fullOutputPath = join(tempDir, "fallow-output.json");
 	await withFileMutationQueue(fullOutputPath, async () => writeFile(fullOutputPath, rawText, "utf8"));
