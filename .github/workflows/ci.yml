@@ -31,6 +31,11 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Token benchmark against 0.2.0
+        run: |
+          npm run bench:tokens -- --label ci --output /tmp/pi-fallow-token-candidate.json
+          npm run bench:tokens:compare -- benchmarks/baselines/v0.2.0.json /tmp/pi-fallow-token-candidate.json
+
   fallow:
     name: Fallow
     runs-on: ubuntu-latest

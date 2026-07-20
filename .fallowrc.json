@@ -3,6 +3,10 @@
     "extensions/index.ts",
     "tests/*.test.mjs"
   ],
+  "ignoreDependencies": [
+    "jiti",
+    "js-tiktoken"
+  ],
   "usedClassMembers": [
     {
       "implements": "Component",

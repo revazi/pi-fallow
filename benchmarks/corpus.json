@@ -1,0 +1,69 @@
+{
+  "benchmarkVersion": 1,
+  "description": "Frozen Pi Fallow 0.2.0 token benchmark corpus",
+  "scenarios": [
+    {
+      "id": "no-findings",
+      "fixture": "fixtures/no-findings.json",
+      "args": ["dead-code", "--format", "json", "--quiet"],
+      "exitCode": 0,
+      "promptSelections": []
+    },
+    {
+      "id": "small-findings",
+      "fixture": "fixtures/small-findings.json",
+      "args": ["dead-code", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, "all"]
+    },
+    {
+      "id": "medium-findings",
+      "fixture": "fixtures/medium-findings.json",
+      "args": ["dead-code", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, 20, "all"]
+    },
+    {
+      "id": "large-findings",
+      "fixture": "fixtures/large-findings.json",
+      "args": ["dead-code", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, "all"]
+    },
+    {
+      "id": "audit-findings",
+      "fixture": "fixtures/audit-findings.json",
+      "args": ["audit", "--base", "origin/main", "--gate", "new-only", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, 20, "all"]
+    },
+    {
+      "id": "dupes-findings",
+      "fixture": "fixtures/dupes-findings.json",
+      "args": ["dupes", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, "all"]
+    },
+    {
+      "id": "health-findings",
+      "fixture": "fixtures/health-findings.json",
+      "args": ["health", "--file-scores", "--hotspots", "--targets", "--score", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, 10, "all"]
+    },
+    {
+      "id": "security-findings",
+      "fixture": "fixtures/security-findings.json",
+      "args": ["security", "--format", "json", "--quiet"],
+      "exitCode": 1,
+      "promptSelections": [1, 5, "all"]
+    },
+    {
+      "id": "schema",
+      "fixture": "fixtures/schema.json",
+      "args": ["schema", "--format", "json", "--quiet"],
+      "exitCode": 0,
+      "promptSelections": []
+    }
+  ]
+}

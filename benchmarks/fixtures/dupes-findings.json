@@ -1,0 +1,170 @@
+{
+  "kind": "dupes",
+  "schema_version": 7,
+  "version": "3.6.0",
+  "elapsed_ms": 51,
+  "clone_groups": [
+    {
+      "benchmark_id": "clone-group-0001",
+      "kind": "clone-group",
+      "severity": "high",
+      "line_count": 12,
+      "token_count": 100,
+      "evidence": "Clone group 1 repeats a benchmark control-flow fragment.",
+      "instances": [
+        {
+          "file": "src/clones/source-1.ts",
+          "start_line": 20,
+          "end_line": 32
+        },
+        {
+          "file": "src/clones/target-1.ts",
+          "start_line": 40,
+          "end_line": 52
+        }
+      ],
+      "actions": [
+        {
+          "type": "trace-clone",
+          "description": "Trace clone group 1 and extract shared behavior only when semantics match."
+        }
+      ]
+    },
+    {
+      "benchmark_id": "clone-group-0002",
+      "kind": "clone-group",
+      "severity": "high",
+      "line_count": 13,
+      "token_count": 110,
+      "evidence": "Clone group 2 repeats a benchmark control-flow fragment.",
+      "instances": [
+        {
+          "file": "src/clones/source-2.ts",
+          "start_line": 21,
+          "end_line": 33
+        },
+        {
+          "file": "src/clones/target-2.ts",
+          "start_line": 41,
+          "end_line": 53
+        }
+      ],
+      "actions": [
+        {
+          "type": "trace-clone",
+          "description": "Trace clone group 2 and extract shared behavior only when semantics match."
+        }
+      ]
+    },
+    {
+      "benchmark_id": "clone-group-0003",
+      "kind": "clone-group",
+      "severity": "moderate",
+      "line_count": 14,
+      "token_count": 120,
+      "evidence": "Clone group 3 repeats a benchmark control-flow fragment.",
+      "instances": [
+        {
+          "file": "src/clones/source-3.ts",
+          "start_line": 22,
+          "end_line": 34
+        },
+        {
+          "file": "src/clones/target-3.ts",
+          "start_line": 42,
+          "end_line": 54
+        }
+      ],
+      "actions": [
+        {
+          "type": "trace-clone",
+          "description": "Trace clone group 3 and extract shared behavior only when semantics match."
+        }
+      ]
+    },
+    {
+      "benchmark_id": "clone-group-0004",
+      "kind": "clone-group",
+      "severity": "moderate",
+      "line_count": 15,
+      "token_count": 130,
+      "evidence": "Clone group 4 repeats a benchmark control-flow fragment.",
+      "instances": [
+        {
+          "file": "src/clones/source-4.ts",
+          "start_line": 23,
+          "end_line": 35
+        },
+        {
+          "file": "src/clones/target-4.ts",
+          "start_line": 43,
+          "end_line": 55
+        }
+      ],
+      "actions": [
+        {
+          "type": "trace-clone",
+          "description": "Trace clone group 4 and extract shared behavior only when semantics match."
+        }
+      ]
+    },
+    {
+      "benchmark_id": "clone-group-0005",
+      "kind": "clone-group",
+      "severity": "moderate",
+      "line_count": 16,
+      "token_count": 140,
+      "evidence": "Clone group 5 repeats a benchmark control-flow fragment.",
+      "instances": [
+        {
+          "file": "src/clones/source-5.ts",
+          "start_line": 24,
+          "end_line": 36
+        },
+        {
+          "file": "src/clones/target-5.ts",
+          "start_line": 44,
+          "end_line": 56
+        }
+      ],
+      "actions": [
+        {
+          "type": "trace-clone",
+          "description": "Trace clone group 5 and extract shared behavior only when semantics match."
+        }
+      ]
+    },
+    {
+      "benchmark_id": "clone-group-0006",
+      "kind": "clone-group",
+      "severity": "moderate",
+      "line_count": 17,
+      "token_count": 150,
+      "evidence": "Clone group 6 repeats a benchmark control-flow fragment.",
+      "instances": [
+        {
+          "file": "src/clones/source-6.ts",
+          "start_line": 25,
+          "end_line": 37
+        },
+        {
+          "file": "src/clones/target-6.ts",
+          "start_line": 45,
+          "end_line": 57
+        }
+      ],
+      "actions": [
+        {
+          "type": "trace-clone",
+          "description": "Trace clone group 6 and extract shared behavior only when semantics match."
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "clone_groups": 6,
+    "clone_instances": 12,
+    "duplicated_lines": 174,
+    "duplication_percentage": 4.2
+  }
+}
