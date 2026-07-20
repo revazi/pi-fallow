@@ -24,6 +24,7 @@ const jiti = createJiti(import.meta.url);
 
 const { default: registerPiFallow } = await jiti.import("../extensions/fallow.ts");
 const { fallowEngine } = await jiti.import("../extensions/fallow/engine.ts");
+const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 const { formatFallowProjectStateText } = await jiti.import("../extensions/fallow/project/text.ts");
 const { formatFallowPrSummaryText } = await jiti.import("../extensions/fallow/pr-summary/text.ts");
 const { buildFallowTranscriptContent } = await jiti.import("../extensions/fallow/command/transcript.ts");
@@ -45,7 +46,7 @@ const measurements = [contractMeasurement];
 
 try {
 	for (const scenario of corpus.scenarios) {
-		measurements.push(...await measureScenario(scenario, projectDir, contractMeasurement));
+		measurements.push(...await measureScenario(scenario, projectDir, contractMeasurement, cli.promptDetail));
 	}
 } finally {
 	await rm(projectDir, { recursive: true, force: true });
@@ -57,6 +58,7 @@ const artifact = {
 	generatedAt: new Date().toISOString(),
 	corpusHash,
 	primaryEncoding: PRIMARY_ENCODING,
+	promptDetail: cli.promptDetail,
 	tokenizers: ENCODING_NAMES.map((encoding) => ({
 		encoding,
 		implementation: "js-tiktoken",
@@ -77,19 +79,29 @@ await writeJsonArtifact(artifact, cli.output);
 printSummary(artifact, cli.output);
 
 function parseCli(args) {
-	const options = { label: "working-tree", output: undefined };
-	for (let index = 0; index < args.length; index++) {
-		const arg = args[index];
-		if (arg === "--label") options.label = requireValue(args, ++index, arg);
-		else if (arg === "--output") options.output = requireValue(args, ++index, arg);
-		else throw new Error(`Unknown argument: ${arg}`);
-	}
+	const options = { label: "working-tree", output: undefined, promptDetail: "compact" };
+	for (let index = 0; index < args.length; index++) index = applyCliOption(options, args, index);
 	return options;
+}
+
+function applyCliOption(options, args, index) {
+	const arg = args[index];
+	if (arg === "--label") options.label = requireValue(args, ++index, arg);
+	else if (arg === "--output") options.output = requireValue(args, ++index, arg);
+	else if (arg === "--prompt-detail") options.promptDetail = requirePromptDetail(args, ++index, arg);
+	else throw new Error(`Unknown argument: ${arg}`);
+	return index;
 }
 
 function requireValue(args, index, flag) {
 	const value = args[index];
 	if (!value) throw new Error(`${flag} requires a value.`);
+	return value;
+}
+
+function requirePromptDetail(args, index, flag) {
+	const value = requireValue(args, index, flag);
+	if (!["compact", "full", "both"].includes(value)) throw new Error(`${flag} must be compact, full, or both.`);
 	return value;
 }
 
@@ -123,12 +135,12 @@ function captureToolContract(registerExtension) {
 	}, null, 2);
 }
 
-async function measureScenario(scenario, cwd, contract) {
+async function measureScenario(scenario, cwd, contract, promptDetail) {
 	const fixturePath = join(ROOT, "benchmarks", scenario.fixture);
 	const fixtureText = await readFile(fixturePath, "utf8");
 	const fixtureData = JSON.parse(fixtureText);
 	const findings = collectBenchmarkFindings(fixtureData);
-	const commandResult = await runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd });
+	const commandResult = await runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, preserveNavigatorDetails: true });
 
 	const fullOutputPath = commandResult.formatted.fullOutputPath;
 	const normalize = (text) => normalizeFullOutputPath(text, fullOutputPath);
@@ -159,11 +171,13 @@ async function measureScenario(scenario, cwd, contract) {
 	];
 
 	if (commandResult.formatted.overview) {
-		output.push(...measurePrompts(
+		const promptOverview = buildFallowOverview(fixtureData, scenario.exitCode, { includeAllRaw: true }) ?? commandResult.formatted.overview;
+		output.push(...await measurePrompts(
 			scenario,
-			commandResult.formatted.overview,
-			commandResult.formatted.fullOutputPath ? FULL_OUTPUT_PLACEHOLDER : undefined,
+			promptOverview,
+			commandResult.formatted.fullOutputPath,
 			contract,
+			promptDetail,
 		));
 	}
 
@@ -175,54 +189,77 @@ function normalizeFullOutputPath(text, fullOutputPath) {
 	return fullOutputPath ? text.replaceAll(fullOutputPath, FULL_OUTPUT_PLACEHOLDER) : text;
 }
 
-function measurePrompts(scenario, overview, fullOutputPath, contract) {
+async function measurePrompts(scenario, overview, fullOutputPath, contract, promptDetail) {
 	const entries = overview.sections.flatMap((section) => section.items);
 	if (!entries.length) return [];
 	const reportFindings = countEntryFindings(entries);
-	return (scenario.promptSelections ?? [])
-		.map((selection) => measurePromptSelection(scenario, overview, entries, selection, fullOutputPath, reportFindings, contract))
-		.filter(Boolean);
+	const pairs = await Promise.all((scenario.promptSelections ?? []).map((selection) =>
+		measurePromptPair(scenario, overview, entries, selection, fullOutputPath, reportFindings, contract, promptDetail),
+	));
+	return pairs.flat();
+}
+
+async function measurePromptPair(scenario, overview, entries, selection, fullOutputPath, reportFindings, contract, promptDetail) {
+	return Promise.all(promptDetailModes(promptDetail).map((includeFullDetails) =>
+		measurePromptSelection(scenario, overview, entries, selection, fullOutputPath, reportFindings, contract, includeFullDetails),
+	));
+}
+
+function promptDetailModes(promptDetail) {
+	if (promptDetail === "both") return [false, true];
+	return [promptDetail === "full"];
 }
 
 function countEntryFindings(entries) {
 	return collectUniqueFindings(entries.flatMap((entry) => collectBenchmarkFindings(entry.raw))).length;
 }
 
-function measurePromptSelection(scenario, overview, entries, selection, fullOutputPath, reportFindings, contract) {
+async function measurePromptSelection(scenario, overview, entries, selection, fullOutputPath, reportFindings, contract, includeFullDetails) {
 	const selectionCount = resolveSelectionCount(selection, entries.length);
 	if (selectionCount < 1) return undefined;
-	const result = buildNavigatorPrompt(scenario, overview, selectionCount, fullOutputPath);
-	if (!result || result.type !== "prompt") throw new Error(`Failed to build prompt for ${scenario.id}/${selection}.`);
+	const result = await buildNavigatorPrompt(scenario, overview, selectionCount, fullOutputPath, includeFullDetails);
+	assertPromptResult(result, scenario.id, selection);
 	const selectedFindings = collectEntryFindings(entries.slice(0, selectionCount));
+	const prompt = normalizeFullOutputPath(result.prompt, fullOutputPath);
+	const suffix = promptScenarioSuffix(selection, includeFullDetails);
 	return withContextExposure(measureText(
 		"editor-prompt",
-		`${scenario.id}:${selection}`,
-		result.prompt,
+		`${scenario.id}:${suffix}`,
+		prompt,
 		selectedFindings,
-		{ reportFindings, selectedRows: selectionCount, availableRows: entries.length },
+		{ reportFindings, selectedRows: selectionCount, availableRows: entries.length, detail: result.detail },
 	), contract);
+}
+
+function assertPromptResult(result, scenarioId, selection) {
+	if (result?.type !== "prompt") throw new Error(`Failed to build prompt for ${scenarioId}/${selection}.`);
+}
+
+function promptScenarioSuffix(selection, includeFullDetails) {
+	return includeFullDetails ? `${selection}:full` : selection;
 }
 
 function resolveSelectionCount(selection, availableRows) {
 	return selection === "all" ? availableRows : Math.min(selection, availableRows);
 }
 
-function buildNavigatorPrompt(scenario, overview, selectionCount, fullOutputPath) {
-	let result;
-	const navigator = new FallowIssueNavigator(
-		overview,
-		plainTheme,
-		(value) => { result = value; },
-		() => {},
-		{
-			command: `fallow ${scenario.args.join(" ")}`,
-			fullOutputPath,
-			truncated: !!fullOutputPath,
-		},
-	);
-	selectNavigatorRows(navigator, selectionCount);
-	navigator.handleInput("e");
-	return result;
+function buildNavigatorPrompt(scenario, overview, selectionCount, fullOutputPath, includeFullDetails) {
+	return new Promise((resolve) => {
+		const navigator = new FallowIssueNavigator(
+			overview,
+			plainTheme,
+			resolve,
+			() => {},
+			{
+				command: `fallow ${scenario.args.join(" ")}`,
+				fullOutputPath,
+				truncated: !!fullOutputPath,
+			},
+		);
+		selectNavigatorRows(navigator, selectionCount);
+		if (includeFullDetails) navigator.handleInput("d");
+		navigator.handleInput("e");
+	});
 }
 
 function selectNavigatorRows(navigator, selectionCount) {

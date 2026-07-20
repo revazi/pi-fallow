@@ -119,7 +119,7 @@ export async function formatToolOutput(
 	const fullOutputPath = await writeOutputPathIfNeeded(
 		truncation,
 		rawText,
-		preserveNavigatorDetails && overviewOmitsRawFindings(overview),
+		preserveNavigatorDetails && overviewHasFindings(overview),
 	);
 	const text = buildToolOutputText(parsed, summary, truncation, fullOutputPath);
 
@@ -140,17 +140,17 @@ function getFormattedRawText(parsed: ParsedFallowOutput): string {
 	return parsed.parsed ? JSON.stringify(parsed.data, null, 2) : parsed.raw;
 }
 
-function overviewOmitsRawFindings(overview: FallowOverview | undefined): boolean {
+function overviewHasFindings(overview: FallowOverview | undefined): boolean {
 	if (!overview) return false;
-	return overview.sections.some((section) => section.items.some((item) => item.raw === undefined));
+	return overview.sections.some((section) => section.items.length > 0);
 }
 
 async function writeOutputPathIfNeeded(
 	truncation: ReturnType<typeof truncateHead>,
 	rawText: string,
-	overviewOmitsRaw: boolean,
+	preserveFullOutput: boolean,
 ): Promise<string | undefined> {
-	if (!truncation.truncated && !overviewOmitsRaw) return undefined;
+	if (!truncation.truncated && !preserveFullOutput) return undefined;
 	const tempDir = await mkdtemp(join(tmpdir(), "pi-fallow-"));
 	const fullOutputPath = join(tempDir, "fallow-output.json");
 	await withFileMutationQueue(fullOutputPath, async () => writeFile(fullOutputPath, rawText, "utf8"));

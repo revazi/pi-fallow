@@ -69,5 +69,5 @@ function runFallowCommandOnce(
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {
 	if (!isFallowTuiMode(ctx.mode) || result?.type !== "prompt") return;
 	ctx.ui.setEditorText(result.prompt);
-	ctx.ui.notify(`Loaded ${result.issueCount} Fallow finding(s) into the editor. Add comments, then submit when ready.`, "info");
+	ctx.ui.notify(`Loaded ${result.issueCount} Fallow finding(s) in ${result.detail} mode. Add comments, then submit when ready.`, "info");
 }

@@ -30,12 +30,21 @@ Do not edit a versioned fixture after collecting a baseline. Create a new benchm
 
 ## Commands
 
-Generate a candidate result:
+Generate a candidate result. Navigator prompts use the default compact detail mode:
 
 ```bash
 npm run bench:tokens -- \
   --label candidate \
   --output /tmp/pi-fallow-token-candidate.json
+```
+
+Measure the explicit full-details mode separately with `--prompt-detail full`. Use `--prompt-detail both` for exploratory artifacts containing both modes; do not compare its aggregate prompt total with a single-mode baseline.
+
+```bash
+npm run bench:tokens -- \
+  --label candidate-full \
+  --prompt-detail full \
+  --output /tmp/pi-fallow-token-candidate-full.json
 ```
 
 Compare it with the frozen before state:

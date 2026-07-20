@@ -337,9 +337,9 @@ Add commands such as:
 
 ### 11. Make prompt generation a pure module
 
-Extract the hardcoded navigator prompt into a pure, independently tested prompt builder. Use normalized findings and a global budget rather than a fixed 3,000-character allowance for every selected raw finding.
+Extract the hardcoded navigator prompt into a pure, independently tested prompt builder. Default to a compact representation containing every selected finding's coding essentials rather than repeating verbose raw JSON scaffolding.
 
-Default to normalized evidence instead of raw JSON. Allow `includeRaw: "never" | "when-needed" | "always"`, but always enforce `maxChars`.
+Expose a default-off checkbox in the navigator for complete raw finding JSON. The overlay must explain that compact mode uses less context while full mode can be substantially larger. Explicit full mode must not silently omit selected findings or truncate their raw JSON; it is a deliberate user choice rather than an automatic budget decision.
 
 ## Phase 5 — Navigator and UI improvements
 

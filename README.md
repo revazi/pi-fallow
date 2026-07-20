@@ -106,9 +106,12 @@ In the interactive navigator:
 - `/` — search section, label, path, severity, details, and suggested action
 - `f` / `v` — cycle section/severity filters
 - `x` — clear filters; `c` — clear explicit selections
+- `d` — toggle full raw finding JSON in the agent prompt; it is deselected by default
 - `e` or `a` — load selected findings into the editor
 - `t` — run a trace for the selected finding when possible
 - `q` / `Esc` — close (`Esc` first cancels an active search)
+
+The navigator defaults to compact prompts. Compact mode includes every selected finding with type, severity, location, subject, concise evidence/details, and suggested action, plus the complete-report path. Selecting the full-details checkbox additionally embeds complete raw JSON for every selected finding; the overlay warns that this can use substantially more model context.
 
 ## Requirements
 

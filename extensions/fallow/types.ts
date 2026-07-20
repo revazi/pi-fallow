@@ -65,5 +65,5 @@ export interface FallowOverview {
 }
 
 export type FallowNavigatorResult =
-	| { type: "prompt"; prompt: string; issueCount: number }
+	| { type: "prompt"; prompt: string; issueCount: number; detail: "compact" | "full" }
 	| { type: "trace"; commandArgs: string[] };

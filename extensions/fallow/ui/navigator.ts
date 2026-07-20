@@ -1,4 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { CURSOR_MARKER, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component, type Focusable } from "@earendil-works/pi-tui";
+import { buildFallowOverview } from "../overview";
+import { buildFallowPrompt, type FallowPromptDetail, type FallowPromptFinding } from "../prompt";
 import { renderFallowProjectState } from "../project/render";
 import { renderFallowPrSummary } from "../pr-summary/render";
 import type { FallowIssueLine, FallowNavigatorResult, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "../types";
@@ -15,6 +18,15 @@ function buildHeaderTitle(visibleCount: number, totalCount: number, title: strin
 	const count = visibleCount === totalCount ? `${totalCount}` : `${visibleCount}/${totalCount}`;
 	const findingText = `${count} finding${totalCount === 1 ? "" : "s"}`;
 	return `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(title))}${theme.fg("dim", " · ")}${pill(findingText, totalCount ? pink : cyan)} `;
+}
+
+interface FallowNavigatorOptions {
+	command?: string;
+	fullOutputPath?: string;
+	truncated?: boolean;
+	projectState?: FallowProjectState;
+	prSummary?: FallowPrSummary;
+	visibleRows?: number;
 }
 
 interface FlatIssue {
@@ -36,6 +48,8 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private editingSearch = false;
 	private sectionFilter?: number;
 	private severityFilter?: string;
+	private includeFullDetails = false;
+	private preparingPrompt = false;
 	private cachedWidth?: number;
 	private cachedLines?: string[];
 
@@ -44,7 +58,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		private theme: any,
 		private onDone: (result: FallowNavigatorResult | null) => void,
 		private requestRender: () => void,
-		private options: { command?: string; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } = {},
+		private options: FallowNavigatorOptions = {},
 	) {
 		this.issues = overview.sections
 			.flatMap((section, sectionIndex) => section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })))
@@ -58,10 +72,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	handleInput(data: string): void {
-		if (this.editingSearch) {
-			this.handleSearchInput(data);
-			return;
-		}
+		if (this.routeModalInput(data)) return;
 		const bindings: Array<{ matches: (value: string) => boolean; action: () => void }> = [
 			{ matches: (value) => matchesKey(value, "escape") || value === "q", action: () => this.onDone(null) },
 			{ matches: (value) => matchesKey(value, "up") || value === "k", action: () => this.move(-1) },
@@ -75,6 +86,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			{ matches: (value) => value === "s" || matchesKey(value, "tab"), action: () => this.toggleMarked() },
 			{ matches: (value) => value === "A", action: () => this.toggleAllVisible() },
 			{ matches: (value) => value === "c", action: () => this.clearMarked() },
+			{ matches: (value) => value === "d", action: () => this.togglePromptDetail() },
 			{ matches: (value) => value === "e" || value === "a", action: () => this.finishWithPrompt() },
 			{ matches: (value) => value === "t", action: () => this.finishWithTrace() },
 			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l", action: () => this.toggleExpanded() },
@@ -85,6 +97,13 @@ export class FallowIssueNavigator implements Component, Focusable {
 			binding.action();
 			return;
 		}
+	}
+
+	private routeModalInput(data: string): boolean {
+		if (this.preparingPrompt) return true;
+		if (!this.editingSearch) return false;
+		this.handleSearchInput(data);
+		return true;
 	}
 
 	render(width: number): string[] {
@@ -223,9 +242,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private renderIssues(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
-		this.ensureVisible(VISIBLE_ISSUE_ROWS, visible.length);
+		const visibleRows = this.visibleRowCount();
+		this.ensureVisible(visibleRows, visible.length);
 		const start = this.scrollStart;
-		const end = Math.min(visible.length, start + VISIBLE_ISSUE_ROWS);
+		const end = Math.min(visible.length, start + visibleRows);
 		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier findings`), frameWidth));
 		for (const row of this.renderIssueRows(start, end, innerWidth, visible)) lines.push(this.frame(row, frameWidth));
 		if (end < visible.length) lines.push(this.frame(this.theme.fg("dim", `… ${visible.length - end} later findings`), frameWidth));
@@ -254,6 +274,9 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private renderFooter(frameWidth: number, lines: string[]): void {
 		lines.push(this.separator(frameWidth));
 		lines.push(this.frame(this.footerSelectionLine(), frameWidth));
+		lines.push(this.frame(this.promptDetailLine(), frameWidth));
+		const innerWidth = Math.max(1, frameWidth - FRAME_BORDER_WIDTH);
+		for (const line of wrapTextWithAnsi(this.promptImplicationLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
 		for (const line of this.summaryBlockLines()) lines.push(this.frame(line, frameWidth));
 		for (const line of this.footerMetaLines()) lines.push(this.frame(line, frameWidth));
 	}
@@ -265,6 +288,20 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private selectionStatus(): string {
 		if (this.marked.size) return `${this.marked.size} selected`;
 		return this.currentIssue() ? "current finding" : "0 selected";
+	}
+
+	private promptDetailLine(): string {
+		const checkbox = this.includeFullDetails ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
+		return `${checkbox} ${this.theme.fg("text", "Include full finding JSON in agent prompt")} ${pill("d toggle", violet)}`;
+	}
+
+	private promptImplicationLine(): string {
+		const count = this.selection().length;
+		if (this.preparingPrompt) return this.theme.fg("accent", `Preparing ${this.promptDetail()} prompt for ${count} finding(s)…`);
+		if (this.includeFullDetails) {
+			return this.theme.fg("warning", `Full: embeds raw JSON for ${count} finding(s). Much larger prompt; may consume significant model context.`);
+		}
+		return this.theme.fg("muted", `Compact: sends ${count} finding(s) with type, severity, location, concise evidence, and action. Lower context; complete JSON stays linked.`);
 	}
 
 	private summaryBlockLines(): string[] {
@@ -289,6 +326,8 @@ export class FallowIssueNavigator implements Component, Focusable {
 			...this.preferredHeaderLines(),
 			...this.preferredIssueLines(visible),
 			this.footerSelectionLine(),
+			this.promptDetailLine(),
+			this.promptImplicationLine(),
 			...this.summaryBlockLines(),
 			...this.footerMetaLines(),
 		];
@@ -303,7 +342,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private preferredIssueLines(visible: FlatIssue[]): string[] {
 		if (!this.issues.length) return [this.theme.fg("success", "No navigable findings in this Fallow report.")];
 		if (!visible.length) return [this.theme.fg("warning", "No findings match the active filters.")];
-		const entries = visible.slice(0, VISIBLE_ISSUE_ROWS);
+		const entries = visible.slice(0, this.visibleRowCount());
 		return entries.flatMap((entry, index) => this.preferredIssueEntryLines(entry, index, entries));
 	}
 
@@ -313,6 +352,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 			this.issueLineRaw(entry, index),
 			...(entry.item.action ? [this.detailActionLine(entry.item)] : []),
 		];
+	}
+
+	private visibleRowCount(): number {
+		return this.options.visibleRows ?? VISIBLE_ISSUE_ROWS;
 	}
 
 	private move(delta: number): void {
@@ -415,10 +458,65 @@ export class FallowIssueNavigator implements Component, Focusable {
 		return current ? [current] : [];
 	}
 
+	private togglePromptDetail(): void {
+		this.includeFullDetails = !this.includeFullDetails;
+		this.changed();
+	}
+
+	private promptDetail(): FallowPromptDetail {
+		return this.includeFullDetails ? "full" : "compact";
+	}
+
 	private finishWithPrompt(): void {
 		const issues = this.selection();
 		if (!issues.length) return;
-		this.onDone({ type: "prompt", issueCount: issues.length, prompt: this.buildPrompt(issues) });
+		if (!issues.some((entry) => entry.item.raw === undefined)) {
+			this.emitPrompt(issues);
+			return;
+		}
+		if (!this.options.fullOutputPath) {
+			this.emitPrompt(issues, "Complete report path is unavailable; using retained finding details.");
+			return;
+		}
+		this.preparingPrompt = true;
+		this.changed();
+		void this.hydrateAndEmitPrompt(issues);
+	}
+
+	private async hydrateAndEmitPrompt(issues: FlatIssue[]): Promise<void> {
+		try {
+			const hydrated = await this.hydrateIssues(issues);
+			this.emitPrompt(hydrated);
+		} catch {
+			this.emitPrompt(issues, "Complete report could not be loaded; using retained finding details.");
+		}
+	}
+
+	private async hydrateIssues(issues: FlatIssue[]): Promise<FlatIssue[]> {
+		const reportText = await readFile(this.options.fullOutputPath!, "utf8");
+		const hydratedOverview = buildFallowOverview(JSON.parse(reportText), 0, { includeAllRaw: true });
+		if (!hydratedOverview) throw new Error("Complete report has no structured overview.");
+		return issues.map((entry) => ({
+			...entry,
+			item: hydratedOverview.sections[entry.sectionIndex]?.items[entry.itemIndex] ?? entry.item,
+		}));
+	}
+
+	private emitPrompt(issues: FlatIssue[], hydrationWarning?: string): void {
+		const detail = this.promptDetail();
+		const findings: FallowPromptFinding[] = issues.map((entry) => ({ sectionTitle: entry.section.title, item: entry.item }));
+		this.onDone({
+			type: "prompt",
+			issueCount: issues.length,
+			detail,
+			prompt: buildFallowPrompt({
+				findings,
+				detail,
+				command: this.options.command,
+				fullOutputPath: this.options.fullOutputPath,
+				hydrationWarning,
+			}),
+		});
 	}
 
 	private finishWithTrace(): void {
@@ -446,45 +544,6 @@ export class FallowIssueNavigator implements Component, Focusable {
 		return path.replace(/[\]\)>,.;:!?]+$/u, "").replace(/:\d+$/, "");
 	}
 
-	private buildPrompt(issues: FlatIssue[]): string {
-		const blocks = issues.map((entry, index) => this.buildIssuePromptBlock(entry, index)).join("\n\n");
-		const sections = [
-			"Please work on the following selected Fallow findings.",
-			"",
-			"Additional instructions from user:",
-			"<!-- Add your comments here before submitting to Pi. -->",
-			"",
-			"Default task: For each finding, inspect the referenced code, decide whether to fix, refactor, delete, add tests, or suppress intentionally, then make the appropriate changes. After changes, rerun the relevant Fallow command to verify.",
-			this.options.command ? `Fallow command: ${this.options.command}` : undefined,
-			this.options.fullOutputPath ? `Complete Fallow report: ${this.options.fullOutputPath}` : undefined,
-			"",
-			blocks,
-		];
-		return sections.filter((part) => part !== undefined).join("\n");
-	}
-
-	private buildIssuePromptBlock(entry: FlatIssue, index: number): string {
-		const item = entry.item;
-		return [
-			`## ${index + 1}. ${entry.section.title}: ${item.label}`,
-			this.buildIssueLocationLine(item),
-			...(item.severity ? [`Severity: ${item.severity}`] : []),
-			...(item.meta ? [`Details: ${item.meta}`] : []),
-			...(item.action ? [`Suggested action: ${item.action}`] : []),
-			...this.buildIssueRawLines(item),
-		].join("\n");
-	}
-
-	private buildIssueLocationLine(item: FallowIssueLine): string {
-		const location = item.path ? `${item.path}${item.line ? `:${item.line}` : ""}` : "unknown location";
-		return `Location: ${location}`;
-	}
-
-	private buildIssueRawLines(item: FallowIssueLine): string[] {
-		if (item.raw === undefined) return [];
-		return ["Raw finding:", "```json", safeJson(item.raw, 3000), "```"];
-	}
-
 	private statLines(width: number): string[] {
 		const statLine = this.statLine();
 		return statLine ? wrapTextWithAnsi(statLine, width) : [];
@@ -510,6 +569,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			`${key("v")} ${this.theme.fg("muted", "severity")}`,
 			`${key("x")} ${this.theme.fg("muted", "reset filters")}`,
 			`${key("c")} ${this.theme.fg("muted", "clear selected")}`,
+			`${key("d")} ${this.theme.fg("muted", "prompt detail")}`,
 			`${key("e/a")} ${this.theme.fg("muted", "load")}`,
 			`${key("t")} ${this.theme.fg("muted", "trace")}`,
 			`${key("q")} ${this.theme.fg("muted", "close")}`,
@@ -633,16 +693,6 @@ function removeLastCharacter(value: string): string {
 
 function isPrintableCharacter(value: string): boolean {
 	return [...value].length === 1 && value >= " ";
-}
-
-function safeJson(value: unknown, maxChars: number): string {
-	let text: string;
-	try {
-		text = JSON.stringify(value, null, 2);
-	} catch {
-		text = String(value);
-	}
-	return text.length > maxChars ? `${text.slice(0, maxChars)}\n… truncated …` : text;
 }
 
 function pickPathFromText(text: string, pattern: RegExp): string | null {

@@ -120,7 +120,7 @@ describe("formatToolOutput", () => {
 		assert.match(result.text, /Raw JSON:\n{\n  "kind": "dead-code"/);
 	});
 
-	it("preserves complete JSON when navigator normalization omits raw finding fields", async () => {
+	it("preserves complete JSON for TUI navigator prompts", async () => {
 		const report = {
 			kind: "dead-code",
 			total_issues: 12,
@@ -141,6 +141,19 @@ describe("formatToolOutput", () => {
 			assert.ok(result.fullOutputPath);
 			assert.equal(await readFile(result.fullOutputPath, "utf8"), JSON.stringify(report, null, 2));
 			assert.equal(result.overview.sections[0].items.length, 12);
+		} finally {
+			if (result.fullOutputPath) await rm(dirname(result.fullOutputPath), { recursive: true, force: true });
+		}
+	});
+
+	it("saves even a small finding report when the TUI prompt may need full details", async () => {
+		const report = { kind: "dead-code", total_issues: 1, unused_exports: [{ export_name: "helper", path: "src/a.ts" }] };
+		const result = await formatToolOutput(parseJson(JSON.stringify(report), ""), process.cwd(), 1, true);
+
+		try {
+			assert.equal(result.truncated, false);
+			assert.ok(result.fullOutputPath);
+			assert.equal(await readFile(result.fullOutputPath, "utf8"), JSON.stringify(report, null, 2));
 		} finally {
 			if (result.fullOutputPath) await rm(dirname(result.fullOutputPath), { recursive: true, force: true });
 		}

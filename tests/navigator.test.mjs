@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { createJiti } from "jiti";
 
 const jiti = createJiti(import.meta.url);
 const { FallowIssueNavigator } = await jiti.import("../extensions/fallow/ui/navigator.ts");
+const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 
 const theme = {
 	fg: (_color, text) => text,
@@ -65,6 +69,15 @@ function createFilterOverview() {
 	};
 }
 
+function loadEndFindingPrompt(overview, fullOutputPath, includeFullDetails) {
+	return new Promise((resolve) => {
+		const navigator = new FallowIssueNavigator(overview, theme, resolve, () => {}, { fullOutputPath });
+		navigator.handleInput("\u001b[F");
+		if (includeFullDetails) navigator.handleInput("d");
+		navigator.handleInput("e");
+	});
+}
+
 describe("FallowIssueNavigator prompt generation", () => {
 	it("builds an editable prompt for selected findings", () => {
 		let result = null;
@@ -92,13 +105,12 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.match(result.prompt, /Please work on the following selected Fallow findings\./);
 		assert.match(result.prompt, /Additional instructions from user:/);
 		assert.match(result.prompt, /Fallow command: dead-code --format json --quiet/);
-		assert.match(result.prompt, /## 1\. Unused exports: unused helper/);
-		assert.match(result.prompt, /Location: src\/a\.ts:7/);
-		assert.match(result.prompt, /Details: export helper/);
-		assert.match(result.prompt, /Suggested action: Remove the export or add a real use\./);
-		assert.match(result.prompt, /"type": "unused_export"/);
-		assert.match(result.prompt, /## 2\. Unused exports: dead file/);
-		assert.match(result.prompt, /Location: src\/dead\.ts/);
+		assert.equal(result?.detail, "compact");
+		assert.match(result.prompt, /1 \| unused_export \| unknown \| src\/a\.ts:7 \| unused helper/);
+		assert.match(result.prompt, /export helper/);
+		assert.match(result.prompt, /Remove the export or add a real use\./);
+		assert.match(result.prompt, /2 \| unused_file \| unknown \| src\/dead\.ts \| dead file/);
+		assert.doesNotMatch(result.prompt, /Full raw finding JSON/);
 	});
 
 	it("builds a prompt for the current finding when none are marked", () => {
@@ -113,7 +125,7 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.equal(result?.type, "prompt");
 		assert.equal(result?.issueCount, 1);
 		assert.doesNotMatch(result.prompt, /unused helper/);
-		assert.match(result.prompt, /## 1\. Unused exports: dead file/);
+		assert.match(result.prompt, /1 \| unused_file \| unknown \| src\/dead\.ts \| dead file/);
 	});
 
 	it("navigates to findings beyond the first visible page", () => {
@@ -124,6 +136,7 @@ describe("FallowIssueNavigator prompt generation", () => {
 			path: `src/file-${index + 1}.ts`,
 			line: index + 1,
 			action: `Review finding ${index + 1}.`,
+			raw: { kind: "test-finding", path: `src/file-${index + 1}.ts`, line: index + 1 },
 		}));
 		overview.sections[0].count = 35;
 		const navigator = new FallowIssueNavigator(overview, theme, (value) => {
@@ -147,6 +160,7 @@ describe("FallowIssueNavigator prompt generation", () => {
 			path: `src/file-${index + 1}.ts`,
 			line: index + 1,
 			action: `Review finding ${index + 1}.`,
+			raw: { kind: "test-finding", path: `src/file-${index + 1}.ts`, line: index + 1 },
 		}));
 		overview.sections[0].count = 35;
 		const navigator = new FallowIssueNavigator(overview, theme, (value) => {
@@ -157,7 +171,7 @@ describe("FallowIssueNavigator prompt generation", () => {
 		navigator.handleInput("e");
 
 		assert.equal(result?.issueCount, 35);
-		assert.match(result.prompt, /## 35\. Unused exports: finding 35/);
+		assert.match(result.prompt, /35 \| test-finding \| unknown \| src\/file-35\.ts:35 \| finding 35/);
 	});
 
 	it("searches without discarding hidden findings", () => {
@@ -224,6 +238,74 @@ describe("FallowIssueNavigator prompt generation", () => {
 
 		assert.equal(doneCalls, 0);
 		assert.match(navigator.render(80).join("\n"), /3 findings/);
+	});
+
+	it("defaults the full-details checkbox to deselected and explains both modes", () => {
+		let result = null;
+		const navigator = new FallowIssueNavigator(createOverview(), theme, (value) => {
+			result = value;
+		}, () => {});
+
+		const compactOverlay = navigator.render(100).join("\n");
+		assert.match(compactOverlay, /☐/);
+		assert.match(compactOverlay, /Compact: sends 1 finding/);
+		navigator.handleInput("d");
+		const fullOverlay = navigator.render(100).join("\n");
+		assert.match(fullOverlay, /☑/);
+		assert.match(fullOverlay, /Full: embeds raw JSON for 1 finding/);
+		navigator.handleInput("e");
+
+		assert.equal(result?.detail, "full");
+		assert.match(result.prompt, /Full raw finding JSON/);
+	});
+
+	it("hydrates compact and full prompts from the complete report", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "pi-fallow-prompt-"));
+		const fullOutputPath = join(directory, "fallow-output.json");
+		const report = {
+			kind: "dead-code",
+			total_issues: 12,
+			unused_exports: Array.from({ length: 12 }, (_, index) => ({
+				benchmark_id: `finding-${index + 1}`,
+				kind: "unused-export",
+				export_name: `unused_${index + 1}`,
+				path: `src/file-${index + 1}.ts`,
+				line: index + 1,
+				severity: "high",
+				evidence: `No callers for finding ${index + 1}.`,
+				actions: [{ description: `Review finding ${index + 1}.` }],
+			})),
+		};
+		await writeFile(fullOutputPath, JSON.stringify(report, null, 2));
+
+		try {
+			const overview = buildFallowOverview(report);
+			assert.equal(overview.sections[0].items[11].raw, undefined);
+			const compactResult = await loadEndFindingPrompt(overview, fullOutputPath, false);
+			assert.equal(compactResult.detail, "compact");
+			assert.match(compactResult.prompt, /finding-12/);
+			assert.match(compactResult.prompt, /No callers for finding 12\./);
+
+			const fullResult = await loadEndFindingPrompt(overview, fullOutputPath, true);
+			assert.equal(fullResult.detail, "full");
+			assert.match(fullResult.prompt, /"benchmark_id": "finding-12"/);
+			assert.match(fullResult.prompt, /"evidence": "No callers for finding 12\."/);
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+
+	it("uses the responsive finding-row count supplied by the overlay", () => {
+		const overview = createOverview();
+		overview.sections[0].items = Array.from({ length: 12 }, (_, index) => ({ label: `finding ${index + 1}` }));
+		overview.sections[0].count = 12;
+		const navigator = new FallowIssueNavigator(overview, theme, () => {}, () => {}, { visibleRows: 3 });
+
+		const rendered = navigator.render(80).join("\n");
+		assert.match(rendered, /finding 3/);
+		assert.doesNotMatch(rendered, /finding 4/);
+		assert.match(rendered, /9 later findings/);
+		assert.match(rendered, /Include full finding JSON/);
 	});
 
 	it("chooses a fluid overlay width capped by the available maximum", () => {
