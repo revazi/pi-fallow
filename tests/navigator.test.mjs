@@ -357,13 +357,6 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.match(rendered, /Include full finding JSON/);
 	});
 
-	it("chooses a fluid overlay width capped by the available maximum", () => {
-		const navigator = new FallowIssueNavigator(createOverview(), theme, () => {}, () => {});
-
-		assert.equal(navigator.preferredWidth(60), 60);
-		assert.ok(navigator.preferredWidth(200) < 200);
-	});
-
 	it("renders within the width provided by the overlay", () => {
 		const navigator = new FallowIssueNavigator(createOverview(), theme, () => {}, () => {});
 		const width = 60;

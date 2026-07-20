@@ -7,11 +7,9 @@ import { renderFallowPrSummary } from "../pr-summary/render";
 import type { FallowIssueLine, FallowNavigatorResult, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "../types";
 import { amber, cyan, getOverviewStatusColor, pill, pink, purple, violet } from "./shared";
 
-const MIN_NAVIGATOR_WIDTH = 50;
 const FRAME_BORDER_WIDTH = 4;
 const HEADER_BORDER_WIDTH = 2;
 const VISIBLE_ISSUE_ROWS = 10;
-const PREFERRED_NAVIGATOR_MAX_WIDTH = 140;
 const SEVERITY_ORDER = ["critical", "high", "error", "medium", "warning", "low", "info", "unspecified"];
 
 function buildHeaderTitle(
@@ -97,12 +95,6 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.issues = overview.sections
 			.flatMap((section, sectionIndex) => section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })))
 			.map((entry, id) => ({ ...entry, id }));
-	}
-
-	preferredWidth(maxWidth: number): number {
-		const boundedMax = normalizeMaxWidth(maxWidth);
-		const measuredWidth = Math.max(MIN_NAVIGATOR_WIDTH, this.measurePreferredWidth());
-		return Math.min(measuredWidth, boundedMax, PREFERRED_NAVIGATOR_MAX_WIDTH);
 	}
 
 	handleInput(data: string): void {
@@ -399,57 +391,6 @@ export class FallowIssueNavigator implements Component, Focusable {
 			this.options.fullOutputPath ? `${cyan("Full JSON")} ${this.theme.fg("dim", this.options.fullOutputPath)}` : undefined,
 			this.options.command ? `${violet("Command")} ${this.theme.fg("muted", this.options.command)}` : undefined,
 		].filter(Boolean) as string[];
-	}
-
-	private measurePreferredWidth(): number {
-		const visible = this.visibleIssues();
-		const headerTitle = buildHeaderTitle(
-			visible.filter((entry) => !isInformational(entry)).length,
-			this.findingIssues().length,
-			this.informationalHeaderText(visible),
-			this.isInformationalMode(),
-			this.overview.title,
-			this.overview.status,
-			this.theme,
-		);
-		const frameCandidates = [
-			...this.preferredHeaderLines(),
-			...this.preferredIssueLines(visible),
-			...this.preferredFooterControlLines(),
-			...this.summaryBlockLines(),
-			...this.footerMetaLines(),
-		];
-		const contentWidth = Math.max(0, ...frameCandidates.map((line) => visibleWidth(line)));
-		return Math.max(visibleWidth(headerTitle) + HEADER_BORDER_WIDTH, contentWidth + FRAME_BORDER_WIDTH);
-	}
-
-	private preferredFooterControlLines(): string[] {
-		if (this.isInformationalMode()) return [this.informationalImplicationLine()];
-		return [
-			this.footerSelectionLine(),
-			...(this.informationalIssues().length ? [this.informationalToggleLine(), this.informationalImplicationLine()] : []),
-			this.promptDetailLine(),
-			this.promptImplicationLine(),
-		];
-	}
-
-	private preferredHeaderLines(): string[] {
-		return [this.statLine(), this.hasActiveFilters() ? this.filterLine() : undefined, this.helpLine()].filter(Boolean) as string[];
-	}
-
-	private preferredIssueLines(visible: FlatIssue[]): string[] {
-		const empty = this.emptyBodyMessage(visible);
-		if (empty) return [this.theme.fg(empty.tone, empty.text)];
-		const entries = visible.slice(0, this.visibleRowCount());
-		return entries.flatMap((entry, index) => this.preferredIssueEntryLines(entry, index, entries));
-	}
-
-	private preferredIssueEntryLines(entry: FlatIssue, index: number, entries: FlatIssue[]): string[] {
-		return [
-			...(entries[index - 1]?.sectionIndex === entry.sectionIndex ? [] : [this.sectionHeaderLine(entry)]),
-			this.issueLineRaw(entry, index),
-			...(entry.item.action ? [this.detailActionLine(entry.item)] : []),
-		];
 	}
 
 	private visibleRowCount(): number {
@@ -856,7 +797,3 @@ function pickPathFromText(text: string, pattern: RegExp): string | null {
 	return match?.[1] ?? null;
 }
 
-function normalizeMaxWidth(maxWidth: number): number {
-	if (!Number.isFinite(maxWidth)) return Number.POSITIVE_INFINITY;
-	return Math.max(1, Math.floor(maxWidth));
-}

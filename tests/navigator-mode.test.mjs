@@ -4,6 +4,7 @@ import { createJiti } from "jiti";
 
 const jiti = createJiti(import.meta.url);
 const {
+	FALLOW_NAVIGATOR_OVERLAY_OPTIONS,
 	isInformationalNavigatorCommand,
 	resolveFallowNavigatorVisibleRows,
 } = await jiti.import("../extensions/fallow/command/navigator.ts");
@@ -19,10 +20,19 @@ describe("navigator command mode", () => {
 	});
 
 	it("uses more terminal height for large result sets", () => {
-		assert.equal(resolveFallowNavigatorVisibleRows(Number.NaN, false), 20);
-		assert.equal(resolveFallowNavigatorVisibleRows(24, false), 4);
-		assert.equal(resolveFallowNavigatorVisibleRows(24, true), 12);
-		assert.equal(resolveFallowNavigatorVisibleRows(50, false), 20);
-		assert.equal(resolveFallowNavigatorVisibleRows(50, true), 20);
+		assert.equal(resolveFallowNavigatorVisibleRows(Number.NaN, false), 30);
+		assert.equal(resolveFallowNavigatorVisibleRows(24, false), 5);
+		assert.equal(resolveFallowNavigatorVisibleRows(24, true), 13);
+		assert.equal(resolveFallowNavigatorVisibleRows(50, false), 30);
+		assert.equal(resolveFallowNavigatorVisibleRows(50, true), 30);
+	});
+
+	it("keeps the overlay centered and uses nearly the full terminal", () => {
+		assert.deepEqual(FALLOW_NAVIGATOR_OVERLAY_OPTIONS, {
+			width: "90%",
+			minWidth: 50,
+			maxHeight: "95%",
+			anchor: "center",
+		});
 	});
 });
