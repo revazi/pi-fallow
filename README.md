@@ -23,6 +23,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
 - **Interactive navigator:** findings open in a bordered TUI view where you can inspect, select, trace, or load issues into the editor.
 - **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
+- **Robust output parsing:** direct or noisy embedded JSON is scanned once with nesting, strings, and escapes handled correctly.
 - **Safe defaults:** JSON and quiet output are added when appropriate; large output is truncated for the transcript, saved to a temp file, and released from retained engine state after formatting.
 - **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
 

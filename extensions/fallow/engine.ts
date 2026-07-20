@@ -3,7 +3,8 @@ import { buildFallowPrSummary } from "./pr-summary/build";
 import { formatFallowPrSummaryText } from "./pr-summary/text";
 import { detectFallowProjectState } from "./project/state";
 import { formatFallowProjectStateText } from "./project/text";
-import { formatToolOutput, parseJson } from "./output";
+import { parseJson } from "./json";
+import { formatToolOutput } from "./output";
 import type { FallowDetails, FallowOverview, FallowPrSummary, FallowProjectState } from "./types";
 
 interface FallowExecutor {

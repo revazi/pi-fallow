@@ -14,7 +14,10 @@ const FIXTURE_BIN = join(ROOT, "benchmarks", "bin", "fallow-fixture.mjs");
 const MEMORY_WORKER = join(ROOT, "scripts", "performance-memory-worker.mjs");
 const DEFAULT_CONFIG = { warmups: 3, iterations: 15, gitColdIterations: 8, memoryIterations: 3, systemRunnerIterations: 5 };
 const PROCESSING_SCENARIOS = ["no-findings", "small-findings", "medium-findings", "large-findings", "schema"];
+const PROCESSING_FINDING_SCENARIOS = [...PROCESSING_SCENARIOS, "noisy-json"];
 const MEMORY_SCENARIOS = ["small-findings", "medium-findings", "large-findings", "schema"];
+const NOISY_JSON_DEPTH = 800;
+const NOISY_JSON_FIXTURE = `prefix ${'{"child":'.repeat(NOISY_JSON_DEPTH)}0${"}".repeat(NOISY_JSON_DEPTH)} suffix {"kind":"health"}`;
 const CLI_OPTION_SETTERS = {
 	"--label": (options, value) => { options.label = value; },
 	"--output": (options, value) => { options.output = value; },
@@ -26,6 +29,7 @@ const jiti = createJiti(import.meta.url);
 
 const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
 const { fallowEngine } = await jiti.import("../extensions/fallow/engine.ts");
+const { parseJson } = await jiti.import("../extensions/fallow/json.ts");
 const { fallowCompletions } = await jiti.import("../extensions/fallow/autocomplete.ts");
 const { detectFallowBaseRef } = await jiti.import("../extensions/fallow/project/git.ts");
 const { createFallowRunner } = await jiti.import("../extensions/fallow/runner.ts");
@@ -42,6 +46,7 @@ const measurements = [];
 try {
 	measurements.push(...await benchmarkRunners(workspace, cli.config));
 	measurements.push(...await benchmarkProcessing(workspace, cli.config));
+	measurements.push(await benchmarkNoisyJson(cli.config));
 	measurements.push(...await benchmarkGit(workspace, cli.config));
 	measurements.push(...await benchmarkMemory(cli.config));
 } finally {
@@ -203,6 +208,14 @@ async function benchmarkProcessing(workspacePath, config) {
 		));
 	}
 	return results;
+}
+
+function benchmarkNoisyJson(config) {
+	return benchmarkOperation("processing", "noisy-json", () => {
+		const parsed = parseJson(NOISY_JSON_FIXTURE, "");
+		if (!parsed.parsed) throw new Error("Noisy JSON benchmark did not find its embedded document.");
+		return { outputBytes: Buffer.byteLength(parsed.raw) };
+	}, config);
 }
 
 async function processFixture(scenario, fixtureText, cwd) {
@@ -499,7 +512,7 @@ function runnerFinding(byKey) {
 }
 
 function processingFinding(byKey) {
-	return Object.fromEntries(PROCESSING_SCENARIOS.map((scenario) => {
+	return Object.fromEntries(PROCESSING_FINDING_SCENARIOS.map((scenario) => {
 		const item = byKey.get(`processing/${scenario}`);
 		return [scenario, { warmMedianMs: item.warm.wallMs.median, warmP95Ms: item.warm.wallMs.p95 }];
 	}));

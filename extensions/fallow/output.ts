@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "./data";
+import type { ParsedFallowOutput } from "./json";
 import { buildFallowOverview } from "./overview";
 import type { FallowOverview } from "./types";
 
@@ -99,55 +100,9 @@ function addNestedSummaries(lines: string[], data: any): void {
 		if (nested && typeof nested === "object") lines.push(...summarizeObject(nested, section));
 	}
 }
-function tryParseJson(raw: string): { ok: true; data: unknown; raw: string } | { ok: false } {
-	const trimmed = raw.trim();
-	if (!trimmed) return { ok: false };
-	const direct = parseJsonText(trimmed);
-	if (direct) return direct;
-	const embedded = parseEmbeddedJson(trimmed);
-	return embedded ?? { ok: false };
-}
-
-function parseJsonText(raw: string): { ok: true; data: unknown; raw: string } | undefined {
-	try {
-		return { ok: true, data: JSON.parse(raw), raw };
-	} catch {
-		return undefined;
-	}
-}
-
-function parseEmbeddedJson(raw: string): { ok: true; data: unknown; raw: string } | undefined {
-	for (const start of findJsonStartCandidates(raw)) {
-		const end = findJsonEndForStart(raw, start);
-		if (end <= start) continue;
-		const parsed = parseJsonText(raw.slice(start, end + 1));
-		if (parsed) return parsed;
-	}
-	return undefined;
-}
-
-function findJsonStartCandidates(raw: string): number[] {
-	const starts: number[] = [];
-	for (let index = 0; index < raw.length; index++) {
-		if (raw[index] === "{" || raw[index] === "[") starts.push(index);
-	}
-	return starts;
-}
-
-function findJsonEndForStart(raw: string, start: number): number {
-	return raw[start] === "{" ? raw.lastIndexOf("}") : raw.lastIndexOf("]");
-}
-
-export function parseJson(stdout: string, stderr: string): { parsed: boolean; data?: unknown; raw: string } {
-	for (const raw of [stdout, stderr, `${stdout}\n${stderr}`]) {
-		const parsed = tryParseJson(raw);
-		if (parsed.ok) return { parsed: true, data: parsed.data, raw: parsed.raw };
-	}
-	return { parsed: false, raw: `${stdout}${stderr ? `\n[stderr]\n${stderr}` : ""}`.trim() };
-}
 
 export async function formatToolOutput(
-	parsed: { parsed: boolean; data?: unknown; raw: string },
+	parsed: ParsedFallowOutput,
 	cwd: string,
 	exitCode = 0,
 ): Promise<{
@@ -167,7 +122,7 @@ export async function formatToolOutput(
 }
 
 function buildToolOutputSummary(
-	parsed: { parsed: boolean; data?: unknown; raw: string },
+	parsed: ParsedFallowOutput,
 	exitCode: number,
 ): { overview: FallowOverview | undefined; summary: string } {
 	const overview = parsed.parsed ? buildFallowOverview(parsed.data, exitCode) : undefined;
@@ -176,7 +131,7 @@ function buildToolOutputSummary(
 	return { overview, summary };
 }
 
-function getFormattedRawText(parsed: { parsed: boolean; data?: unknown; raw: string }): string {
+function getFormattedRawText(parsed: ParsedFallowOutput): string {
 	return parsed.parsed ? JSON.stringify(parsed.data, null, 2) : parsed.raw;
 }
 
@@ -189,7 +144,7 @@ async function writeOutputPathIfTruncated(truncation: ReturnType<typeof truncate
 }
 
 function buildToolOutputText(
-	parsed: { parsed: boolean; data?: unknown; raw: string },
+	parsed: ParsedFallowOutput,
 	summary: string,
 	truncation: ReturnType<typeof truncateHead>,
 	fullOutputPath?: string,
@@ -200,7 +155,7 @@ function buildToolOutputText(
 	return `${header}\n${payloadType}:\n${truncation.content}${truncationSuffix}`;
 }
 
-function buildPayloadType(parsed: { parsed: boolean; data?: unknown; raw: string }, isTruncated: boolean): string {
+function buildPayloadType(parsed: ParsedFallowOutput, isTruncated: boolean): string {
 	const baseType = parsed.parsed ? "Raw JSON" : "Raw output";
 	return `${baseType}${isTruncated ? " (truncated)" : ""}`;
 }

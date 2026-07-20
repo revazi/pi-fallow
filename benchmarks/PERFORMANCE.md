@@ -5,7 +5,7 @@ This benchmark freezes Pi Fallow's execution and memory behavior before runner, 
 ## The five measured areas
 
 1. **Runner performance** — configured binary, PATH resolution, deterministic fallback, direct real Fallow, and real npx fallback.
-2. **Extension processing** — engine parsing, summaries, overview construction, truncation, and temp output using frozen reports.
+2. **Extension processing** — engine parsing, summaries, overview construction, truncation, temp output using frozen reports, and adversarial noisy embedded-JSON extraction.
 3. **Git and autocomplete** — cold/warm ref completion, event-loop blocking, base detection, and subprocess counts.
 4. **Memory** — retained heap, released heap, RSS, external memory, and fixture-size amplification in isolated workers.
 5. **Cold versus warm execution** — first invocation plus warm median, p95, maximum, mean, and parent-process CPU measurements.
@@ -47,7 +47,9 @@ The deterministic fixture routes show about 31–34 ms of process startup/collec
 | 300 findings | 1.71 ms | 3.45 ms |
 | Fallow schema | 3.16 ms | 3.88 ms |
 
-Current orchestration is inexpensive relative to npx startup for these fixtures. Processing still matters for memory because the command result retains raw output, parsed objects, formatted JSON, and final content together.
+At the frozen baseline, orchestration is inexpensive relative to npx startup, but the command result retains raw output, parsed objects, formatted JSON, and final content together.
+
+Current candidate runs also emit `processing/noisy-json`, a deeply nested noisy-output scenario that exposes overlapping substring and parse retries. The frozen `0.2.0` artifact predates that scenario, so it appears in candidate output but is intentionally absent from baseline comparison tables until the next compatible baseline version.
 
 ### Git and autocomplete
 
