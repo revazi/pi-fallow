@@ -231,9 +231,18 @@ Acceptance criteria:
 - Noisy, nested, and string-escaped JSON fixtures parse in linear time.
 - Full raw output remains available whenever the bounded output omits data.
 
-### 7. Manage temporary output lifecycle
+### 7. Preserve full-output artifacts
 
-Track temp files created by the extension and remove them on `session_shutdown`, with a conservative age-based cleanup for files left by crashed sessions. Keep files alive for the full session so the agent can still read them.
+Create full-output files lazily only when complete data would otherwise be unavailable. Pi Fallow must not automatically delete report artifacts: shutdown also occurs for reloads, forks, and session switches, while quit or switched conversations may later be resumed. Deleting a path recorded in conversation history would silently remove user-visible functionality.
+
+Any future cleanup policy must be explicitly enabled, clearly communicate its retention period and scope, and provide a user-visible way to inspect what will be deleted. It must remain disabled by default.
+
+Acceptance criteria:
+
+- No shutdown reason automatically deletes a generated report.
+- Reloaded, forked, switched, and resumed conversations retain their report references for as long as the operating system preserves the files.
+- Complete output is saved whenever navigator data omits raw fields.
+- Any future cleanup is opt-in and never runs without a documented user choice.
 
 ## Phase 3 — Token-budgeted agent feedback
 
@@ -420,7 +429,7 @@ A release-time comparison against `fallow schema` should fail with a useful diff
 
 1. **Baseline tooling:** freeze the token fixture corpus, pin tokenizers, and commit the `0.2.0` benchmark artifact before output changes.
 2. **Patch release:** Pi mode guards, actual abort signal, process lifecycle, lazy Git lookup, and regression tests.
-3. **Performance release:** cached runner resolution, async ref preload, slim engine result, temp cleanup, and benchmark budgets.
+3. **Performance release:** cached runner resolution, async ref preload, slim engine result, non-destructive full-output preservation, and benchmark budgets.
 4. **Token/config release:** normalized reports, bounded agent digest, Pi Fallow config, custom prompt files, and prompt preview.
 5. **UI release:** compact navigator, all-findings/search/filter support, responsive height, command-aware actions, and trace history.
 6. **Hardening release:** 80% all-file coverage, schema fixture suite, generated command registry, pinned CI tooling, and Node version matrix.

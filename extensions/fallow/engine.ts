@@ -23,6 +23,7 @@ interface FallowCommandInput {
 	timeoutSecs: number;
 	executor: FallowExecutor;
 	throwOnExecutionError?: boolean;
+	preserveNavigatorDetails?: boolean;
 }
 
 interface ExecutedFallowCommand {
@@ -63,7 +64,7 @@ async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowC
 	const execution = await executeCommand(input);
 	const projectStatePromise = detectFallowProjectState(input.cwd, execution.args);
 	const parsed = parseJson(execution.stdout, execution.stderr);
-	const formattedPromise = formatToolOutput(parsed, input.cwd, execution.code);
+	const formattedPromise = formatToolOutput(parsed, input.cwd, execution.code, input.preserveNavigatorDetails);
 	const prSummary = buildFallowPrSummary(parsed.data, execution.args, execution.code);
 	const [projectState, formattedOutput] = await Promise.all([projectStatePromise, formattedPromise]);
 	if (shouldThrowExecutionError(execution, input.throwOnExecutionError ?? true)) {

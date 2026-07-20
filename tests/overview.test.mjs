@@ -86,6 +86,21 @@ describe("buildFallowOverview", () => {
 		});
 	});
 
+	it("keeps every finding available to the navigator", () => {
+		const unusedExports = Array.from({ length: 40 }, (_, index) => ({
+			export_name: `unused_${index}`,
+			path: `src/file-${index}.ts`,
+			line: index + 1,
+		}));
+		const overview = buildFallowOverview({ kind: "dead-code", total_issues: unusedExports.length, unused_exports: unusedExports });
+
+		assert.equal(overview.sections[0].count, 40);
+		assert.equal(overview.sections[0].items.length, 40);
+		assert.equal(overview.sections[0].items[39].path, "src/file-39.ts");
+		assert.equal(overview.sections[0].items[0].raw, unusedExports[0]);
+		assert.equal(overview.sections[0].items[39].raw, undefined);
+	});
+
 	it("summarizes workspace, schema, and config outputs", () => {
 		const workspace = buildFallowOverview({ kind: "list-workspaces", workspace_count: 0, workspaces: [], workspace_diagnostics: [] });
 		assert.equal(workspace.title, "Fallow workspaces");

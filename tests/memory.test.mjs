@@ -8,6 +8,9 @@ import { describe, it } from "node:test";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const execFileAsync = promisify(execFile);
 const MAX_RETAINED_AMPLIFICATION = 2;
+// V8 coverage retains instrumentation counters globally, so its heap delta is not a product-memory measurement.
+const memoryTest = process.env.NODE_V8_COVERAGE ? it.skip : it;
+
 const scenarios = [
 	["large findings", "benchmarks/fixtures/large-findings.json"],
 	["schema", "benchmarks/fixtures/schema.json"],
@@ -15,7 +18,7 @@ const scenarios = [
 
 describe("Fallow retained memory", { concurrency: false }, () => {
 	for (const [name, fixture] of scenarios) {
-		it(`keeps ${name} below two retained full-size copies`, async () => {
+		memoryTest(`keeps ${name} below two retained full-size copies`, async () => {
 			const { stdout } = await execFileAsync(
 				process.execPath,
 				["--expose-gc", "scripts/performance-memory-worker.mjs", fixture],

@@ -1,6 +1,11 @@
 import { asRecord } from "./data";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
 
+// Preserve the existing inline raw-detail footprint while normalized rows remain unbounded.
+const INLINE_RAW_DEFAULT = 5;
+const INLINE_RAW_EXTENDED = 8;
+const INLINE_RAW_CLONES = 6;
+
 function asArray(value: unknown): any[] {
 	return Array.isArray(value) ? value : [];
 }
@@ -48,7 +53,7 @@ function isActionVisible(entry: unknown): boolean {
 function issueLabel(kind: string, issue: Record<string, any>): string {
 	for (const key of ["export_name", "package_name", "name", "rule_id"] as const) {
 		const value = issue[key];
-		if (value) return `${kind}: ${value}`;
+		if (value) return String(value);
 	}
 	return kind;
 }
@@ -56,7 +61,6 @@ function issueLabel(kind: string, issue: Record<string, any>): string {
 function issueMeta(issue: Record<string, any>): string | undefined {
 	const parts: string[] = [];
 	const entries: Array<[string, unknown]> = [
-		["severity", issue.severity],
 		["cyclomatic", issue.cyclomatic],
 		["cognitive", issue.cognitive],
 		["crap", issue.crap],
@@ -64,7 +68,6 @@ function issueMeta(issue: Record<string, any>): string | undefined {
 		["token_count", issue.token_count],
 	];
 	const formatters: Record<string, (value: unknown) => string> = {
-		severity: (value) => String(value),
 		cyclomatic: (value) => `cyc ${value}`,
 		cognitive: (value) => `cog ${value}`,
 		crap: (value) => `CRAP ${fmt(value)}`,
@@ -80,27 +83,35 @@ function issueMeta(issue: Record<string, any>): string | undefined {
 }
 
 
-function makeIssue(kind: string, issue: Record<string, any>): FallowIssueLine {
+function makeIssue(kind: string, issue: Record<string, any>, includeRaw = true): FallowIssueLine {
 	const location = issueLocation(issue);
-	return {
+	return withOptionalRaw({
 		label: issueLabel(kind, issue),
 		path: location.path,
 		line: location.line,
 		meta: issueMeta(issue),
 		action: primaryAction(issue),
 		severity: issue.severity,
-		raw: issue,
-	};
+	}, issue, includeRaw);
 }
 
-function sectionFromArray(title: string, array: unknown, kind: string, limit = 5): FallowOverviewSection | undefined {
+function withOptionalRaw(item: FallowIssueLine, raw: unknown, includeRaw: boolean): FallowIssueLine {
+	if (includeRaw) item.raw = raw;
+	return item;
+}
+
+function valueOr<T>(value: T | null | undefined, fallback: T): T {
+	return value ?? fallback;
+}
+
+function sectionFromArray(title: string, array: unknown, kind: string): FallowOverviewSection | undefined {
 	const items = asArray(array);
 	if (!items.length) return undefined;
 	return {
 		title,
 		count: items.length,
 		color: "warning",
-		items: items.slice(0, limit).map((entry) => makeIssue(kind, asRecord(entry) ?? { value: entry })),
+		items: items.map((entry, index) => makeIssue(kind, asRecord(entry) ?? { value: entry }, index < INLINE_RAW_DEFAULT)),
 	};
 }
 
@@ -123,10 +134,10 @@ function buildDeadCodeSections(data: Record<string, any>): FallowOverviewSection
 
 function buildHealthSections(data: Record<string, any>): FallowOverviewSection[] {
 	const sections: FallowOverviewSection[] = [];
-	appendHealthSection(sections, "Complexity findings", "error", asArray(data.findings), 8, buildComplexityIssue);
-	appendHealthSection(sections, "Worst file scores", "accent", asArray(data.file_scores), 5, buildFileScoreIssue);
-	appendHealthSection(sections, "Refactoring targets", "warning", asArray(data.targets), 5, buildRefactoringTargetIssue);
-	appendHealthSection(sections, "Hotspots", "warning", asArray(data.hotspots), 5, buildHotspotIssue);
+	appendHealthSection(sections, "Complexity findings", "error", asArray(data.findings), INLINE_RAW_EXTENDED, buildComplexityIssue);
+	appendHealthSection(sections, "Worst file scores", "accent", asArray(data.file_scores), INLINE_RAW_DEFAULT, buildFileScoreIssue);
+	appendHealthSection(sections, "Refactoring targets", "warning", asArray(data.targets), INLINE_RAW_DEFAULT, buildRefactoringTargetIssue);
+	appendHealthSection(sections, "Hotspots", "warning", asArray(data.hotspots), INLINE_RAW_DEFAULT, buildHotspotIssue);
 	return sections;
 }
 
@@ -135,47 +146,44 @@ function appendHealthSection(
 	title: string,
 	color: "error" | "accent" | "warning",
 	entries: unknown[],
-	limit: number,
-	buildItem: (entry: unknown) => FallowIssueLine,
+	rawLimit: number,
+	buildItem: (entry: unknown, includeRaw: boolean) => FallowIssueLine,
 ): void {
 	if (!entries.length) return;
-	sections.push({ title, count: entries.length, color, items: entries.slice(0, limit).map(buildItem) });
+	sections.push({ title, count: entries.length, color, items: entries.map((entry, index) => buildItem(entry, index < rawLimit)) });
 }
 
-function buildComplexityIssue(entry: unknown): FallowIssueLine {
-	return makeIssue("complexity", asRecord(entry) ?? {});
+function buildComplexityIssue(entry: unknown, includeRaw = true): FallowIssueLine {
+	return makeIssue("complexity", asRecord(entry) ?? {}, includeRaw);
 }
 
-function buildFileScoreIssue(entry: unknown): FallowIssueLine {
+function buildFileScoreIssue(entry: unknown, includeRaw = true): FallowIssueLine {
 	const issue = asRecord(entry) ?? {};
-	return {
+	return withOptionalRaw({
 		label: `score ${fmt(issue.maintainability_index)}`,
 		path: issue.path,
-		meta: `${issue.lines ?? "?"} LOC · dead ${fmt((issue.dead_code_ratio ?? 0) * 100)}% · CRAP max ${fmt(issue.crap_max)}`,
-		raw: issue,
-	};
+		meta: `${valueOr(issue.lines, "?")} LOC · dead ${fmt(valueOr(issue.dead_code_ratio, 0) * 100)}% · CRAP max ${fmt(issue.crap_max)}`,
+	}, issue, includeRaw);
 }
 
-function buildRefactoringTargetIssue(entry: unknown): FallowIssueLine {
+function buildRefactoringTargetIssue(entry: unknown, includeRaw = true): FallowIssueLine {
 	const issue = asRecord(entry) ?? {};
-	return {
-		label: issue.category ?? "target",
+	return withOptionalRaw({
+		label: valueOr(issue.category, "target"),
 		path: issue.path,
-		meta: `priority ${fmt(issue.priority)} · ${issue.effort ?? "unknown effort"}`,
+		meta: `priority ${fmt(issue.priority)} · ${valueOr(issue.effort, "unknown effort")}`,
 		action: issue.recommendation,
-		raw: issue,
-	};
+	}, issue, includeRaw);
 }
 
-function buildHotspotIssue(entry: unknown): FallowIssueLine {
+function buildHotspotIssue(entry: unknown, includeRaw = true): FallowIssueLine {
 	const issue = asRecord(entry) ?? {};
-	return {
+	return withOptionalRaw({
 		label: `hotspot ${fmt(issue.score)}`,
 		path: issue.path,
 		meta: `${buildHotspotCommitSummary(issue)} commits · churn ${buildHotspotChurn(issue)} · ${buildHotspotTrend(issue)}`,
 		action: primaryAction(issue),
-		raw: issue,
-	};
+	}, issue, includeRaw);
 }
 
 function buildHotspotCommitSummary(issue: Record<string, any>): string {
@@ -197,22 +205,21 @@ function buildDupesSections(data: Record<string, any>): FallowOverviewSection[] 
 		title: "Clone groups",
 		count: groups.length,
 		color: "warning",
-		items: groups.slice(0, 6).map((entry, index) => makeCloneGroupIssue(entry, index)),
+		items: groups.map((entry, index) => makeCloneGroupIssue(entry, index, index < INLINE_RAW_CLONES)),
 	}];
 }
 
-function makeCloneGroupIssue(entry: unknown, index: number): FallowIssueLine {
+function makeCloneGroupIssue(entry: unknown, index: number, includeRaw = true): FallowIssueLine {
 	const group = asRecord(entry) ?? {};
 	const instances = asArray(group.instances);
 	const [first, second] = getCloneInstances(instances);
-	return {
+	return withOptionalRaw({
 		label: `clone #${index + 1}`,
 		path: first.file,
 		line: first.start_line,
 		meta: formatCloneMeta(group, instances.length),
 		action: getCloneAction(second, group),
-		raw: group,
-	};
+	}, group, includeRaw);
 }
 
 function getCloneInstances(instances: any[]): [Record<string, any>, Record<string, any>] {
@@ -353,7 +360,7 @@ function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSect
 		title: "Feature flags",
 		count: flags.length,
 		color: "accent",
-		items: flags.slice(0, 8).map((entry) => makeIssue("flag", asRecord(entry) ?? {})),
+		items: flags.map((entry, index) => makeIssue("flag", asRecord(entry) ?? {}, index < INLINE_RAW_EXTENDED)),
 	});
 }
 
@@ -366,22 +373,21 @@ function addSecurity(root: Record<string, any>, sections: FallowOverviewSection[
 		title: "Security candidates",
 		count: findings.length,
 		color: "warning",
-		items: findings.slice(0, 8).map(buildSecurityIssue),
+		items: findings.map((entry, index) => buildSecurityIssue(entry, index < INLINE_RAW_EXTENDED)),
 	});
 }
 
-function buildSecurityIssue(entry: unknown): FallowIssueLine {
+function buildSecurityIssue(entry: unknown, includeRaw = true): FallowIssueLine {
 	const issue = asRecord(entry) ?? {};
-	const labelParts = [issue.kind ?? "security", issue.category].filter(Boolean);
-	return {
+	const labelParts = [valueOr(issue.kind, "security"), issue.category].filter(Boolean);
+	return withOptionalRaw({
 		label: labelParts.join(": "),
 		path: issue.path,
 		line: issue.line,
 		meta: formatSecurityMeta(issue),
-		action: primaryAction(issue) ?? issue.evidence,
+		action: firstStringValue([primaryAction(issue), issue.evidence]),
 		severity: issue.severity,
-		raw: issue,
-	};
+	}, issue, includeRaw);
 }
 
 function formatSecurityMeta(issue: Record<string, any>): string | undefined {
@@ -398,20 +404,21 @@ function addDecisionSurface(root: Record<string, any>, sections: FallowOverviewS
 		title: "Structural decisions",
 		count: decisions.length,
 		color: "accent",
-		items: decisions.slice(0, 8).map(buildDecisionIssue),
+		items: decisions.map((entry, index) => buildDecisionIssue(entry, index < INLINE_RAW_EXTENDED)),
 	});
 }
 
-function buildDecisionIssue(entry: unknown): FallowIssueLine {
+function buildDecisionIssue(entry: unknown, includeRaw = true): FallowIssueLine {
 	const issue = asRecord(entry) ?? {};
-	return {
+	const item = withOptionalRaw({
 		label: decisionLabel(issue),
 		path: firstStringValue([issue.path, issue.file]),
 		line: issue.line,
 		meta: joinDefinedValues([issue.expert, issue.severity, issue.confidence]),
 		action: firstStringValue([issue.prompt, issue.rationale]),
-		raw: issue,
-	};
+	}, issue, includeRaw);
+	if (issue.severity) item.severity = issue.severity;
+	return item;
 }
 
 function decisionLabel(issue: Record<string, any>): string {

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFile, rm } from "node:fs/promises";
+import { dirname } from "node:path";
 import { describe, it } from "node:test";
 import { createJiti } from "jiti";
 
@@ -116,6 +118,32 @@ describe("formatToolOutput", () => {
 		assert.equal(result.truncated, false);
 		assert.match(result.text, /^Fallow summary:\ntotal_issues: 0/m);
 		assert.match(result.text, /Raw JSON:\n{\n  "kind": "dead-code"/);
+	});
+
+	it("preserves complete JSON when navigator normalization omits raw finding fields", async () => {
+		const report = {
+			kind: "dead-code",
+			total_issues: 12,
+			unused_exports: Array.from({ length: 12 }, (_, index) => ({
+				export_name: `unused_${index}`,
+				path: `src/file-${index}.ts`,
+				line: index + 1,
+				evidence: `Complete evidence ${index}`,
+			})),
+		};
+		const parsed = parseJson(JSON.stringify(report), "");
+		const withoutNavigator = await formatToolOutput(parsed, process.cwd(), 1);
+		const result = await formatToolOutput(parsed, process.cwd(), 1, true);
+
+		assert.equal(withoutNavigator.fullOutputPath, undefined);
+		try {
+			assert.equal(result.truncated, false);
+			assert.ok(result.fullOutputPath);
+			assert.equal(await readFile(result.fullOutputPath, "utf8"), JSON.stringify(report, null, 2));
+			assert.equal(result.overview.sections[0].items.length, 12);
+		} finally {
+			if (result.fullOutputPath) await rm(dirname(result.fullOutputPath), { recursive: true, force: true });
+		}
 	});
 
 	it("uses raw output when no structured JSON is available", async () => {

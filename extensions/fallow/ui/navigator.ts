@@ -1,4 +1,4 @@
-import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
+import { CURSOR_MARKER, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component, type Focusable } from "@earendil-works/pi-tui";
 import { renderFallowProjectState } from "../project/render";
 import { renderFallowPrSummary } from "../pr-summary/render";
 import type { FallowIssueLine, FallowNavigatorResult, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "../types";
@@ -8,26 +8,34 @@ const MIN_NAVIGATOR_WIDTH = 50;
 const FRAME_BORDER_WIDTH = 4;
 const HEADER_BORDER_WIDTH = 2;
 const VISIBLE_ISSUE_ROWS = 10;
+const SEVERITY_ORDER = ["critical", "high", "error", "medium", "warning", "low", "info", "unspecified"];
 
-function buildHeaderTitle(issueCount: number, title: string, status: FallowOverview["status"], theme: any): string {
+function buildHeaderTitle(visibleCount: number, totalCount: number, title: string, status: FallowOverview["status"], theme: any): string {
 	const statusColor = getOverviewStatusColor(status);
-	const findingText = `${issueCount} finding${issueCount === 1 ? "" : "s"}`;
-	return `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(title))}${theme.fg("dim", " · ")}${pill(findingText, issueCount ? pink : cyan)} `;
+	const count = visibleCount === totalCount ? `${totalCount}` : `${visibleCount}/${totalCount}`;
+	const findingText = `${count} finding${totalCount === 1 ? "" : "s"}`;
+	return `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(title))}${theme.fg("dim", " · ")}${pill(findingText, totalCount ? pink : cyan)} `;
 }
 
 interface FlatIssue {
+	id: number;
 	section: FallowOverviewSection;
 	item: FallowIssueLine;
 	sectionIndex: number;
 	itemIndex: number;
 }
 
-export class FallowIssueNavigator implements Component {
+export class FallowIssueNavigator implements Component, Focusable {
+	focused = false;
 	private issues: FlatIssue[];
 	private selected = 0;
 	private scrollStart = 0;
 	private expanded = new Set<number>();
 	private marked = new Set<number>();
+	private query = "";
+	private editingSearch = false;
+	private sectionFilter?: number;
+	private severityFilter?: string;
 	private cachedWidth?: number;
 	private cachedLines?: string[];
 
@@ -38,9 +46,9 @@ export class FallowIssueNavigator implements Component {
 		private requestRender: () => void,
 		private options: { command?: string; fullOutputPath?: string; truncated?: boolean; projectState?: FallowProjectState; prSummary?: FallowPrSummary } = {},
 	) {
-		this.issues = overview.sections.flatMap((section, sectionIndex) =>
-			section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })),
-		);
+		this.issues = overview.sections
+			.flatMap((section, sectionIndex) => section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })))
+			.map((entry, id) => ({ ...entry, id }));
 	}
 
 	preferredWidth(maxWidth: number): number {
@@ -50,32 +58,32 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	handleInput(data: string): void {
+		if (this.editingSearch) {
+			this.handleSearchInput(data);
+			return;
+		}
 		const bindings: Array<{ matches: (value: string) => boolean; action: () => void }> = [
 			{ matches: (value) => matchesKey(value, "escape") || value === "q", action: () => this.onDone(null) },
 			{ matches: (value) => matchesKey(value, "up") || value === "k", action: () => this.move(-1) },
 			{ matches: (value) => matchesKey(value, "down") || value === "j", action: () => this.move(1) },
 			{ matches: (value) => matchesKey(value, "home"), action: () => this.select(0) },
-			{ matches: (value) => matchesKey(value, "end"), action: () => this.select(this.issues.length - 1) },
+			{ matches: (value) => matchesKey(value, "end"), action: () => this.select(this.visibleIssues().length - 1) },
+			{ matches: (value) => value === "/", action: () => this.startSearch() },
+			{ matches: (value) => value === "f", action: () => this.cycleSectionFilter() },
+			{ matches: (value) => value === "v", action: () => this.cycleSeverityFilter() },
+			{ matches: (value) => value === "x", action: () => this.clearFilters() },
 			{ matches: (value) => value === "s" || matchesKey(value, "tab"), action: () => this.toggleMarked() },
-			{ matches: (value) => value === "e" || value === "a", action: () => this.onDone(this.buildPromptResult()) },
-			{ matches: (value) => value === "t", action: () => {
-				const trace = this.currentTraceCandidate();
-				if (!trace) return;
-				this.onDone({ type: "trace", commandArgs: ["dead-code", "--trace-file", trace] });
-			} },
-			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l",
-				action: () => this.toggleExpanded() },
-			{ matches: (value) => matchesKey(value, "left") || value === "h", action: () => {
-				this.expanded.delete(this.selected);
-				this.changed();
-			} },
+			{ matches: (value) => value === "A", action: () => this.toggleAllVisible() },
+			{ matches: (value) => value === "c", action: () => this.clearMarked() },
+			{ matches: (value) => value === "e" || value === "a", action: () => this.finishWithPrompt() },
+			{ matches: (value) => value === "t", action: () => this.finishWithTrace() },
+			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l", action: () => this.toggleExpanded() },
+			{ matches: (value) => matchesKey(value, "left") || value === "h", action: () => this.collapseCurrent() },
 		];
-
 		for (const binding of bindings) {
-			if (binding.matches(data)) {
-				binding.action();
-				return;
-			}
+			if (!binding.matches(data)) continue;
+			binding.action();
+			return;
 		}
 	}
 
@@ -83,61 +91,159 @@ export class FallowIssueNavigator implements Component {
 		if (this.cachedWidth === width && this.cachedLines) return this.cachedLines;
 		const frameWidth = Math.max(FRAME_BORDER_WIDTH, width);
 		const innerWidth = Math.max(1, frameWidth - FRAME_BORDER_WIDTH);
+		const visible = this.visibleIssues();
 		const lines: string[] = [];
 
-		this.renderHeader(frameWidth, innerWidth, lines);
-		if (!this.issues.length) {
-			lines.push(this.frame(this.theme.fg("success", "No navigable findings in this Fallow report."), frameWidth));
-			lines.push(this.bottomBorder(frameWidth));
-			return this.cache(width, lines);
-		}
-
-		this.renderIssues(frameWidth, innerWidth, lines);
+		this.renderHeader(frameWidth, innerWidth, visible.length, lines);
+		this.renderBody(frameWidth, innerWidth, visible, lines);
 		this.renderFooter(frameWidth, lines);
 		lines.push(this.bottomBorder(frameWidth));
 		return this.cache(width, lines);
 	}
 
-	private renderHeader(frameWidth: number, innerWidth: number, lines: string[]): void {
-		const issueCount = this.issues.length;
-		const title = buildHeaderTitle(issueCount, this.overview.title, this.overview.status, this.theme);
+	invalidate(): void {
+		this.cachedWidth = undefined;
+		this.cachedLines = undefined;
+	}
+
+	private handleSearchInput(data: string): void {
+		const control = this.searchControl(data);
+		if (control) {
+			control();
+			return;
+		}
+		if (!isPrintableCharacter(data)) return;
+		this.query += data;
+		this.filtersChanged();
+	}
+
+	private searchControl(data: string): (() => void) | undefined {
+		const controls: Array<[string, () => void]> = [
+			["escape", () => this.cancelSearch()],
+			["enter", () => this.acceptSearch()],
+			["backspace", () => this.updateSearch(removeLastCharacter(this.query))],
+			["ctrl+u", () => this.updateSearch("")],
+		];
+		return controls.find(([key]) => matchesKey(data, key))?.[1];
+	}
+
+	private cancelSearch(): void {
+		this.query = "";
+		this.editingSearch = false;
+		this.filtersChanged();
+	}
+
+	private acceptSearch(): void {
+		this.editingSearch = false;
+		this.changed();
+	}
+
+	private updateSearch(query: string): void {
+		this.query = query;
+		this.filtersChanged();
+	}
+
+	private startSearch(): void {
+		this.editingSearch = true;
+		this.changed();
+	}
+
+	private cycleSectionFilter(): void {
+		const options: Array<number | undefined> = [undefined, ...new Set(this.issues.map((issue) => issue.sectionIndex))];
+		this.sectionFilter = nextOption(options, this.sectionFilter);
+		this.filtersChanged();
+	}
+
+	private cycleSeverityFilter(): void {
+		const severities = [...new Set(this.issues.map((issue) => issueSeverity(issue)))].sort(compareSeverities);
+		this.severityFilter = nextOption([undefined, ...severities], this.severityFilter);
+		this.filtersChanged();
+	}
+
+	private clearFilters(): void {
+		this.query = "";
+		this.sectionFilter = undefined;
+		this.severityFilter = undefined;
+		this.editingSearch = false;
+		this.filtersChanged();
+	}
+
+	private renderHeader(frameWidth: number, innerWidth: number, visibleCount: number, lines: string[]): void {
+		const title = buildHeaderTitle(visibleCount, this.issues.length, this.overview.title, this.overview.status, this.theme);
 		lines.push(this.topBorder(frameWidth, title));
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
-		lines.push(this.frame(this.helpLine(), frameWidth));
+		for (const line of this.filterLines(innerWidth)) lines.push(this.frame(line, frameWidth));
+		for (const line of wrapTextWithAnsi(this.helpLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
 		lines.push(this.separator(frameWidth));
 	}
 
-	private renderIssues(frameWidth: number, innerWidth: number, lines: string[]): void {
-		const listHeight = VISIBLE_ISSUE_ROWS;
-		this.ensureVisible(listHeight);
-		const start = this.scrollStart;
-		const end = Math.min(this.issues.length, start + listHeight);
-		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier findings`), frameWidth));
-
-		for (const row of this.renderIssueRows(start, end, innerWidth)) {
-			lines.push(this.frame(row, frameWidth));
-		}
-		if (end < this.issues.length) lines.push(this.frame(this.theme.fg("dim", `… ${this.issues.length - end} later findings`), frameWidth));
+	private filterLines(width: number): string[] {
+		if (!this.hasActiveFilters() && !this.editingSearch) return [];
+		return wrapTextWithAnsi(this.filterLine(), width);
 	}
 
-	private renderIssueRows(start: number, end: number, innerWidth: number): string[] {
+	private filterLine(): string {
+		const parts = [this.searchFilterLabel(), this.sectionFilterLabel(), this.severityFilterLabel()].filter(Boolean);
+		return `${cyan("Filter")} ${this.theme.fg("muted", parts.join(" · "))}`;
+	}
+
+	private searchFilterLabel(): string | undefined {
+		return this.editingSearch || this.query ? this.searchStatus() : undefined;
+	}
+
+	private sectionFilterLabel(): string | undefined {
+		if (this.sectionFilter === undefined) return undefined;
+		const title = this.overview.sections[this.sectionFilter]?.title ?? "unknown";
+		return `section: ${title}`;
+	}
+
+	private severityFilterLabel(): string | undefined {
+		return this.severityFilter ? `severity: ${this.severityFilter}` : undefined;
+	}
+
+	private searchStatus(): string {
+		const cursor = this.editingSearch ? `${this.focused ? CURSOR_MARKER : ""}${this.theme.fg("accent", "▌")}` : "";
+		return `search: ${this.query}${cursor}`;
+	}
+
+	private hasActiveFilters(): boolean {
+		return !!this.query || this.sectionFilter !== undefined || !!this.severityFilter;
+	}
+
+	private renderBody(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
+		if (!this.issues.length) {
+			lines.push(this.frame(this.theme.fg("success", "No navigable findings in this Fallow report."), frameWidth));
+			return;
+		}
+		if (!visible.length) {
+			lines.push(this.frame(this.theme.fg("warning", "No findings match the active filters."), frameWidth));
+			return;
+		}
+		this.renderIssues(frameWidth, innerWidth, visible, lines);
+	}
+
+	private renderIssues(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
+		this.ensureVisible(VISIBLE_ISSUE_ROWS, visible.length);
+		const start = this.scrollStart;
+		const end = Math.min(visible.length, start + VISIBLE_ISSUE_ROWS);
+		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier findings`), frameWidth));
+		for (const row of this.renderIssueRows(start, end, innerWidth, visible)) lines.push(this.frame(row, frameWidth));
+		if (end < visible.length) lines.push(this.frame(this.theme.fg("dim", `… ${visible.length - end} later findings`), frameWidth));
+	}
+
+	private renderIssueRows(start: number, end: number, innerWidth: number, visible: FlatIssue[]): string[] {
 		const rows: string[] = [];
 		let lastSection = -1;
 		for (let index = start; index < end; index++) {
-			const entry = this.issues[index]!;
-			rows.push(...this.renderIssueRowsSectionHeader(entry, index, lastSection));
+			const entry = visible[index]!;
 			if (entry.sectionIndex !== lastSection) {
+				rows.push(this.sectionHeaderLine(entry));
 				lastSection = entry.sectionIndex;
 			}
-			rows.push(this.issueLine(index, innerWidth));
-			if (this.expanded.has(index)) rows.push(...this.detailLines(entry, innerWidth));
+			rows.push(this.issueLine(entry, index, innerWidth));
+			if (this.expanded.has(entry.id)) rows.push(...this.detailLines(entry, innerWidth));
 		}
 		return rows;
-	}
-
-	private renderIssueRowsSectionHeader(entry: FlatIssue, index: number, lastSection: number): string[] {
-		if (entry.sectionIndex === lastSection) return [];
-		return [this.sectionHeaderLine(entry)];
 	}
 
 	private sectionHeaderLine(entry: FlatIssue): string {
@@ -148,18 +254,17 @@ export class FallowIssueNavigator implements Component {
 	private renderFooter(frameWidth: number, lines: string[]): void {
 		lines.push(this.separator(frameWidth));
 		lines.push(this.frame(this.footerSelectionLine(), frameWidth));
-		this.renderFooterSummaryBlocks(frameWidth, lines);
-		this.renderFooterMeta(frameWidth, lines);
+		for (const line of this.summaryBlockLines()) lines.push(this.frame(line, frameWidth));
+		for (const line of this.footerMetaLines()) lines.push(this.frame(line, frameWidth));
 	}
 
 	private footerSelectionLine(): string {
-		return `${pill(`${this.selection().length} selected`, purple)} ${this.theme.fg("muted", "e/a loads prompt into editor for your comments")}`;
+		return `${pill(this.selectionStatus(), purple)} ${this.theme.fg("muted", "e/a loads prompt into editor for your comments")}`;
 	}
 
-	private renderFooterSummaryBlocks(frameWidth: number, lines: string[]): void {
-		for (const line of this.summaryBlockLines()) {
-			lines.push(this.frame(line, frameWidth));
-		}
+	private selectionStatus(): string {
+		if (this.marked.size) return `${this.marked.size} selected`;
+		return this.currentIssue() ? "current finding" : "0 selected";
 	}
 
 	private summaryBlockLines(): string[] {
@@ -167,12 +272,6 @@ export class FallowIssueNavigator implements Component {
 			renderFallowPrSummary(this.options.prSummary, this.theme),
 			renderFallowProjectState(this.options.projectState, this.theme),
 		].filter(Boolean).flatMap((summary) => summary.split("\n"));
-	}
-
-	private renderFooterMeta(frameWidth: number, lines: string[]): void {
-		for (const line of this.footerMetaLines()) {
-			lines.push(this.frame(line, frameWidth));
-		}
 	}
 
 	private footerMetaLines(): string[] {
@@ -184,11 +283,11 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private measurePreferredWidth(): number {
-		const issueCount = this.issues.length;
-		const headerTitle = buildHeaderTitle(issueCount, this.overview.title, this.overview.status, this.theme);
+		const visible = this.visibleIssues();
+		const headerTitle = buildHeaderTitle(visible.length, this.issues.length, this.overview.title, this.overview.status, this.theme);
 		const frameCandidates = [
 			...this.preferredHeaderLines(),
-			...this.preferredIssueLines(),
+			...this.preferredIssueLines(visible),
 			this.footerSelectionLine(),
 			...this.summaryBlockLines(),
 			...this.footerMetaLines(),
@@ -198,37 +297,22 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private preferredHeaderLines(): string[] {
-		return [this.statLine(), this.helpLine()].filter(Boolean) as string[];
+		return [this.statLine(), this.hasActiveFilters() ? this.filterLine() : undefined, this.helpLine()].filter(Boolean) as string[];
 	}
 
-	private preferredIssueLines(): string[] {
+	private preferredIssueLines(visible: FlatIssue[]): string[] {
 		if (!this.issues.length) return [this.theme.fg("success", "No navigable findings in this Fallow report.")];
-		return this.visibleIssueEntries().flatMap((entry, index, entries) => this.preferredIssueEntryLines(entry, index, entries));
-	}
-
-	private visibleIssueEntries(): FlatIssue[] {
-		return this.issues.slice(0, VISIBLE_ISSUE_ROWS);
+		if (!visible.length) return [this.theme.fg("warning", "No findings match the active filters.")];
+		const entries = visible.slice(0, VISIBLE_ISSUE_ROWS);
+		return entries.flatMap((entry, index) => this.preferredIssueEntryLines(entry, index, entries));
 	}
 
 	private preferredIssueEntryLines(entry: FlatIssue, index: number, entries: FlatIssue[]): string[] {
 		return [
-			...this.preferredSectionHeaderLines(entry, index, entries),
-			this.issueLineRaw(index),
-			...this.preferredActionLines(entry.item),
+			...(entries[index - 1]?.sectionIndex === entry.sectionIndex ? [] : [this.sectionHeaderLine(entry)]),
+			this.issueLineRaw(entry, index),
+			...(entry.item.action ? [this.detailActionLine(entry.item)] : []),
 		];
-	}
-
-	private preferredSectionHeaderLines(entry: FlatIssue, index: number, entries: FlatIssue[]): string[] {
-		return entries[index - 1]?.sectionIndex === entry.sectionIndex ? [] : [this.sectionHeaderLine(entry)];
-	}
-
-	private preferredActionLines(item: FallowIssueLine): string[] {
-		return item.action ? [this.detailActionLine(item)] : [];
-	}
-
-	invalidate(): void {
-		this.cachedWidth = undefined;
-		this.cachedLines = undefined;
 	}
 
 	private move(delta: number): void {
@@ -236,34 +320,68 @@ export class FallowIssueNavigator implements Component {
 	}
 
 	private select(index: number): void {
-		this.selected = Math.max(0, Math.min(Math.max(0, this.issues.length - 1), index));
+		this.selected = clampSelection(index, this.visibleIssues().length);
 		this.changed();
+	}
+
+	private currentIssue(): FlatIssue | undefined {
+		return this.visibleIssues()[this.selected];
 	}
 
 	private toggleMarked(): void {
-		if (this.marked.has(this.selected)) this.marked.delete(this.selected);
-		else this.marked.add(this.selected);
+		const current = this.currentIssue();
+		if (!current) return;
+		if (this.marked.has(current.id)) this.marked.delete(current.id);
+		else this.marked.add(current.id);
 		this.changed();
 	}
 
-	private toggleExpanded(): void {
-		if (!this.hasExpandableDetails(this.selected)) return;
-		if (this.expanded.has(this.selected)) this.expanded.delete(this.selected);
-		else {
-			this.expanded.clear();
-			this.expanded.add(this.selected);
+	private toggleAllVisible(): void {
+		const visible = this.visibleIssues();
+		if (!visible.length) return;
+		const allMarked = visible.every((entry) => this.marked.has(entry.id));
+		for (const entry of visible) {
+			if (allMarked) this.marked.delete(entry.id);
+			else this.marked.add(entry.id);
 		}
 		this.changed();
 	}
 
-	private hasExpandableDetails(index: number): boolean {
-		return !!this.issues[index]?.item.action;
+	private clearMarked(): void {
+		if (!this.marked.size) return;
+		this.marked.clear();
+		this.changed();
 	}
 
-	private ensureVisible(listHeight: number): void {
+	private toggleExpanded(): void {
+		const current = this.currentIssue();
+		if (!current?.item.action) return;
+		if (this.expanded.has(current.id)) this.expanded.delete(current.id);
+		else {
+			this.expanded.clear();
+			this.expanded.add(current.id);
+		}
+		this.changed();
+	}
+
+	private collapseCurrent(): void {
+		const current = this.currentIssue();
+		if (!current) return;
+		this.expanded.delete(current.id);
+		this.changed();
+	}
+
+	private ensureVisible(listHeight: number, visibleCount: number): void {
 		if (this.selected < this.scrollStart) this.scrollStart = this.selected;
 		if (this.selected >= this.scrollStart + listHeight) this.scrollStart = this.selected - listHeight + 1;
-		this.scrollStart = Math.max(0, Math.min(this.scrollStart, Math.max(0, this.issues.length - listHeight)));
+		this.scrollStart = Math.max(0, Math.min(this.scrollStart, Math.max(0, visibleCount - listHeight)));
+	}
+
+	private filtersChanged(): void {
+		this.selected = 0;
+		this.scrollStart = 0;
+		this.expanded.clear();
+		this.changed();
 	}
 
 	private changed(): void {
@@ -271,18 +389,46 @@ export class FallowIssueNavigator implements Component {
 		this.requestRender();
 	}
 
-	private selection(): FlatIssue[] {
-		const indices = this.marked.size ? [...this.marked].sort((a, b) => a - b) : [this.selected];
-		return indices.map((index) => this.issues[index]).filter(Boolean) as FlatIssue[];
+	private visibleIssues(): FlatIssue[] {
+		return this.issues.filter((entry) => this.matchesFilters(entry));
 	}
 
-	private buildPromptResult(): FallowNavigatorResult {
+	private matchesFilters(entry: FlatIssue): boolean {
+		return this.matchesSection(entry) && this.matchesSeverity(entry) && this.matchesQuery(entry);
+	}
+
+	private matchesSection(entry: FlatIssue): boolean {
+		return this.sectionFilter === undefined || entry.sectionIndex === this.sectionFilter;
+	}
+
+	private matchesSeverity(entry: FlatIssue): boolean {
+		return !this.severityFilter || issueSeverity(entry) === this.severityFilter;
+	}
+
+	private matchesQuery(entry: FlatIssue): boolean {
+		return !this.query || issueSearchText(entry).includes(this.query.toLocaleLowerCase());
+	}
+
+	private selection(): FlatIssue[] {
+		if (this.marked.size) return this.issues.filter((entry) => this.marked.has(entry.id));
+		const current = this.currentIssue();
+		return current ? [current] : [];
+	}
+
+	private finishWithPrompt(): void {
 		const issues = this.selection();
-		return { type: "prompt", issueCount: issues.length, prompt: this.buildPrompt(issues) };
+		if (!issues.length) return;
+		this.onDone({ type: "prompt", issueCount: issues.length, prompt: this.buildPrompt(issues) });
+	}
+
+	private finishWithTrace(): void {
+		const trace = this.currentTraceCandidate();
+		if (!trace) return;
+		this.onDone({ type: "trace", commandArgs: ["dead-code", "--trace-file", trace] });
 	}
 
 	private currentTraceCandidate(): string | null {
-		const selected = this.issues[this.selected];
+		const selected = this.currentIssue();
 		if (!selected) return null;
 		const path = selected.item.path ? this.stripTraceSuffix(selected.item.path) : this.pathFromAction(selected.item.action);
 		return path ?? null;
@@ -296,11 +442,8 @@ export class FallowIssueNavigator implements Component {
 		return barePath ? this.stripTraceSuffix(barePath) : null;
 	}
 
-
 	private stripTraceSuffix(path: string): string {
-		return path
-			.replace(/[\]\)>,.;:!?]+$/u, "")
-			.replace(/:\d+$/, "");
+		return path.replace(/[\]\)>,.;:!?]+$/u, "").replace(/:\d+$/, "");
 	}
 
 	private buildPrompt(issues: FlatIssue[]): string {
@@ -313,6 +456,7 @@ export class FallowIssueNavigator implements Component {
 			"",
 			"Default task: For each finding, inspect the referenced code, decide whether to fix, refactor, delete, add tests, or suppress intentionally, then make the appropriate changes. After changes, rerun the relevant Fallow command to verify.",
 			this.options.command ? `Fallow command: ${this.options.command}` : undefined,
+			this.options.fullOutputPath ? `Complete Fallow report: ${this.options.fullOutputPath}` : undefined,
 			"",
 			blocks,
 		];
@@ -321,14 +465,14 @@ export class FallowIssueNavigator implements Component {
 
 	private buildIssuePromptBlock(entry: FlatIssue, index: number): string {
 		const item = entry.item;
-		const lines: string[] = [
+		return [
 			`## ${index + 1}. ${entry.section.title}: ${item.label}`,
 			this.buildIssueLocationLine(item),
-			...this.buildIssueMetaLines(item),
-			...this.buildIssueActionLines(item),
+			...(item.severity ? [`Severity: ${item.severity}`] : []),
+			...(item.meta ? [`Details: ${item.meta}`] : []),
+			...(item.action ? [`Suggested action: ${item.action}`] : []),
 			...this.buildIssueRawLines(item),
-		];
-		return lines.join("\n");
+		].join("\n");
 	}
 
 	private buildIssueLocationLine(item: FallowIssueLine): string {
@@ -336,33 +480,9 @@ export class FallowIssueNavigator implements Component {
 		return `Location: ${location}`;
 	}
 
-	private buildIssueMetaLines(item: FallowIssueLine): string[] {
-		if (!item.meta) return [];
-		return [`Details: ${item.meta}`];
-	}
-
-	private buildIssueActionLines(item: FallowIssueLine): string[] {
-		if (!item.action) return [];
-		return [`Suggested action: ${item.action}`];
-	}
-
 	private buildIssueRawLines(item: FallowIssueLine): string[] {
 		if (item.raw === undefined) return [];
-		return [
-			"Raw finding:",
-			"```json",
-			this.safeJson(item.raw, 3000),
-			"```",
-		];
-	}
-	private safeJson(value: unknown, maxChars: number): string {
-		let text: string;
-		try {
-			text = JSON.stringify(value, null, 2);
-		} catch {
-			text = String(value);
-		}
-		return text.length > maxChars ? `${text.slice(0, maxChars)}\n… truncated …` : text;
+		return ["Raw finding:", "```json", safeJson(item.raw, 3000), "```"];
 	}
 
 	private statLines(width: number): string[] {
@@ -380,58 +500,66 @@ export class FallowIssueNavigator implements Component {
 
 	private helpLine(): string {
 		const key = (text: string) => pill(text, violet);
-		return `${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}  ${key("enter")} ${this.theme.fg("muted", "expand")}  ${key("s")} ${this.theme.fg("muted", "select")}  ${key("e/a")} ${this.theme.fg("muted", "load")}  ${key("t")} ${this.theme.fg("muted", "trace")}  ${key("q")} ${this.theme.fg("muted", "close")}`;
+		return [
+			`${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}`,
+			`${key("enter")} ${this.theme.fg("muted", "expand")}`,
+			`${key("s")} ${this.theme.fg("muted", "select")}`,
+			`${key("A")} ${this.theme.fg("muted", "all visible")}`,
+			`${key("/")} ${this.theme.fg("muted", "search")}`,
+			`${key("f")} ${this.theme.fg("muted", "section")}`,
+			`${key("v")} ${this.theme.fg("muted", "severity")}`,
+			`${key("x")} ${this.theme.fg("muted", "reset filters")}`,
+			`${key("c")} ${this.theme.fg("muted", "clear selected")}`,
+			`${key("e/a")} ${this.theme.fg("muted", "load")}`,
+			`${key("t")} ${this.theme.fg("muted", "trace")}`,
+			`${key("q")} ${this.theme.fg("muted", "close")}`,
+		].join("  ");
 	}
 
-	private issueLine(index: number, width: number): string {
-		const raw = this.issueLineRaw(index);
-		return truncateToWidth(this.selected === index ? this.theme.bg("selectedBg", raw) : raw, width);
+	private issueLine(entry: FlatIssue, visibleIndex: number, width: number): string {
+		const raw = this.issueLineRaw(entry, visibleIndex);
+		return truncateToWidth(this.selected === visibleIndex ? this.theme.bg("selectedBg", raw) : raw, width);
 	}
 
-	private issueLineRaw(index: number): string {
-		const entry = this.issues[index]!;
-		const marker = this.issueLineMarker(index);
-		const check = this.issueLineCheck(index);
-		const expandMarker = this.issueExpandMarker(index);
-		const main = this.buildIssueLineMain(entry);
-		return `    ${marker} ${check} ${expandMarker} ${main}`;
+	private issueLineRaw(entry: FlatIssue, visibleIndex: number): string {
+		const marker = this.issueLineMarker(visibleIndex);
+		const check = this.issueLineCheck(entry);
+		const expandMarker = this.issueExpandMarker(entry);
+		return `    ${marker} ${check} ${expandMarker} ${this.buildIssueLineMain(entry)}`;
+	}
+
+	private issueLineMarker(visibleIndex: number): string {
+		return this.selected === visibleIndex ? purple("❯") : this.theme.fg("dim", " ");
+	}
+
+	private issueLineCheck(entry: FlatIssue): string {
+		return this.marked.has(entry.id) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
+	}
+
+	private issueExpandMarker(entry: FlatIssue): string {
+		if (!entry.item.action) return this.theme.fg("dim", "·");
+		return this.expanded.has(entry.id) ? amber("▾") : violet("▸");
 	}
 
 	private buildIssueLineMain(entry: FlatIssue): string {
-		const loc = this.getIssueLineLocation(entry.item);
+		const location = entry.item.path ? cyan(`${entry.item.path}${entry.item.line ? `:${entry.item.line}` : ""}`) : undefined;
 		return [
 			this.theme.fg("text", entry.item.label),
-			loc,
+			location,
+			this.issueSeverityLabel(entry.item),
 			entry.item.meta ? this.theme.fg("dim", entry.item.meta) : undefined,
 		].filter(Boolean).join(this.theme.fg("dim", " · "));
 	}
 
-	private getIssueLineLocation(item: FallowIssueLine): string | undefined {
-		if (!item.path) return undefined;
-		const path = item.line ? `${item.path}:${item.line}` : item.path;
-		return cyan(path);
-	}
-
-	private issueLineMarker(index: number): string {
-		return index === this.selected ? purple("❯") : this.theme.fg("dim", " ");
-	}
-
-	private issueLineCheck(index: number): string {
-		return this.marked.has(index) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
-	}
-
-	private issueExpandMarker(index: number): string {
-		if (!this.hasExpandableDetails(index)) return this.theme.fg("dim", "·");
-		return this.expanded.has(index) ? amber("▾") : violet("▸");
+	private issueSeverityLabel(item: FallowIssueLine): string | undefined {
+		if (!item.severity) return undefined;
+		if (item.meta?.toLocaleLowerCase().includes(item.severity.toLocaleLowerCase())) return undefined;
+		return this.theme.fg("dim", item.severity);
 	}
 
 	private detailLines(entry: FlatIssue, width: number): string[] {
-		return this.buildDetailActionLines(entry.item, width);
-	}
-
-	private buildDetailActionLines(item: FallowIssueLine, width: number): string[] {
-		if (!item.action) return [];
-		return wrapTextWithAnsi(this.detailActionLine(item), width);
+		if (!entry.item.action) return [];
+		return wrapTextWithAnsi(this.detailActionLine(entry.item), width);
 	}
 
 	private detailActionLine(item: FallowIssueLine): string {
@@ -465,6 +593,56 @@ export class FallowIssueNavigator implements Component {
 		this.cachedLines = lines;
 		return lines;
 	}
+}
+
+function issueSeverity(entry: FlatIssue): string {
+	const severity = entry.item.severity?.trim().toLocaleLowerCase();
+	return severity || "unspecified";
+}
+
+function issueSearchText(entry: FlatIssue): string {
+	return [entry.section.title, entry.item.label, entry.item.path, entry.item.meta, entry.item.action, entry.item.severity]
+		.filter(Boolean)
+		.join("\n")
+		.toLocaleLowerCase();
+}
+
+function compareSeverities(left: string, right: string): number {
+	const leftIndex = SEVERITY_ORDER.indexOf(left);
+	const rightIndex = SEVERITY_ORDER.indexOf(right);
+	if (leftIndex !== rightIndex) return normalizedSeverityIndex(leftIndex) - normalizedSeverityIndex(rightIndex);
+	return left.localeCompare(right);
+}
+
+function normalizedSeverityIndex(index: number): number {
+	return index === -1 ? SEVERITY_ORDER.length : index;
+}
+
+function nextOption<T>(options: T[], current: T): T {
+	const currentIndex = options.findIndex((option) => option === current);
+	return options[(currentIndex + 1) % options.length]!;
+}
+
+function clampSelection(index: number, visibleCount: number): number {
+	return Math.max(0, Math.min(Math.max(0, visibleCount - 1), index));
+}
+
+function removeLastCharacter(value: string): string {
+	return [...value].slice(0, -1).join("");
+}
+
+function isPrintableCharacter(value: string): boolean {
+	return [...value].length === 1 && value >= " ";
+}
+
+function safeJson(value: unknown, maxChars: number): string {
+	let text: string;
+	try {
+		text = JSON.stringify(value, null, 2);
+	} catch {
+		text = String(value);
+	}
+	return text.length > maxChars ? `${text.slice(0, maxChars)}\n… truncated …` : text;
 }
 
 function pickPathFromText(text: string, pattern: RegExp): string | null {
