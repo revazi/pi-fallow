@@ -1,18 +1,13 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { indexMeasurements, readArtifactPair } from "./benchmark-utils.mjs";
 
-const [beforePath, afterPath] = process.argv.slice(2);
-if (!beforePath || !afterPath) {
-	throw new Error("Usage: node scripts/token-benchmark-compare.mjs <before.json> <after.json>");
-}
-
-const before = JSON.parse(await readFile(resolve(beforePath), "utf8"));
-const after = JSON.parse(await readFile(resolve(afterPath), "utf8"));
+const [before, after] = await readArtifactPair(
+	process.argv.slice(2),
+	"Usage: node scripts/token-benchmark-compare.mjs <before.json> <after.json>",
+);
 validateComparable(before, after);
 
 const encoding = before.primaryEncoding;
-const beforeByKey = new Map(before.measurements.map((measurement) => [measurement.key, measurement]));
-const afterByKey = new Map(after.measurements.map((measurement) => [measurement.key, measurement]));
+const { beforeByKey, afterByKey } = indexMeasurements(before, after);
 const keys = [...new Set([...beforeByKey.keys(), ...afterByKey.keys()])].sort();
 const rows = [];
 const surfaceTotals = new Map();

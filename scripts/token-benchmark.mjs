@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getEncoding } from "js-tiktoken";
 import { createJiti } from "jiti";
+import { createFallowBenchmarkProject, runFixtureEngine, writeJsonArtifact } from "./benchmark-utils.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -40,7 +40,7 @@ const corpus = JSON.parse(corpusText);
 const corpusHash = await hashCorpus(corpus, corpusText);
 const contractText = captureToolContract(registerPiFallow);
 const contractMeasurement = measureText("tool-contract", "active", contractText, []);
-const projectDir = await createBenchmarkProject();
+const projectDir = await createFallowBenchmarkProject("pi-fallow-token-project-");
 const measurements = [contractMeasurement];
 
 try {
@@ -73,12 +73,7 @@ const artifact = {
 	aggregates: buildAggregates(measurements),
 };
 
-if (cli.output) {
-	const outputPath = resolve(cli.output);
-	await mkdir(dirname(outputPath), { recursive: true });
-	await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
-}
-
+await writeJsonArtifact(artifact, cli.output);
 printSummary(artifact, cli.output);
 
 function parseCli(args) {
@@ -128,32 +123,12 @@ function captureToolContract(registerExtension) {
 	}, null, 2);
 }
 
-async function createBenchmarkProject() {
-	const cwd = await mkdtemp(join(tmpdir(), "pi-fallow-token-project-"));
-	await mkdir(join(cwd, ".fallow"), { recursive: true });
-	await writeFile(join(cwd, ".fallowrc.json"), "{}\n", "utf8");
-	await writeFile(join(cwd, ".fallow", "cache.bin"), "benchmark", "utf8");
-	return cwd;
-}
-
 async function measureScenario(scenario, cwd, contract) {
 	const fixturePath = join(ROOT, "benchmarks", scenario.fixture);
 	const fixtureText = await readFile(fixturePath, "utf8");
 	const fixtureData = JSON.parse(fixtureText);
 	const findings = collectBenchmarkFindings(fixtureData);
-	const commandResult = await fallowEngine.runFallowWithExecutor({
-		pi: {},
-		cwd,
-		args: scenario.args,
-		signal: undefined,
-		timeoutSecs: 120,
-		throwOnExecutionError: false,
-		executor: async (_pi, args) => ({
-			binary: "fallow",
-			args,
-			result: { stdout: fixtureText, stderr: "", code: scenario.exitCode, killed: false },
-		}),
-	});
+	const commandResult = await runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd });
 
 	const fullOutputPath = commandResult.formatted.fullOutputPath;
 	const normalize = (text) => normalizeFullOutputPath(text, fullOutputPath);
