@@ -69,6 +69,22 @@ function createFilterOverview() {
 	};
 }
 
+function createContextOverview(includeFinding = true) {
+	return {
+		title: "Fallow health",
+		status: includeFinding ? "warning" : "success",
+		stats: [{ label: "score", value: "85 A" }],
+		notes: [],
+		sections: [
+			...(includeFinding ? [{ title: "Complexity findings", count: 1, role: "finding", items: [{ label: "complex function", path: "src/complex.ts", severity: "high" }] }] : []),
+			{ title: "Worst file scores", count: 2, role: "context", items: [
+				{ label: "score 95", path: "src/healthy.ts" },
+				{ label: "score 55", path: "src/risky.ts" },
+			] },
+		],
+	};
+}
+
 function loadEndFindingPrompt(overview, fullOutputPath, includeFullDetails) {
 	return new Promise((resolve) => {
 		const navigator = new FallowIssueNavigator(overview, theme, resolve, () => {}, { fullOutputPath });
@@ -240,6 +256,39 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.match(navigator.render(80).join("\n"), /3 findings/);
 	});
 
+	it("hides informational files by default and never counts them as findings", () => {
+		const navigator = new FallowIssueNavigator(createContextOverview(), theme, () => {}, () => {});
+
+		const defaultView = navigator.render(100).join("\n");
+		assert.match(defaultView, /1 finding/);
+		assert.match(defaultView, /2 informational hidden/);
+		assert.match(defaultView, /Show informational files \(2\)/);
+		assert.match(defaultView, /File scores and hotspots are context, not findings/);
+		assert.doesNotMatch(defaultView, /src\/healthy\.ts/);
+
+		navigator.handleInput("i");
+		const informationVisible = navigator.render(100).join("\n");
+		assert.match(informationVisible, /2 informational/);
+		assert.match(informationVisible, /src\/healthy\.ts/);
+		assert.match(informationVisible, /not counted as findings/);
+	});
+
+	it("renders explicit informational commands without finding controls", () => {
+		let result = null;
+		const navigator = new FallowIssueNavigator(createContextOverview(false), theme, (value) => {
+			result = value;
+		}, () => {}, { informationalMode: true, visibleRows: 20 });
+
+		const rendered = navigator.render(100).join("\n");
+		assert.match(rendered, /2 informational/);
+		assert.match(rendered, /src\/healthy\.ts/);
+		assert.match(rendered, /Informational command output/);
+		assert.doesNotMatch(rendered, /0 findings/);
+		assert.doesNotMatch(rendered, /Include full finding JSON/);
+		navigator.handleInput("e");
+		assert.equal(result, null);
+	});
+
 	it("defaults the full-details checkbox to deselected and explains both modes", () => {
 		let result = null;
 		const navigator = new FallowIssueNavigator(createOverview(), theme, (value) => {
@@ -304,7 +353,7 @@ describe("FallowIssueNavigator prompt generation", () => {
 		const rendered = navigator.render(80).join("\n");
 		assert.match(rendered, /finding 3/);
 		assert.doesNotMatch(rendered, /finding 4/);
-		assert.match(rendered, /9 later findings/);
+		assert.match(rendered, /9 later items/);
 		assert.match(rendered, /Include full finding JSON/);
 	});
 

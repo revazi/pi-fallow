@@ -6,15 +6,13 @@ import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from 
 import { FallowIssueNavigator } from "../ui";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import { hasFallowNavigator, isFallowTuiMode } from "./mode";
+import { isInformationalNavigatorCommand, resolveFallowNavigatorVisibleRows } from "./navigator";
 import { buildFallowTranscriptContent } from "./transcript";
 import type { FallowCommandContext } from "./types";
 
 const FALLOW_NAVIGATOR_MAX_WIDTH_RATIO = 0.9;
 const FALLBACK_FALLOW_NAVIGATOR_MAX_WIDTH = 100;
 const FALLOW_NAVIGATOR_MIN_WIDTH = 50;
-const FALLOW_NAVIGATOR_STATIC_ROWS = 15;
-const FALLOW_NAVIGATOR_MIN_VISIBLE_ROWS = 3;
-const FALLOW_NAVIGATOR_MAX_VISIBLE_ROWS = 10;
 
 export async function executeFallowResult(
 	pi: ExtensionAPI,
@@ -100,6 +98,7 @@ function openFallowNavigator(
 	const { formatted } = result;
 	if (!isFallowTuiMode(ctx.mode) || !formatted.overview) return Promise.resolve(null);
 	let navigator: FallowIssueNavigator | undefined;
+	const informationalMode = isInformationalNavigatorCommand(executedArgs);
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
 		navigator = new FallowIssueNavigator(
 			formatted.overview!,
@@ -112,7 +111,8 @@ function openFallowNavigator(
 				truncated: formatted.truncated,
 				projectState,
 				prSummary,
-				visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows),
+				visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows, informationalMode),
+				informationalMode,
 			},
 		);
 		return navigator;
@@ -121,17 +121,11 @@ function openFallowNavigator(
 		overlayOptions: () => ({
 			width: resolveFallowNavigatorOverlayWidth(navigator),
 			minWidth: FALLOW_NAVIGATOR_MIN_WIDTH,
-			maxHeight: "80%",
+			maxHeight: "90%",
 			anchor: "top-center",
-			row: "25%",
+			row: "5%",
 		}),
 	});
-}
-
-function resolveFallowNavigatorVisibleRows(terminalRows: number): number {
-	if (!Number.isFinite(terminalRows) || terminalRows < 1) return FALLOW_NAVIGATOR_MAX_VISIBLE_ROWS;
-	const overlayRows = Math.floor(terminalRows * 0.8);
-	return Math.max(FALLOW_NAVIGATOR_MIN_VISIBLE_ROWS, Math.min(FALLOW_NAVIGATOR_MAX_VISIBLE_ROWS, overlayRows - FALLOW_NAVIGATOR_STATIC_ROWS));
 }
 
 function resolveFallowNavigatorOverlayWidth(navigator: FallowIssueNavigator | undefined): number {
