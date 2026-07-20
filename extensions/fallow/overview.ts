@@ -134,24 +134,25 @@ function buildDeadCodeSections(data: Record<string, any>, includeAllRaw = false)
 
 function buildHealthSections(data: Record<string, any>, includeAllRaw = false): FallowOverviewSection[] {
 	const sections: FallowOverviewSection[] = [];
-	appendHealthSection(sections, "Complexity findings", "error", asArray(data.findings), INLINE_RAW_EXTENDED, includeAllRaw, buildComplexityIssue);
-	appendHealthSection(sections, "Worst file scores", "accent", asArray(data.file_scores), INLINE_RAW_DEFAULT, includeAllRaw, buildFileScoreIssue);
-	appendHealthSection(sections, "Refactoring targets", "warning", asArray(data.targets), INLINE_RAW_DEFAULT, includeAllRaw, buildRefactoringTargetIssue);
-	appendHealthSection(sections, "Hotspots", "warning", asArray(data.hotspots), INLINE_RAW_DEFAULT, includeAllRaw, buildHotspotIssue);
+	appendHealthSection(sections, "Complexity findings", "error", "finding", asArray(data.findings), INLINE_RAW_EXTENDED, includeAllRaw, buildComplexityIssue);
+	appendHealthSection(sections, "Worst file scores", "accent", "context", asArray(data.file_scores), INLINE_RAW_DEFAULT, includeAllRaw, buildFileScoreIssue);
+	appendHealthSection(sections, "Refactoring targets", "warning", "finding", asArray(data.targets), INLINE_RAW_DEFAULT, includeAllRaw, buildRefactoringTargetIssue);
+	appendHealthSection(sections, "Hotspots", "muted", "context", asArray(data.hotspots), INLINE_RAW_DEFAULT, includeAllRaw, buildHotspotIssue);
 	return sections;
 }
 
 function appendHealthSection(
 	sections: FallowOverviewSection[],
 	title: string,
-	color: "error" | "accent" | "warning",
+	color: "error" | "accent" | "warning" | "muted",
+	role: "finding" | "context",
 	entries: unknown[],
 	rawLimit: number,
 	includeAllRaw: boolean,
 	buildItem: (entry: unknown, includeRaw: boolean) => FallowIssueLine,
 ): void {
 	if (!entries.length) return;
-	sections.push({ title, count: entries.length, color, items: entries.map((entry, index) => buildItem(entry, includeAllRaw || index < rawLimit)) });
+	sections.push({ title, count: entries.length, color, role, items: entries.map((entry, index) => buildItem(entry, includeAllRaw || index < rawLimit)) });
 }
 
 function buildComplexityIssue(entry: unknown, includeRaw = true): FallowIssueLine {
@@ -362,6 +363,7 @@ function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSect
 		title: "Feature flags",
 		count: flags.length,
 		color: "accent",
+		role: "context",
 		items: flags.map((entry, index) => makeIssue("flag", asRecord(entry) ?? {}, includeAllRaw || index < INLINE_RAW_EXTENDED)),
 	});
 }
@@ -559,5 +561,5 @@ function isFallowErrorState(root: Record<string, any>, exitCode: number): boolea
 }
 
 function isFallowWarningState(sections: FallowOverviewSection[], exitCode: number): boolean {
-	return sections.length > 0 || exitCode === 1;
+	return sections.some((section) => section.role !== "context" && section.items.length > 0) || exitCode === 1;
 }

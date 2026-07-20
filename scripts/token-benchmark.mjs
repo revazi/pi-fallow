@@ -190,7 +190,7 @@ function normalizeFullOutputPath(text, fullOutputPath) {
 }
 
 async function measurePrompts(scenario, overview, fullOutputPath, contract, promptDetail) {
-	const entries = overview.sections.flatMap((section) => section.items);
+	const entries = overview.sections.filter((section) => section.role !== "context").flatMap((section) => section.items);
 	if (!entries.length) return [];
 	const reportFindings = countEntryFindings(entries);
 	const pairs = await Promise.all((scenario.promptSelections ?? []).map((selection) =>

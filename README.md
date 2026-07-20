@@ -21,7 +21,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
 - **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
-- **Interactive navigator:** every normalized finding remains navigable with search, section/severity filters, multi-selection, tracing, and editor loading.
+- **Interactive navigator:** every actionable finding remains navigable with search, section/severity filters, multi-selection, tracing, and editor loading; informational file scores/hotspots are classified separately.
 - **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
 - **Robust output parsing:** direct or noisy embedded JSON is scanned once with nesting, strings, and escapes handled correctly.
 - **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
@@ -106,12 +106,15 @@ In the interactive navigator:
 - `/` — search section, label, path, severity, details, and suggested action
 - `f` / `v` — cycle section/severity filters
 - `x` — clear filters; `c` — clear explicit selections
+- `i` — show/hide informational file scores and hotspots; they are hidden by default and never counted as findings
 - `d` — toggle full raw finding JSON in the agent prompt; it is deselected by default
 - `e` or `a` — load selected findings into the editor
 - `t` — run a trace for the selected finding when possible
 - `q` / `Esc` — close (`Esc` first cancels an active search)
 
 The navigator defaults to compact prompts. Compact mode includes every selected finding with type, severity, location, subject, concise evidence/details, and suggested action, plus the complete-report path. Selecting the full-details checkbox additionally embeds complete raw JSON for every selected finding; the overlay warns that this can use substantially more model context.
+
+Plain `fallow health` can return actionable findings alongside informational per-file scores and hotspots. Pi Fallow hides those informational records by default and reports their count separately. Explicit informational commands such as `health --file-scores` and `flags` show their records directly without finding-selection or agent-prompt controls. Large result sets use more of the available terminal height while retaining a virtualized viewport.
 
 ## Requirements
 

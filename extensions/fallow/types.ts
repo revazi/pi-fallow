@@ -54,6 +54,7 @@ export interface FallowOverviewSection {
 	count?: number;
 	items: FallowIssueLine[];
 	color?: "success" | "warning" | "error" | "accent" | "muted";
+	role?: "finding" | "context";
 }
 
 export interface FallowOverview {

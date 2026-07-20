@@ -86,6 +86,24 @@ describe("buildFallowOverview", () => {
 		});
 	});
 
+	it("classifies file scores and hotspots as informational context", () => {
+		const overview = buildFallowOverview({
+			kind: "health",
+			findings: [],
+			file_scores: [
+				{ path: "src/healthy.ts", maintainability_index: 95, lines: 20, dead_code_ratio: 0, crap_max: 1 },
+				{ path: "src/risky.ts", maintainability_index: 55, lines: 200, dead_code_ratio: 0.2, crap_max: 25 },
+			],
+			hotspots: [{ path: "src/busy.ts", score: 30, commits: 12, lines_added: 100, lines_deleted: 50 }],
+		});
+
+		assert.equal(overview.status, "success");
+		assert.deepEqual(overview.sections.map((section) => [section.title, section.role, section.items.length]), [
+			["Worst file scores", "context", 2],
+			["Hotspots", "context", 1],
+		]);
+	});
+
 	it("keeps every finding available to the navigator", () => {
 		const unusedExports = Array.from({ length: 40 }, (_, index) => ({
 			export_name: `unused_${index}`,

@@ -11,13 +11,44 @@ const MIN_NAVIGATOR_WIDTH = 50;
 const FRAME_BORDER_WIDTH = 4;
 const HEADER_BORDER_WIDTH = 2;
 const VISIBLE_ISSUE_ROWS = 10;
+const PREFERRED_NAVIGATOR_MAX_WIDTH = 140;
 const SEVERITY_ORDER = ["critical", "high", "error", "medium", "warning", "low", "info", "unspecified"];
 
-function buildHeaderTitle(visibleCount: number, totalCount: number, title: string, status: FallowOverview["status"], theme: any): string {
+function buildHeaderTitle(
+	visibleFindings: number,
+	totalFindings: number,
+	informationalText: string | undefined,
+	informationalMode: boolean,
+	title: string,
+	status: FallowOverview["status"],
+	theme: any,
+): string {
 	const statusColor = getOverviewStatusColor(status);
-	const count = visibleCount === totalCount ? `${totalCount}` : `${visibleCount}/${totalCount}`;
-	const findingText = `${count} finding${totalCount === 1 ? "" : "s"}`;
-	return `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(title))}${theme.fg("dim", " · ")}${pill(findingText, totalCount ? pink : cyan)} `;
+	const findings = buildFindingsHeader(visibleFindings, totalFindings, informationalMode, theme);
+	const information = buildInformationHeader(informationalText, theme);
+	return `${purple(" ✦ ")}${theme.fg(statusColor, theme.bold(title))}${findings}${information} `;
+}
+
+function buildFindingsHeader(visible: number, total: number, informationalMode: boolean, theme: any): string {
+	if (informationalMode) return "";
+	const text = `${visibleCountText(visible, total)} ${findingNoun(total)}`;
+	return `${theme.fg("dim", " · ")}${pill(text, findingColor(total))}`;
+}
+
+function visibleCountText(visible: number, total: number): string {
+	return visible === total ? `${total}` : `${visible}/${total}`;
+}
+
+function findingNoun(total: number): string {
+	return total === 1 ? "finding" : "findings";
+}
+
+function findingColor(total: number): (text: string) => string {
+	return total ? pink : cyan;
+}
+
+function buildInformationHeader(text: string | undefined, theme: any): string {
+	return text ? `${theme.fg("dim", " · ")}${pill(text, cyan)}` : "";
 }
 
 interface FallowNavigatorOptions {
@@ -27,6 +58,7 @@ interface FallowNavigatorOptions {
 	projectState?: FallowProjectState;
 	prSummary?: FallowPrSummary;
 	visibleRows?: number;
+	informationalMode?: boolean;
 }
 
 interface FlatIssue {
@@ -48,6 +80,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private editingSearch = false;
 	private sectionFilter?: number;
 	private severityFilter?: string;
+	private showInformational = false;
 	private includeFullDetails = false;
 	private preparingPrompt = false;
 	private cachedWidth?: number;
@@ -60,6 +93,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		private requestRender: () => void,
 		private options: FallowNavigatorOptions = {},
 	) {
+		this.showInformational = options.informationalMode === true;
 		this.issues = overview.sections
 			.flatMap((section, sectionIndex) => section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })))
 			.map((entry, id) => ({ ...entry, id }));
@@ -68,7 +102,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	preferredWidth(maxWidth: number): number {
 		const boundedMax = normalizeMaxWidth(maxWidth);
 		const measuredWidth = Math.max(MIN_NAVIGATOR_WIDTH, this.measurePreferredWidth());
-		return Math.min(measuredWidth, boundedMax);
+		return Math.min(measuredWidth, boundedMax, PREFERRED_NAVIGATOR_MAX_WIDTH);
 	}
 
 	handleInput(data: string): void {
@@ -86,6 +120,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			{ matches: (value) => value === "s" || matchesKey(value, "tab"), action: () => this.toggleMarked() },
 			{ matches: (value) => value === "A", action: () => this.toggleAllVisible() },
 			{ matches: (value) => value === "c", action: () => this.clearMarked() },
+			{ matches: (value) => value === "i", action: () => this.toggleInformational() },
 			{ matches: (value) => value === "d", action: () => this.togglePromptDetail() },
 			{ matches: (value) => value === "e" || value === "a", action: () => this.finishWithPrompt() },
 			{ matches: (value) => value === "t", action: () => this.finishWithTrace() },
@@ -113,7 +148,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		const visible = this.visibleIssues();
 		const lines: string[] = [];
 
-		this.renderHeader(frameWidth, innerWidth, visible.length, lines);
+		this.renderHeader(frameWidth, innerWidth, visible, lines);
 		this.renderBody(frameWidth, innerWidth, visible, lines);
 		this.renderFooter(frameWidth, lines);
 		lines.push(this.bottomBorder(frameWidth));
@@ -168,13 +203,13 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private cycleSectionFilter(): void {
-		const options: Array<number | undefined> = [undefined, ...new Set(this.issues.map((issue) => issue.sectionIndex))];
+		const options: Array<number | undefined> = [undefined, ...new Set(this.availableIssues().map((issue) => issue.sectionIndex))];
 		this.sectionFilter = nextOption(options, this.sectionFilter);
 		this.filtersChanged();
 	}
 
 	private cycleSeverityFilter(): void {
-		const severities = [...new Set(this.issues.map((issue) => issueSeverity(issue)))].sort(compareSeverities);
+		const severities = [...new Set(this.availableIssues().map((issue) => issueSeverity(issue)))].sort(compareSeverities);
 		this.severityFilter = nextOption([undefined, ...severities], this.severityFilter);
 		this.filtersChanged();
 	}
@@ -187,8 +222,16 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.filtersChanged();
 	}
 
-	private renderHeader(frameWidth: number, innerWidth: number, visibleCount: number, lines: string[]): void {
-		const title = buildHeaderTitle(visibleCount, this.issues.length, this.overview.title, this.overview.status, this.theme);
+	private renderHeader(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
+		const title = buildHeaderTitle(
+			visible.filter((entry) => !isInformational(entry)).length,
+			this.findingIssues().length,
+			this.informationalHeaderText(visible),
+			this.isInformationalMode(),
+			this.overview.title,
+			this.overview.status,
+			this.theme,
+		);
 		lines.push(this.topBorder(frameWidth, title));
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
 		for (const line of this.filterLines(innerWidth)) lines.push(this.frame(line, frameWidth));
@@ -230,15 +273,24 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private renderBody(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
-		if (!this.issues.length) {
-			lines.push(this.frame(this.theme.fg("success", "No navigable findings in this Fallow report."), frameWidth));
-			return;
-		}
-		if (!visible.length) {
-			lines.push(this.frame(this.theme.fg("warning", "No findings match the active filters."), frameWidth));
+		const empty = this.emptyBodyMessage(visible);
+		if (empty) {
+			lines.push(this.frame(this.theme.fg(empty.tone, empty.text), frameWidth));
 			return;
 		}
 		this.renderIssues(frameWidth, innerWidth, visible, lines);
+	}
+
+	private emptyBodyMessage(visible: FlatIssue[]): { text: string; tone: "success" | "warning" } | undefined {
+		if (!this.issues.length) return { text: "No navigable findings in this Fallow report.", tone: "success" };
+		if (this.hasOnlyHiddenInformation()) return { text: "No actionable findings. Informational file scores and hotspots are hidden.", tone: "success" };
+		if (!visible.length) return { text: "No findings match the active filters.", tone: "warning" };
+		return undefined;
+	}
+
+	private hasOnlyHiddenInformation(): boolean {
+		if (this.availableIssues().length) return false;
+		return this.informationalIssues().length > 0;
 	}
 
 	private renderIssues(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
@@ -246,9 +298,9 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.ensureVisible(visibleRows, visible.length);
 		const start = this.scrollStart;
 		const end = Math.min(visible.length, start + visibleRows);
-		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier findings`), frameWidth));
+		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier items`), frameWidth));
 		for (const row of this.renderIssueRows(start, end, innerWidth, visible)) lines.push(this.frame(row, frameWidth));
-		if (end < visible.length) lines.push(this.frame(this.theme.fg("dim", `… ${visible.length - end} later findings`), frameWidth));
+		if (end < visible.length) lines.push(this.frame(this.theme.fg("dim", `… ${visible.length - end} later items`), frameWidth));
 	}
 
 	private renderIssueRows(start: number, end: number, innerWidth: number, visible: FlatIssue[]): string[] {
@@ -273,12 +325,31 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private renderFooter(frameWidth: number, lines: string[]): void {
 		lines.push(this.separator(frameWidth));
-		lines.push(this.frame(this.footerSelectionLine(), frameWidth));
-		lines.push(this.frame(this.promptDetailLine(), frameWidth));
 		const innerWidth = Math.max(1, frameWidth - FRAME_BORDER_WIDTH);
-		for (const line of wrapTextWithAnsi(this.promptImplicationLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
+		this.renderFooterControls(frameWidth, innerWidth, lines);
 		for (const line of this.summaryBlockLines()) lines.push(this.frame(line, frameWidth));
 		for (const line of this.footerMetaLines()) lines.push(this.frame(line, frameWidth));
+	}
+
+	private renderFooterControls(frameWidth: number, innerWidth: number, lines: string[]): void {
+		if (this.isInformationalMode()) {
+			this.appendWrappedFooter(this.informationalImplicationLine(), frameWidth, innerWidth, lines);
+			return;
+		}
+		lines.push(this.frame(this.footerSelectionLine(), frameWidth));
+		this.renderInformationalToggle(frameWidth, innerWidth, lines);
+		lines.push(this.frame(this.promptDetailLine(), frameWidth));
+		this.appendWrappedFooter(this.promptImplicationLine(), frameWidth, innerWidth, lines);
+	}
+
+	private renderInformationalToggle(frameWidth: number, innerWidth: number, lines: string[]): void {
+		if (!this.informationalIssues().length) return;
+		lines.push(this.frame(this.informationalToggleLine(), frameWidth));
+		this.appendWrappedFooter(this.informationalImplicationLine(), frameWidth, innerWidth, lines);
+	}
+
+	private appendWrappedFooter(text: string, frameWidth: number, innerWidth: number, lines: string[]): void {
+		for (const line of wrapTextWithAnsi(text, innerWidth)) lines.push(this.frame(line, frameWidth));
 	}
 
 	private footerSelectionLine(): string {
@@ -288,6 +359,17 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private selectionStatus(): string {
 		if (this.marked.size) return `${this.marked.size} selected`;
 		return this.currentIssue() ? "current finding" : "0 selected";
+	}
+
+	private informationalToggleLine(): string {
+		const checkbox = this.showInformational ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
+		return `${checkbox} ${this.theme.fg("text", `Show informational files (${this.informationalIssues().length})`)} ${pill("i toggle", violet)}`;
+	}
+
+	private informationalImplicationLine(): string {
+		if (this.isInformationalMode()) return this.theme.fg("muted", "Informational command output: file scores and hotspots are context, not findings.");
+		if (this.showInformational) return this.theme.fg("muted", "Informational file scores and hotspots are visible, but they are not counted as findings.");
+		return this.theme.fg("muted", "File scores and hotspots are context, not findings, and stay hidden by default.");
 	}
 
 	private promptDetailLine(): string {
@@ -321,13 +403,19 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private measurePreferredWidth(): number {
 		const visible = this.visibleIssues();
-		const headerTitle = buildHeaderTitle(visible.length, this.issues.length, this.overview.title, this.overview.status, this.theme);
+		const headerTitle = buildHeaderTitle(
+			visible.filter((entry) => !isInformational(entry)).length,
+			this.findingIssues().length,
+			this.informationalHeaderText(visible),
+			this.isInformationalMode(),
+			this.overview.title,
+			this.overview.status,
+			this.theme,
+		);
 		const frameCandidates = [
 			...this.preferredHeaderLines(),
 			...this.preferredIssueLines(visible),
-			this.footerSelectionLine(),
-			this.promptDetailLine(),
-			this.promptImplicationLine(),
+			...this.preferredFooterControlLines(),
 			...this.summaryBlockLines(),
 			...this.footerMetaLines(),
 		];
@@ -335,13 +423,23 @@ export class FallowIssueNavigator implements Component, Focusable {
 		return Math.max(visibleWidth(headerTitle) + HEADER_BORDER_WIDTH, contentWidth + FRAME_BORDER_WIDTH);
 	}
 
+	private preferredFooterControlLines(): string[] {
+		if (this.isInformationalMode()) return [this.informationalImplicationLine()];
+		return [
+			this.footerSelectionLine(),
+			...(this.informationalIssues().length ? [this.informationalToggleLine(), this.informationalImplicationLine()] : []),
+			this.promptDetailLine(),
+			this.promptImplicationLine(),
+		];
+	}
+
 	private preferredHeaderLines(): string[] {
 		return [this.statLine(), this.hasActiveFilters() ? this.filterLine() : undefined, this.helpLine()].filter(Boolean) as string[];
 	}
 
 	private preferredIssueLines(visible: FlatIssue[]): string[] {
-		if (!this.issues.length) return [this.theme.fg("success", "No navigable findings in this Fallow report.")];
-		if (!visible.length) return [this.theme.fg("warning", "No findings match the active filters.")];
+		const empty = this.emptyBodyMessage(visible);
+		if (empty) return [this.theme.fg(empty.tone, empty.text)];
 		const entries = visible.slice(0, this.visibleRowCount());
 		return entries.flatMap((entry, index) => this.preferredIssueEntryLines(entry, index, entries));
 	}
@@ -372,6 +470,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private toggleMarked(): void {
+		if (this.isInformationalMode()) return;
 		const current = this.currentIssue();
 		if (!current) return;
 		if (this.marked.has(current.id)) this.marked.delete(current.id);
@@ -380,14 +479,18 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private toggleAllVisible(): void {
+		if (this.isInformationalMode()) return;
 		const visible = this.visibleIssues();
 		if (!visible.length) return;
-		const allMarked = visible.every((entry) => this.marked.has(entry.id));
-		for (const entry of visible) {
-			if (allMarked) this.marked.delete(entry.id);
-			else this.marked.add(entry.id);
-		}
+		this.setVisibleMarked(visible, !visible.every((entry) => this.marked.has(entry.id)));
 		this.changed();
+	}
+
+	private setVisibleMarked(visible: FlatIssue[], marked: boolean): void {
+		for (const entry of visible) {
+			if (marked) this.marked.add(entry.id);
+			else this.marked.delete(entry.id);
+		}
 	}
 
 	private clearMarked(): void {
@@ -433,7 +536,31 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private visibleIssues(): FlatIssue[] {
-		return this.issues.filter((entry) => this.matchesFilters(entry));
+		return this.availableIssues().filter((entry) => this.matchesFilters(entry));
+	}
+
+	private availableIssues(): FlatIssue[] {
+		return this.showInformational ? this.issues : this.findingIssues();
+	}
+
+	private isInformationalMode(): boolean {
+		return this.options.informationalMode === true;
+	}
+
+	private findingIssues(): FlatIssue[] {
+		return this.issues.filter((entry) => !isInformational(entry));
+	}
+
+	private informationalIssues(): FlatIssue[] {
+		return this.issues.filter(isInformational);
+	}
+
+	private informationalHeaderText(visible: FlatIssue[]): string | undefined {
+		const total = this.informationalIssues().length;
+		if (!total) return undefined;
+		if (!this.showInformational) return `${total} informational hidden`;
+		const visibleCount = visible.filter(isInformational).length;
+		return visibleCount === total ? `${total} informational` : `${visibleCount}/${total} informational`;
 	}
 
 	private matchesFilters(entry: FlatIssue): boolean {
@@ -458,7 +585,19 @@ export class FallowIssueNavigator implements Component, Focusable {
 		return current ? [current] : [];
 	}
 
+	private toggleInformational(): void {
+		if (this.isInformationalMode()) return;
+		this.showInformational = !this.showInformational;
+		this.sectionFilter = undefined;
+		this.severityFilter = undefined;
+		if (!this.showInformational) {
+			for (const entry of this.informationalIssues()) this.marked.delete(entry.id);
+		}
+		this.filtersChanged();
+	}
+
 	private togglePromptDetail(): void {
+		if (this.isInformationalMode()) return;
 		this.includeFullDetails = !this.includeFullDetails;
 		this.changed();
 	}
@@ -468,8 +607,13 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private finishWithPrompt(): void {
+		if (this.isInformationalMode()) return;
 		const issues = this.selection();
 		if (!issues.length) return;
+		this.preparePrompt(issues);
+	}
+
+	private preparePrompt(issues: FlatIssue[]): void {
 		if (!issues.some((entry) => entry.item.raw === undefined)) {
 			this.emitPrompt(issues);
 			return;
@@ -520,6 +664,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private finishWithTrace(): void {
+		if (this.isInformationalMode()) return;
 		const trace = this.currentTraceCandidate();
 		if (!trace) return;
 		this.onDone({ type: "trace", commandArgs: ["dead-code", "--trace-file", trace] });
@@ -559,16 +704,22 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private helpLine(): string {
 		const key = (text: string) => pill(text, violet);
-		return [
+		const common = [
 			`${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}`,
-			`${key("enter")} ${this.theme.fg("muted", "expand")}`,
-			`${key("s")} ${this.theme.fg("muted", "select")}`,
-			`${key("A")} ${this.theme.fg("muted", "all visible")}`,
 			`${key("/")} ${this.theme.fg("muted", "search")}`,
 			`${key("f")} ${this.theme.fg("muted", "section")}`,
 			`${key("v")} ${this.theme.fg("muted", "severity")}`,
 			`${key("x")} ${this.theme.fg("muted", "reset filters")}`,
+		];
+		if (this.isInformationalMode()) return [...common, `${key("q")} ${this.theme.fg("muted", "close")}`].join("  ");
+		return [
+			common[0],
+			`${key("enter")} ${this.theme.fg("muted", "expand")}`,
+			`${key("s")} ${this.theme.fg("muted", "select")}`,
+			`${key("A")} ${this.theme.fg("muted", "all visible")}`,
+			...common.slice(1),
 			`${key("c")} ${this.theme.fg("muted", "clear selected")}`,
+			`${key("i")} ${this.theme.fg("muted", "informational files")}`,
 			`${key("d")} ${this.theme.fg("muted", "prompt detail")}`,
 			`${key("e/a")} ${this.theme.fg("muted", "load")}`,
 			`${key("t")} ${this.theme.fg("muted", "trace")}`,
@@ -593,6 +744,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private issueLineCheck(entry: FlatIssue): string {
+		if (this.isInformationalMode()) return this.theme.fg("dim", " ");
 		return this.marked.has(entry.id) ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
 	}
 
@@ -653,6 +805,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.cachedLines = lines;
 		return lines;
 	}
+}
+
+function isInformational(entry: FlatIssue): boolean {
+	return entry.section.role === "context";
 }
 
 function issueSeverity(entry: FlatIssue): string {
