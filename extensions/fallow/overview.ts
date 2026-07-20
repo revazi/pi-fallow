@@ -104,18 +104,18 @@ function valueOr<T>(value: T | null | undefined, fallback: T): T {
 	return value ?? fallback;
 }
 
-function sectionFromArray(title: string, array: unknown, kind: string): FallowOverviewSection | undefined {
+function sectionFromArray(title: string, array: unknown, kind: string, includeAllRaw = false): FallowOverviewSection | undefined {
 	const items = asArray(array);
 	if (!items.length) return undefined;
 	return {
 		title,
 		count: items.length,
 		color: "warning",
-		items: items.map((entry, index) => makeIssue(kind, asRecord(entry) ?? { value: entry }, index < INLINE_RAW_DEFAULT)),
+		items: items.map((entry, index) => makeIssue(kind, asRecord(entry) ?? { value: entry }, includeAllRaw || index < INLINE_RAW_DEFAULT)),
 	};
 }
 
-function buildDeadCodeSections(data: Record<string, any>): FallowOverviewSection[] {
+function buildDeadCodeSections(data: Record<string, any>, includeAllRaw = false): FallowOverviewSection[] {
 	const specs: Array<[string, string, string]> = [
 		["Unused files", "unused_files", "unused-file"],
 		["Unused exports", "unused_exports", "unused-export"],
@@ -129,15 +129,15 @@ function buildDeadCodeSections(data: Record<string, any>): FallowOverviewSection
 		["Boundary violations", "boundary_violations", "boundary-violation"],
 		["Stale suppressions", "stale_suppressions", "stale-suppression"],
 	];
-	return specs.map(([title, key, kind]) => sectionFromArray(title, data[key], kind)).filter(Boolean) as FallowOverviewSection[];
+	return specs.map(([title, key, kind]) => sectionFromArray(title, data[key], kind, includeAllRaw)).filter(Boolean) as FallowOverviewSection[];
 }
 
-function buildHealthSections(data: Record<string, any>): FallowOverviewSection[] {
+function buildHealthSections(data: Record<string, any>, includeAllRaw = false): FallowOverviewSection[] {
 	const sections: FallowOverviewSection[] = [];
-	appendHealthSection(sections, "Complexity findings", "error", asArray(data.findings), INLINE_RAW_EXTENDED, buildComplexityIssue);
-	appendHealthSection(sections, "Worst file scores", "accent", asArray(data.file_scores), INLINE_RAW_DEFAULT, buildFileScoreIssue);
-	appendHealthSection(sections, "Refactoring targets", "warning", asArray(data.targets), INLINE_RAW_DEFAULT, buildRefactoringTargetIssue);
-	appendHealthSection(sections, "Hotspots", "warning", asArray(data.hotspots), INLINE_RAW_DEFAULT, buildHotspotIssue);
+	appendHealthSection(sections, "Complexity findings", "error", asArray(data.findings), INLINE_RAW_EXTENDED, includeAllRaw, buildComplexityIssue);
+	appendHealthSection(sections, "Worst file scores", "accent", asArray(data.file_scores), INLINE_RAW_DEFAULT, includeAllRaw, buildFileScoreIssue);
+	appendHealthSection(sections, "Refactoring targets", "warning", asArray(data.targets), INLINE_RAW_DEFAULT, includeAllRaw, buildRefactoringTargetIssue);
+	appendHealthSection(sections, "Hotspots", "warning", asArray(data.hotspots), INLINE_RAW_DEFAULT, includeAllRaw, buildHotspotIssue);
 	return sections;
 }
 
@@ -147,10 +147,11 @@ function appendHealthSection(
 	color: "error" | "accent" | "warning",
 	entries: unknown[],
 	rawLimit: number,
+	includeAllRaw: boolean,
 	buildItem: (entry: unknown, includeRaw: boolean) => FallowIssueLine,
 ): void {
 	if (!entries.length) return;
-	sections.push({ title, count: entries.length, color, items: entries.map((entry, index) => buildItem(entry, index < rawLimit)) });
+	sections.push({ title, count: entries.length, color, items: entries.map((entry, index) => buildItem(entry, includeAllRaw || index < rawLimit)) });
 }
 
 function buildComplexityIssue(entry: unknown, includeRaw = true): FallowIssueLine {
@@ -198,14 +199,14 @@ function buildHotspotTrend(issue: Record<string, any>): string {
 	return issue.trend ?? "";
 }
 
-function buildDupesSections(data: Record<string, any>): FallowOverviewSection[] {
+function buildDupesSections(data: Record<string, any>, includeAllRaw = false): FallowOverviewSection[] {
 	const groups = asArray(data.clone_groups);
 	if (!groups.length) return [];
 	return [{
 		title: "Clone groups",
 		count: groups.length,
 		color: "warning",
-		items: groups.map((entry, index) => makeCloneGroupIssue(entry, index, index < INLINE_RAW_CLONES)),
+		items: groups.map((entry, index) => makeCloneGroupIssue(entry, index, includeAllRaw || index < INLINE_RAW_CLONES)),
 	}];
 }
 
@@ -263,18 +264,18 @@ function addIfDefinedHealthScore(
 	stats.push({ label: "score", value: score });
 }
 
-function addPrimarySections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+function addPrimarySections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }, includeAllRaw: boolean): void {
 	const specs = buildPrimarySectionSpecs();
 	for (const spec of specs) {
 		if (!spec.isPresent(root)) continue;
-		processPrimarySection(root, sections, title, spec);
+		processPrimarySection(root, sections, title, spec, includeAllRaw);
 	}
 }
 
 function buildPrimarySectionSpecs(): Array<{
 	isPresent: (root: Record<string, any>) => boolean;
 	forceTitle: string;
-	sectionsFor: (data: Record<string, any> | undefined) => FallowOverviewSection[];
+	sectionsFor: (data: Record<string, any> | undefined, includeAllRaw?: boolean) => FallowOverviewSection[];
 	selector: (root: Record<string, any>) => Record<string, any> | undefined;
 	prefix: string;
 }> {
@@ -310,24 +311,25 @@ function processPrimarySection(
 	spec: {
 		isPresent: (root: Record<string, any>) => boolean;
 		forceTitle: string;
-		sectionsFor: (data: Record<string, any> | undefined) => FallowOverviewSection[];
+		sectionsFor: (data: Record<string, any> | undefined, includeAllRaw?: boolean) => FallowOverviewSection[];
 		selector: (root: Record<string, any>) => Record<string, any> | undefined;
 		prefix: string;
 	},
+	includeAllRaw: boolean,
 ): void {
 	if (title.value === "Fallow") title.value = spec.forceTitle;
 	const sectionData = spec.selector(root);
 	if (!sectionData) return;
-	for (const section of spec.sectionsFor(sectionData)) {
+	for (const section of spec.sectionsFor(sectionData, includeAllRaw)) {
 		sections.push({ ...section, title: `${spec.prefix} · ${section.title}` });
 	}
 }
 
-function addFallbackSections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+function addFallbackSections(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }, includeAllRaw: boolean): void {
 	if (sections.length) return;
-	const deadSections = buildDeadCodeSections(root);
-	const healthSections = buildHealthSections(root);
-	const dupeSections = buildDupesSections(root);
+	const deadSections = buildDeadCodeSections(root, includeAllRaw);
+	const healthSections = buildHealthSections(root, includeAllRaw);
+	const dupeSections = buildDupesSections(root, includeAllRaw);
 	appendFallbackSections(sections, deadSections, healthSections, dupeSections);
 	updateFallbackTitle(healthSections, dupeSections, deadSections, title);
 }
@@ -352,7 +354,7 @@ function updateFallbackTitle(
 	else if (deadSections.length) title.value = "Fallow dead code";
 }
 
-function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }, includeAllRaw: boolean): void {
 	if (!root.feature_flags) return;
 	title.value = "Fallow feature flags";
 	const flags = asArray(root.feature_flags);
@@ -360,11 +362,11 @@ function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSect
 		title: "Feature flags",
 		count: flags.length,
 		color: "accent",
-		items: flags.map((entry, index) => makeIssue("flag", asRecord(entry) ?? {}, index < INLINE_RAW_EXTENDED)),
+		items: flags.map((entry, index) => makeIssue("flag", asRecord(entry) ?? {}, includeAllRaw || index < INLINE_RAW_EXTENDED)),
 	});
 }
 
-function addSecurity(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+function addSecurity(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }, includeAllRaw: boolean): void {
 	if (!root.security_findings) return;
 	title.value = "Fallow security";
 	const findings = asArray(root.security_findings);
@@ -373,7 +375,7 @@ function addSecurity(root: Record<string, any>, sections: FallowOverviewSection[
 		title: "Security candidates",
 		count: findings.length,
 		color: "warning",
-		items: findings.map((entry, index) => buildSecurityIssue(entry, index < INLINE_RAW_EXTENDED)),
+		items: findings.map((entry, index) => buildSecurityIssue(entry, includeAllRaw || index < INLINE_RAW_EXTENDED)),
 	});
 }
 
@@ -395,7 +397,7 @@ function formatSecurityMeta(issue: Record<string, any>): string | undefined {
 	return parts.length ? parts.join(" · ") : undefined;
 }
 
-function addDecisionSurface(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }): void {
+function addDecisionSurface(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }, includeAllRaw: boolean): void {
 	if (!root.decisions) return;
 	title.value = "Fallow decision surface";
 	const decisions = asArray(root.decisions);
@@ -404,7 +406,7 @@ function addDecisionSurface(root: Record<string, any>, sections: FallowOverviewS
 		title: "Structural decisions",
 		count: decisions.length,
 		color: "accent",
-		items: decisions.map((entry, index) => buildDecisionIssue(entry, index < INLINE_RAW_EXTENDED)),
+		items: decisions.map((entry, index) => buildDecisionIssue(entry, includeAllRaw || index < INLINE_RAW_EXTENDED)),
 	});
 }
 
@@ -498,28 +500,30 @@ function addIfDefined(stats: Array<{ label: string; value: string | number }>, l
 	if (value === undefined) return;
 	stats.push({ label, value });
 }
-export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview | undefined {
+export function buildFallowOverview(
+	data: unknown,
+	exitCode = 0,
+	options: { includeAllRaw?: boolean } = {},
+): FallowOverview | undefined {
 	const root = asRecord(data);
 	if (!root) return undefined;
 	const stats: Array<{ label: string; value: string | number }> = [];
 	const sections: FallowOverviewSection[] = [];
 	const notes: string[] = [];
 	const title = { value: "Fallow" };
+	const includeAllRaw = options.includeAllRaw === true;
 
 	addRootStats(root, stats);
 	addConfigStats(root, stats, title);
-	if (!isConfigOutput(root)) {
-		addPrimarySections(root, sections, title);
-		addFallbackSections(root, sections, title);
-	}
-	addFeatureFlags(root, sections, title);
-	addSecurity(root, sections, title);
-	addDecisionSurface(root, sections, title);
+	addOverviewSections(root, sections, title, includeAllRaw);
+	addFeatureFlags(root, sections, title, includeAllRaw);
+	addSecurity(root, sections, title, includeAllRaw);
+	addDecisionSurface(root, sections, title, includeAllRaw);
 	addInspectionStats(root, stats, title, notes);
 	addWorkspaceStats(root, stats, title, notes);
 	addSchemaStats(root, stats, title);
 	addDefaultNotes(root, sections, stats, notes);
-	if (exitCode === 1) notes.push("Fallow exit 1 means findings/gate failure, not a crashed command.");
+	addExitCodeNote(notes, exitCode);
 
 	return {
 		title: title.value,
@@ -528,6 +532,21 @@ export function buildFallowOverview(data: unknown, exitCode = 0): FallowOverview
 		sections,
 		notes,
 	};
+}
+
+function addOverviewSections(
+	root: Record<string, any>,
+	sections: FallowOverviewSection[],
+	title: { value: string },
+	includeAllRaw: boolean,
+): void {
+	if (isConfigOutput(root)) return;
+	addPrimarySections(root, sections, title, includeAllRaw);
+	addFallbackSections(root, sections, title, includeAllRaw);
+}
+
+function addExitCodeNote(notes: string[], exitCode: number): void {
+	if (exitCode === 1) notes.push("Fallow exit 1 means findings/gate failure, not a crashed command.");
 }
 
 function buildFallowStatus(root: Record<string, any>, sections: FallowOverviewSection[], exitCode: number): "success" | "warning" | "error" {

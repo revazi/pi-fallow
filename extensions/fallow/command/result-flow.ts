@@ -12,6 +12,9 @@ import type { FallowCommandContext } from "./types";
 const FALLOW_NAVIGATOR_MAX_WIDTH_RATIO = 0.9;
 const FALLBACK_FALLOW_NAVIGATOR_MAX_WIDTH = 100;
 const FALLOW_NAVIGATOR_MIN_WIDTH = 50;
+const FALLOW_NAVIGATOR_STATIC_ROWS = 15;
+const FALLOW_NAVIGATOR_MIN_VISIBLE_ROWS = 3;
+const FALLOW_NAVIGATOR_MAX_VISIBLE_ROWS = 10;
 
 export async function executeFallowResult(
 	pi: ExtensionAPI,
@@ -109,6 +112,7 @@ function openFallowNavigator(
 				truncated: formatted.truncated,
 				projectState,
 				prSummary,
+				visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows),
 			},
 		);
 		return navigator;
@@ -122,6 +126,12 @@ function openFallowNavigator(
 			row: "25%",
 		}),
 	});
+}
+
+function resolveFallowNavigatorVisibleRows(terminalRows: number): number {
+	if (!Number.isFinite(terminalRows) || terminalRows < 1) return FALLOW_NAVIGATOR_MAX_VISIBLE_ROWS;
+	const overlayRows = Math.floor(terminalRows * 0.8);
+	return Math.max(FALLOW_NAVIGATOR_MIN_VISIBLE_ROWS, Math.min(FALLOW_NAVIGATOR_MAX_VISIBLE_ROWS, overlayRows - FALLOW_NAVIGATOR_STATIC_ROWS));
 }
 
 function resolveFallowNavigatorOverlayWidth(navigator: FallowIssueNavigator | undefined): number {

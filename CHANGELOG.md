@@ -17,6 +17,7 @@ All notable changes to Pi Fallow are documented here.
 - Reduced the `fallow_run` contract to command, CLI-token args, root, timeout, and output detail while translating wide-schema calls stored by older Pi sessions before validation.
 - Kept every normalized finding available in the TUI navigator and added search, section/severity filters, select-all-visible, and persistent multi-selection across filters.
 - Saved complete JSON whenever navigator normalization omits raw fields; generated report artifacts are never automatically deleted by Pi Fallow.
+- Added a default-off full-details checkbox to the navigator: compact prompts preserve every selected finding's coding essentials, while full mode explicitly embeds complete raw JSON and displays its model-context implication.
 
 ### Fixed
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.
