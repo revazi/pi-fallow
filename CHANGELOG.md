@@ -14,6 +14,7 @@ All notable changes to Pi Fallow are documented here.
 - Cached Fallow runner resolution per project/session, including direct reuse of the npx-installed executable, environment-aware refresh, and one safe retry when an automatically discovered executable disappears.
 - Slimmed completed engine results to bounded execution and formatting metadata, releasing raw stdout, stderr, and parsed report roots before navigator or transcript retention.
 - Replaced overlapping embedded-JSON parse retries with a balanced linear scanner that handles nesting, quoted delimiters, escapes, malformed candidates, and split stdout/stderr output.
+- Reduced the `fallow_run` contract to command, CLI-token args, root, timeout, and output detail while translating wide-schema calls stored by older Pi sessions before validation.
 
 ### Fixed
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.

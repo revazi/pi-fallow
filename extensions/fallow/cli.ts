@@ -4,7 +4,10 @@ import { fallowEngine } from "./engine";
 import { stripAtPrefix } from "./path";
 import { execFallowProcess } from "./process";
 import { createFallowRunner } from "./runner";
-import type { FallowRunParams } from "./schema";
+import type { FallowRunParams as CompactFallowRunParams } from "./schema";
+
+// Compatibility shape for tool calls stored by Pi before the compact contract.
+type FallowRunParams = CompactFallowRunParams & Record<string, any>;
 
 function addValue(args: string[], flag: string, value: unknown): void {
 	if (value === undefined || value === null || value === "") return;
@@ -20,10 +23,10 @@ function addWorkspace(args: string[], workspace: FallowRunParams["workspace"]): 
 	args.push("--workspace", Array.isArray(workspace) ? workspace.join(",") : workspace);
 }
 
-function rejectFormatOverride(extraArgs?: string[]): void {
-	if (!extraArgs) return;
-	if (extraArgs.some((arg) => arg === "--format" || arg.startsWith("--format=") || arg === "-f")) {
-		throw new Error("extraArgs must not include --format/-f; the Pi extension always requests JSON output.");
+function rejectFormatOverride(args?: string[]): void {
+	if (!args) return;
+	if (args.some((arg) => arg === "--format" || arg.startsWith("--format=") || arg === "-f")) {
+		throw new Error("Fallow args must not include --format/-f; the Pi extension always requests JSON output.");
 	}
 }
 
@@ -276,7 +279,56 @@ const commandBuilders: Record<string, CommandArgsBuilder> = {
 	"coverage-analyze": buildCoverageAnalyzeArgs,
 };
 
-function buildFallowArgs(params: FallowRunParams): string[] {
+const MANAGED_OUTPUT_ARGS = ["--format", "json", "--quiet"];
+const COMMAND_PREFIXES: Record<CompactFallowRunParams["command"], readonly string[]> = {
+	all: [],
+	"dead-code": ["dead-code"],
+	"check-changed": [],
+	dupes: ["dupes"],
+	health: ["health"],
+	audit: ["audit"],
+	"fix-preview": ["fix", "--dry-run"],
+	"fix-apply": ["fix", "--yes"],
+	flags: ["flags"],
+	inspect: ["inspect"],
+	"trace-symbol": ["trace"],
+	security: ["security"],
+	workspaces: ["workspaces"],
+	config: ["config"],
+	schema: ["schema"],
+	"decision-surface": ["decision-surface"],
+	impact: ["impact"],
+	"project-info": ["list"],
+	"list-boundaries": ["list", "--boundaries"],
+	explain: ["explain"],
+	"trace-export": ["dead-code", "--trace"],
+	"trace-file": ["dead-code", "--trace-file"],
+	"trace-dependency": ["dead-code", "--trace-dependency"],
+	"trace-clone": ["dupes", "--trace"],
+	"coverage-analyze": ["coverage", "analyze"],
+};
+const POSITIONAL_TARGET_COMMANDS = new Set<CompactFallowRunParams["command"]>([
+	"trace-symbol", "explain", "trace-export", "trace-file", "trace-dependency", "trace-clone",
+]);
+const PATH_TARGET_COMMANDS = new Set<CompactFallowRunParams["command"]>([
+	"trace-symbol", "trace-export", "trace-file", "trace-clone",
+]);
+const PATH_OPTION_FLAGS = new Set(["--file", "--symbol"]);
+const FORBIDDEN_FIXED_ARGS: Partial<Record<CompactFallowRunParams["command"], Set<string>>> = {
+	"fix-preview": new Set(["--yes"]),
+	"fix-apply": new Set(["--dry-run"]),
+};
+const COMPACT_PARAM_KEYS = new Set(["command", "args", "root", "timeoutSecs", "detail"]);
+const LEGACY_PARAM_KEYS = new Set([
+	"config", "workspace", "production", "changedSince", "base", "noCache", "threads",
+	"includeEntryExports", "file", "exportName", "symbol", "symbolChain", "callers", "callees", "depth", "packageName", "line",
+	"top", "groupBy", "minTokens", "minLines", "threshold", "minOccurrences", "skipLocal", "crossLanguage", "ignoreImports",
+	"fileScores", "hotspots", "targets", "score", "trend", "coverage", "coverageRoot", "runtimeCoverage", "maxCrap",
+	"diffFile", "securityGate", "surface", "minInvocationsHot", "maxDecisions", "gate", "explain", "issueType",
+	"entryPoints", "files", "plugins", "boundaries", "listWorkspaces", "noCreateConfig", "extraArgs",
+]);
+
+function buildLegacyFallowArgs(params: FallowRunParams): string[] {
 	rejectFormatOverride(params.extraArgs);
 	const args: string[] = [];
 	const builder = commandBuilders[params.command];
@@ -284,6 +336,154 @@ function buildFallowArgs(params: FallowRunParams): string[] {
 	builder(args, params);
 	args.push(...(params.extraArgs ?? []));
 	return args;
+}
+
+function buildFallowArgs(params: CompactFallowRunParams): string[] {
+	rejectFormatOverride(params.args);
+	rejectConflictingFixedArgs(params.command, params.args ?? []);
+	const commandArgs = normalizeCompactArgs(params.command, params.args ?? []);
+	const prefix = commandPrefix(params.command);
+	if (POSITIONAL_TARGET_COMMANDS.has(params.command)) {
+		return buildPositionalCommandArgs(params.command, prefix, commandArgs);
+	}
+	return [...prefix, ...MANAGED_OUTPUT_ARGS, ...commandArgs];
+}
+
+function rejectConflictingFixedArgs(command: CompactFallowRunParams["command"], args: string[]): void {
+	const forbidden = FORBIDDEN_FIXED_ARGS[command];
+	const conflict = forbidden && args.find((arg) => forbidden.has(arg));
+	if (conflict) throw new Error(`${command} args must not include ${conflict}.`);
+}
+
+function commandPrefix(command: CompactFallowRunParams["command"]): readonly string[] {
+	const prefix = (COMMAND_PREFIXES as Record<string, readonly string[]>)[command];
+	if (!prefix) throw new Error(`Unsupported fallow command: ${command}`);
+	return prefix;
+}
+
+function normalizeCompactArgs(command: CompactFallowRunParams["command"], args: string[]): string[] {
+	const normalized = command === "check-changed" ? normalizeCheckChangedArgs(args) : [...args];
+	return normalizeAtPrefixedTargets(command, normalized);
+}
+
+function normalizeCheckChangedArgs(args: string[]): string[] {
+	const normalized = args.map((arg) => {
+		if (arg === "--base") return "--changed-since";
+		if (arg.startsWith("--base=")) return `--changed-since=${arg.slice("--base=".length)}`;
+		return arg;
+	});
+	if (!hasFlagValue(normalized, "--changed-since")) {
+		throw new Error("check-changed requires args containing --changed-since or --base.");
+	}
+	return normalized;
+}
+
+function hasFlagValue(args: string[], flag: string): boolean {
+	const exactIndex = args.indexOf(flag);
+	if (exactIndex >= 0 && args[exactIndex + 1] !== undefined) return true;
+	return args.some((arg) => arg.startsWith(`${flag}=`) && arg.length > flag.length + 1);
+}
+
+function normalizeAtPrefixedTargets(command: CompactFallowRunParams["command"], args: string[]): string[] {
+	return args.map((arg, index) => normalizeAtPrefixedTarget(command, args, arg, index));
+}
+
+function normalizeAtPrefixedTarget(
+	command: CompactFallowRunParams["command"],
+	args: string[],
+	arg: string,
+	index: number,
+): string {
+	if (index === 0 && PATH_TARGET_COMMANDS.has(command)) return stripAtPrefix(arg);
+	if (isPathOptionValue(args, index)) return stripAtPrefix(arg);
+	return normalizeInlinePathOption(arg);
+}
+
+function isPathOptionValue(args: string[], index: number): boolean {
+	if (index === 0) return false;
+	return PATH_OPTION_FLAGS.has(args[index - 1]!);
+}
+
+function normalizeInlinePathOption(arg: string): string {
+	if (arg.startsWith("--file=@")) return `--file=${stripAtPrefix(arg.slice("--file=".length))}`;
+	if (arg.startsWith("--symbol=@")) return `--symbol=${stripAtPrefix(arg.slice("--symbol=".length))}`;
+	return arg;
+}
+
+function buildPositionalCommandArgs(
+	command: CompactFallowRunParams["command"],
+	prefix: readonly string[],
+	args: string[],
+): string[] {
+	const [target, ...rest] = args;
+	if (!target || target.startsWith("-")) throw new Error(`${command} requires its target as the first args entry.`);
+	return [...prefix, target, ...MANAGED_OUTPUT_ARGS, ...rest];
+}
+
+function prepareFallowRunParams(value: unknown): unknown {
+	const legacy = asLegacyFallowParams(value);
+	if (!legacy) return value;
+	return compactLegacyFallowParams(legacy);
+}
+
+function asLegacyFallowParams(value: unknown): FallowRunParams | undefined {
+	const record = asLegacyCommandRecord(value);
+	if (!record) return undefined;
+	return hasOnlyLegacyExtraKeys(record) ? record as FallowRunParams : undefined;
+}
+
+function asLegacyCommandRecord(value: unknown): Record<string, any> | undefined {
+	if (!isRecord(value)) return undefined;
+	if (typeof value.command !== "string") return undefined;
+	if (Object.hasOwn(value, "args")) return undefined;
+	return value;
+}
+
+function hasOnlyLegacyExtraKeys(value: Record<string, any>): boolean {
+	const extraKeys = Object.keys(value).filter((key) => !COMPACT_PARAM_KEYS.has(key));
+	if (!extraKeys.length) return false;
+	return extraKeys.every((key) => LEGACY_PARAM_KEYS.has(key));
+}
+
+function compactLegacyFallowParams(value: FallowRunParams): CompactFallowRunParams {
+	const command = value.command as CompactFallowRunParams["command"];
+	const legacyArgs = buildLegacyFallowArgs(value);
+	const args = removeManagedLegacyArgs(command, legacyArgs);
+	const compact: Record<string, unknown> = { command };
+	if (args.length) compact.args = args;
+	copyDefinedOption(compact, value, "root");
+	copyDefinedOption(compact, value, "timeoutSecs");
+	copyDefinedOption(compact, value, "detail");
+	return compact as CompactFallowRunParams;
+}
+
+function copyDefinedOption(target: Record<string, unknown>, source: Record<string, any>, key: string): void {
+	if (source[key] !== undefined) target[key] = source[key];
+}
+
+function removeManagedLegacyArgs(command: CompactFallowRunParams["command"], args: string[]): string[] {
+	const prefixLength = commandPrefix(command).length;
+	const remaining = args.slice(prefixLength);
+	const compact: string[] = [];
+	for (let index = 0; index < remaining.length; index++) {
+		const width = managedOutputArgWidth(remaining, index);
+		if (width) {
+			index += width - 1;
+			continue;
+		}
+		compact.push(remaining[index]!);
+	}
+	return compact;
+}
+
+function managedOutputArgWidth(args: string[], index: number): number {
+	if (args[index] === "--quiet") return 1;
+	if (args[index] !== "--format") return 0;
+	return args[index + 1] === "json" ? 2 : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, any> {
+	return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 const fallowRunner = createFallowRunner();
@@ -296,17 +496,17 @@ function clearRunnerCache(pi: ExtensionAPI): void {
 	fallowRunner.clear(pi);
 }
 
-function resolveFallowRoot(params: FallowRunParams, contextRoot: string): string {
+function resolveFallowRoot(params: CompactFallowRunParams, contextRoot: string): string {
 	if (!params.root) return contextRoot;
 	return resolve(contextRoot, stripAtPrefix(params.root));
 }
 
-function resolveFallowTimeout(params: FallowRunParams): number {
+function resolveFallowTimeout(params: CompactFallowRunParams): number {
 	if (params.timeoutSecs !== undefined) return params.timeoutSecs;
 	return Number(process.env.FALLOW_TIMEOUT_SECS || 120);
 }
 
-async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext, signal?: AbortSignal) {
+async function runFallow(pi: ExtensionAPI, params: CompactFallowRunParams, ctx: ExtensionContext, signal?: AbortSignal) {
 	const { details, content } = await fallowEngine.runFallowWithExecutor({
 		pi,
 		cwd: resolveFallowRoot(params, ctx.cwd),
@@ -413,5 +613,6 @@ export const fallowCli = {
 	clearRunnerCache,
 	splitArgs,
 	buildFallowArgs,
+	prepareFallowRunParams,
 };
 
