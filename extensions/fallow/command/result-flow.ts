@@ -6,13 +6,9 @@ import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from 
 import { FallowIssueNavigator } from "../ui";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import { hasFallowNavigator, isFallowTuiMode } from "./mode";
-import { isInformationalNavigatorCommand, resolveFallowNavigatorVisibleRows } from "./navigator";
+import { FALLOW_NAVIGATOR_OVERLAY_OPTIONS, isInformationalNavigatorCommand, resolveFallowNavigatorVisibleRows } from "./navigator";
 import { buildFallowTranscriptContent } from "./transcript";
 import type { FallowCommandContext } from "./types";
-
-const FALLOW_NAVIGATOR_MAX_WIDTH_RATIO = 0.9;
-const FALLBACK_FALLOW_NAVIGATOR_MAX_WIDTH = 100;
-const FALLOW_NAVIGATOR_MIN_WIDTH = 50;
 
 export async function executeFallowResult(
 	pi: ExtensionAPI,
@@ -97,10 +93,9 @@ function openFallowNavigator(
 ): Promise<FallowNavigatorResult | null> {
 	const { formatted } = result;
 	if (!isFallowTuiMode(ctx.mode) || !formatted.overview) return Promise.resolve(null);
-	let navigator: FallowIssueNavigator | undefined;
 	const informationalMode = isInformationalNavigatorCommand(executedArgs);
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
-		navigator = new FallowIssueNavigator(
+		return new FallowIssueNavigator(
 			formatted.overview!,
 			theme,
 			done,
@@ -118,23 +113,6 @@ function openFallowNavigator(
 		return navigator;
 	}, {
 		overlay: true,
-		overlayOptions: () => ({
-			width: resolveFallowNavigatorOverlayWidth(navigator),
-			minWidth: FALLOW_NAVIGATOR_MIN_WIDTH,
-			maxHeight: "90%",
-			anchor: "top-center",
-			row: "5%",
-		}),
+		overlayOptions: FALLOW_NAVIGATOR_OVERLAY_OPTIONS,
 	});
-}
-
-function resolveFallowNavigatorOverlayWidth(navigator: FallowIssueNavigator | undefined): number {
-	const maxWidth = resolveFallowNavigatorMaxWidth();
-	return navigator?.preferredWidth(maxWidth) ?? maxWidth;
-}
-
-function resolveFallowNavigatorMaxWidth(): number {
-	const terminalWidth = process.stdout.columns;
-	if (!terminalWidth || terminalWidth < 1) return FALLBACK_FALLOW_NAVIGATOR_MAX_WIDTH;
-	return Math.max(1, Math.floor(terminalWidth * FALLOW_NAVIGATOR_MAX_WIDTH_RATIO));
 }

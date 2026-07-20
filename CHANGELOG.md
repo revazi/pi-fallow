@@ -19,6 +19,7 @@ All notable changes to Pi Fallow are documented here.
 - Saved complete JSON whenever navigator normalization omits raw fields; generated report artifacts are never automatically deleted by Pi Fallow.
 - Added a default-off full-details checkbox to the navigator: compact prompts preserve every selected finding's coding essentials, while full mode explicitly embeds complete raw JSON and displays its model-context implication.
 - Stopped counting health file scores and hotspots as findings; mixed reports hide informational records behind a default-off toggle, informational-only commands omit finding controls, and large result sets can use more terminal height.
+- Centered the Fallow overlay at 90% terminal width, allowed up to 95% terminal height, and expanded large virtualized result sets to 30 visible rows.
 - Validated `/fallow explain` issue types before execution and removed contradictory “No issues found” and project-config context from execution-error rendering.
 
 ### Fixed
