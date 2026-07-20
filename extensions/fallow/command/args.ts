@@ -54,11 +54,19 @@ function hasFlag(args: string[], flag: string): boolean {
 
 function resolveFallbackArgs(rawArgs: string[]): string[] {
 	const normalized = [...rawArgs];
+	validateRequiredCommandArgs(normalized);
 	const command = normalized[0] ?? "";
 	const alias = commandAliasMap[command];
 	if (alias) return alias(normalized);
 	const translator = traceCommandMap[command];
 	return translator ? translator(normalized) : normalized;
+}
+
+function validateRequiredCommandArgs(args: string[]): void {
+	if (args[0] !== "explain") return;
+	if (args.some((arg) => arg === "--help" || arg === "-h")) return;
+	if (args.slice(1).some((arg) => !arg.startsWith("-"))) return;
+	throw new Error("explain requires at least one issue type, for example: /fallow explain unused-export");
 }
 
 const commandAliasMap: Record<string, (args: string[]) => string[]> = {

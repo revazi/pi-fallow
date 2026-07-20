@@ -35,10 +35,16 @@ async function normalizeFallowHandlerArgs(
 	commandState: FallowCommandState,
 	parsedArgs: string[],
 ): Promise<string[] | null> {
-	const baseRef = await resolveFallowCommandBaseRef(parsedArgs, ctx.cwd, commandState, detectFallowBaseRef);
-	return normalizeFallowArgs(parsedArgs, baseRef, commandState.lastArgs, (message, level) => {
-		if (ctx.hasUI) ctx.ui.notify(message, level);
-	});
+	try {
+		const baseRef = await resolveFallowCommandBaseRef(parsedArgs, ctx.cwd, commandState, detectFallowBaseRef);
+		return normalizeFallowArgs(parsedArgs, baseRef, commandState.lastArgs, (message, level) => {
+			if (ctx.hasUI) ctx.ui.notify(message, level);
+		});
+	} catch (error) {
+		if (!ctx.hasUI) throw error;
+		ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+		return null;
+	}
 }
 
 async function executeFallowCommandLoop(

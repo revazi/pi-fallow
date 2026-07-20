@@ -159,6 +159,16 @@ describe("formatToolOutput", () => {
 		}
 	});
 
+	it("formats structured CLI argument errors without claiming there are no issues", async () => {
+		const report = { error: true, message: "missing required issue type", exit_code: 2 };
+		const result = await formatToolOutput(parseJson(JSON.stringify(report), ""), process.cwd(), 2);
+
+		assert.equal(result.overview.title, "Fallow error");
+		assert.deepEqual(result.overview.notes, ["missing required issue type"]);
+		assert.match(result.summary, /error: missing required issue type/);
+		assert.doesNotMatch(result.text, /No issues found/);
+	});
+
 	it("uses raw output when no structured JSON is available", async () => {
 		const result = await formatToolOutput({ parsed: false, raw: "plain fallow output" }, process.cwd(), 1);
 

@@ -79,6 +79,7 @@ Manual slash command examples:
 /fallow health --file-scores --targets --score
 /fallow inspect --file extensions/fallow/cli.ts
 /fallow inspect --symbol extensions/fallow/cli.ts:fallowCli
+/fallow explain unused-export
 /fallow trace extensions/fallow/cli.ts:fallowCli
 /fallow trace-file extensions/fallow/ui.ts
 /fallow trace-export extensions/fallow/ui.ts FallowIssueNavigator

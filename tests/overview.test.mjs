@@ -119,6 +119,15 @@ describe("buildFallowOverview", () => {
 		assert.equal(overview.sections[0].items[39].raw, undefined);
 	});
 
+	it("renders execution errors without a contradictory no-issues note", () => {
+		const overview = buildFallowOverview({ error: true, message: "missing required issue type", exit_code: 2 }, 2);
+
+		assert.equal(overview.title, "Fallow error");
+		assert.equal(overview.status, "error");
+		assert.deepEqual(overview.sections, []);
+		assert.deepEqual(overview.notes, ["missing required issue type"]);
+	});
+
 	it("summarizes workspace, schema, and config outputs", () => {
 		const workspace = buildFallowOverview({ kind: "list-workspaces", workspace_count: 0, workspaces: [], workspace_diagnostics: [] });
 		assert.equal(workspace.title, "Fallow workspaces");
