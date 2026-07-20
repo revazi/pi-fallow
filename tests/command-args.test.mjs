@@ -47,6 +47,12 @@ describe("normalizeFallowArgs", () => {
 		assert.throws(() => normalize(["check-changed"]), /requires --changed-since or --base/);
 	});
 
+	it("validates explain before launching Fallow", () => {
+		assert.throws(() => normalize(["explain"]), /explain requires at least one issue type/);
+		assert.deepEqual(normalize(["explain", "unused-export"]).result, ["explain", "unused-export"]);
+		assert.deepEqual(normalize(["explain", "--help"]).result, ["explain", "--help"]);
+	});
+
 	it("maps trace aliases", () => {
 		assert.deepEqual(normalize(["trace-file", "extensions/fallow/cli.ts"]).result, [
 			"dead-code", "--trace-file", "extensions/fallow/cli.ts",

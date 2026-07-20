@@ -494,8 +494,17 @@ function appendFallbackNotes(
 	notes: string[],
 ): void {
 	if (sections.length) return;
+	appendRootMessage(root, notes);
+	if (shouldAddNoIssuesNote(root, stats)) notes.push("No issues found in the selected report sections.");
+}
+
+function appendRootMessage(root: Record<string, any>, notes: string[]): void {
 	if (root.message) notes.push(String(root.message));
-	if (stats.length <= 1) notes.push("No issues found in the selected report sections.");
+}
+
+function shouldAddNoIssuesNote(root: Record<string, any>, stats: Array<{ label: string; value: string | number }>): boolean {
+	if (root.error) return false;
+	return stats.length <= 1;
 }
 
 function addIfDefined(stats: Array<{ label: string; value: string | number }>, label: string, value: string | number | undefined): void {
@@ -525,6 +534,7 @@ export function buildFallowOverview(
 	addWorkspaceStats(root, stats, title, notes);
 	addSchemaStats(root, stats, title);
 	addDefaultNotes(root, sections, stats, notes);
+	applyErrorTitle(root, title);
 	addExitCodeNote(notes, exitCode);
 
 	return {
@@ -534,6 +544,10 @@ export function buildFallowOverview(
 		sections,
 		notes,
 	};
+}
+
+function applyErrorTitle(root: Record<string, any>, title: { value: string }): void {
+	if (root.error) title.value = "Fallow error";
 }
 
 function addOverviewSections(

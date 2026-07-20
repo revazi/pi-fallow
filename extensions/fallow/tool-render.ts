@@ -42,8 +42,7 @@ export function renderFallowToolResult(
 			command: commandDisplay(details.command, details.args),
 			fullOutputPath: details.fullOutputPath,
 			truncated: details.truncated,
-			projectState: details.projectState,
-			prSummary: details.prSummary,
+			...visibleOverviewContext(details),
 		});
 	}
 	return new Text(buildFallowCompactMessage(details, expanded, theme), 0, 0);
@@ -158,8 +157,7 @@ function renderFallowOverviewResultMessage(
 		command: resolveOverviewCommand(details),
 		fullOutputPath: details.fullOutputPath,
 		truncated: details.truncated,
-		projectState: details.projectState,
-		prSummary: details.prSummary,
+		...visibleOverviewContext(details),
 	});
 }
 
@@ -168,8 +166,17 @@ function resolveOverviewCommand(details: MessageRendererDetails | undefined): st
 	return commandDisplay(details.command, details.args);
 }
 
+function visibleOverviewContext(details: Pick<MessageRendererDetails, "exitCode" | "projectState" | "prSummary">): {
+	projectState?: FallowProjectState;
+	prSummary?: FallowPrSummary;
+} {
+	if ((details.exitCode ?? 0) >= 2) return {};
+	return { projectState: details.projectState, prSummary: details.prSummary };
+}
+
 type MessageRendererDetails = {
 	command?: string;
+	exitCode?: number;
 	args?: string[];
 	overview?: FallowOverview;
 	compact?: boolean;
