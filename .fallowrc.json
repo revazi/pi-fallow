@@ -2,6 +2,7 @@
   "entry": [
     "extensions/index.ts",
     "tests/*.test.mjs",
+    "tests/fixtures/*.mjs",
     "scripts/performance-memory-worker.mjs",
     "benchmarks/bin/fallow-fixture.mjs"
   ],

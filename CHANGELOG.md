@@ -11,6 +11,9 @@ All notable changes to Pi Fallow are documented here.
 - Raised the minimum Node.js version to 22.19 to match the current Pi peer packages.
 - Pinned Fallow, esbuild, and coverage tooling for reproducible development and CI checks.
 
+### Fixed
+- Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.
+
 ## [0.2.0] - 2026-07-01
 
 ### Added

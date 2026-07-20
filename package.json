@@ -31,7 +31,7 @@
     "dupes": "fallow dupes --format json --quiet",
     "dead-code": "fallow dead-code --format json --quiet",
     "test": "node --test",
-    "coverage": "c8 --all --include='extensions/**/*.ts' --reporter=text --reporter=lcov --reports-dir=coverage --check-coverage --lines=40 --statements=40 --functions=60 --branches=75 node --test",
+    "coverage": "c8 --all --include='extensions/**/*.ts' --reporter=text --reporter=lcov --reports-dir=coverage --check-coverage --lines=45 --statements=45 --functions=65 --branches=75 node --test",
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "audit:all": "npm audit --audit-level=high",
     "bench:tokens": "node scripts/token-benchmark.mjs",

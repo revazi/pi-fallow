@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext, ExecResult } from "@earendil-works/pi-coding-agent";
-import { stripAtPrefix } from "./path";
 import { fallowEngine } from "./engine";
+import { stripAtPrefix } from "./path";
+import { execFallowProcess } from "./process";
 import type { FallowRunParams } from "./schema";
 
 function addValue(args: string[], flag: string, value: unknown): void {
@@ -285,54 +285,15 @@ function buildFallowArgs(params: FallowRunParams): string[] {
 	return args;
 }
 
-async function execCommand(command: string, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<ExecResult> {
-	return new Promise((resolve) => {
-		const proc = spawn(command, args, { cwd, shell: false, stdio: ["ignore", "pipe", "pipe"], env: process.env });
-		let stdout = "";
-		let stderr = "";
-		let killed = false;
-		let settled = false;
-		let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-		const finish = (result: ExecResult) => {
-			if (settled) return;
-			settled = true;
-			if (timeoutId) clearTimeout(timeoutId);
-			if (signal) signal.removeEventListener("abort", killProcess);
-			resolve(result);
-		};
-
-		const killProcess = () => {
-			if (killed) return;
-			killed = true;
-			proc.kill("SIGTERM");
-			setTimeout(() => {
-				if (!proc.killed) proc.kill("SIGKILL");
-			}, 5000).unref?.();
-		};
-
-		proc.stdout?.on("data", (data) => { stdout += data.toString(); });
-		proc.stderr?.on("data", (data) => { stderr += data.toString(); });
-		proc.on("error", (error: NodeJS.ErrnoException) => {
-			finish({ stdout, stderr: stderr || error.message, code: error.code === "ENOENT" ? 127 : 1, killed });
-		});
-		proc.on("close", (code) => finish({ stdout, stderr, code: code ?? 0, killed }));
-
-		if (signal?.aborted) killProcess();
-		else signal?.addEventListener("abort", killProcess, { once: true });
-		if (timeoutSecs > 0) timeoutId = setTimeout(killProcess, timeoutSecs * 1000);
-	});
-}
-
 async function execFallow(_pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<{ binary: string; args: string[]; result: ExecResult }> {
 	const configuredBin = process.env.FALLOW_BIN;
 	const binary = configuredBin || "fallow";
-	const result = await execCommand(binary, args, cwd, signal, timeoutSecs);
+	const result = await execFallowProcess(binary, args, cwd, signal, timeoutSecs);
 	if (!shouldTryNpxFallback(configuredBin, result)) {
 		return { binary, args, result };
 	}
 	const npxArgs = buildNpxArgs(args);
-	return { binary: "npx", args: npxArgs, result: await execCommand("npx", npxArgs, cwd, signal, timeoutSecs) };
+	return { binary: "npx", args: npxArgs, result: await execFallowProcess("npx", npxArgs, cwd, signal, timeoutSecs) };
 }
 
 function shouldTryNpxFallback(configuredBin: string | undefined, result: ExecResult): boolean {
@@ -353,16 +314,23 @@ function buildNpxArgs(args: string[]): string[] {
 	return ["-y", "fallow", ...args];
 }
 
-async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext) {
-	const args = buildFallowArgs(params);
-	const cwd = params.root ? resolve(ctx.cwd, stripAtPrefix(params.root)) : ctx.cwd;
-	const timeoutSecs = params.timeoutSecs ?? Number(process.env.FALLOW_TIMEOUT_SECS || 120);
+function resolveFallowRoot(params: FallowRunParams, contextRoot: string): string {
+	if (!params.root) return contextRoot;
+	return resolve(contextRoot, stripAtPrefix(params.root));
+}
+
+function resolveFallowTimeout(params: FallowRunParams): number {
+	if (params.timeoutSecs !== undefined) return params.timeoutSecs;
+	return Number(process.env.FALLOW_TIMEOUT_SECS || 120);
+}
+
+async function runFallow(pi: ExtensionAPI, params: FallowRunParams, ctx: ExtensionContext, signal?: AbortSignal) {
 	const { details, content } = await fallowEngine.runFallowWithExecutor({
 		pi,
-		cwd,
-		args,
-		signal: ctx.signal,
-		timeoutSecs,
+		cwd: resolveFallowRoot(params, ctx.cwd),
+		args: buildFallowArgs(params),
+		signal: signal ?? ctx.signal,
+		timeoutSecs: resolveFallowTimeout(params),
 		executor: execFallow,
 	});
 	return { content: [{ type: "text" as const, text: content }], details };
@@ -459,6 +427,7 @@ function flushSplitArg(state: { args: string[]; current: string }): void {
 export const fallowCli = {
 	runFallow,
 	execFallow,
+	execCommand: execFallowProcess,
 	splitArgs,
 	buildFallowArgs,
 };

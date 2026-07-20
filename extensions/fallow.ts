@@ -28,7 +28,7 @@ function registerFallowTool(pi: ExtensionAPI): void {
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			onUpdate?.({ content: [{ type: "text", text: `Running fallow ${params.command}...` }] });
 			if (signal?.aborted) return { content: [{ type: "text", text: "Cancelled." }], details: {} };
-			return fallowCli.runFallow(pi, params, ctx);
+			return fallowCli.runFallow(pi, params, ctx, signal);
 		},
 		renderCall(args, theme) {
 			return renderFallowToolCall(args, theme);
