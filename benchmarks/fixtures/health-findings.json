@@ -1,0 +1,409 @@
+{
+  "kind": "health",
+  "schema_version": 7,
+  "version": "3.6.0",
+  "elapsed_ms": 96,
+  "findings": [
+    {
+      "benchmark_id": "complexity-0354",
+      "kind": "complexity",
+      "export_name": "complexity_1",
+      "path": "src/features/complexity/module-001.ts",
+      "line": 11,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for complexity finding 1; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect complexity-0354, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "cyclomatic": 21,
+      "cognitive": 16,
+      "crap": 31,
+      "line_count": 80
+    },
+    {
+      "benchmark_id": "complexity-0355",
+      "kind": "complexity",
+      "export_name": "complexity_2",
+      "path": "src/features/complexity/module-002.ts",
+      "line": 12,
+      "severity": "moderate",
+      "evidence": "Deterministic benchmark evidence for complexity finding 2; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect complexity-0355, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "cyclomatic": 22,
+      "cognitive": 17,
+      "crap": 32,
+      "line_count": 81
+    },
+    {
+      "benchmark_id": "complexity-0356",
+      "kind": "complexity",
+      "export_name": "complexity_3",
+      "path": "src/features/complexity/module-003.ts",
+      "line": 13,
+      "severity": "low",
+      "evidence": "Deterministic benchmark evidence for complexity finding 3; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect complexity-0356, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "cyclomatic": 23,
+      "cognitive": 18,
+      "crap": 33,
+      "line_count": 82
+    },
+    {
+      "benchmark_id": "complexity-0357",
+      "kind": "complexity",
+      "export_name": "complexity_4",
+      "path": "src/features/complexity/module-004.ts",
+      "line": 14,
+      "severity": "critical",
+      "evidence": "Deterministic benchmark evidence for complexity finding 4; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect complexity-0357, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "cyclomatic": 24,
+      "cognitive": 19,
+      "crap": 34,
+      "line_count": 83
+    }
+  ],
+  "file_scores": [
+    {
+      "benchmark_id": "file-score-0358",
+      "kind": "file-score",
+      "export_name": "file_score_1",
+      "path": "src/features/file-score/module-001.ts",
+      "line": 11,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for file-score finding 1; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect file-score-0358, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "maintainability_index": 61,
+      "lines": 200,
+      "dead_code_ratio": 0,
+      "crap_max": 20
+    },
+    {
+      "benchmark_id": "file-score-0359",
+      "kind": "file-score",
+      "export_name": "file_score_2",
+      "path": "src/features/file-score/module-002.ts",
+      "line": 12,
+      "severity": "moderate",
+      "evidence": "Deterministic benchmark evidence for file-score finding 2; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect file-score-0359, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "maintainability_index": 60,
+      "lines": 210,
+      "dead_code_ratio": 0.01,
+      "crap_max": 21
+    },
+    {
+      "benchmark_id": "file-score-0360",
+      "kind": "file-score",
+      "export_name": "file_score_3",
+      "path": "src/features/file-score/module-003.ts",
+      "line": 13,
+      "severity": "low",
+      "evidence": "Deterministic benchmark evidence for file-score finding 3; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect file-score-0360, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "maintainability_index": 59,
+      "lines": 220,
+      "dead_code_ratio": 0.02,
+      "crap_max": 22
+    },
+    {
+      "benchmark_id": "file-score-0361",
+      "kind": "file-score",
+      "export_name": "file_score_4",
+      "path": "src/features/file-score/module-004.ts",
+      "line": 14,
+      "severity": "critical",
+      "evidence": "Deterministic benchmark evidence for file-score finding 4; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect file-score-0361, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "maintainability_index": 58,
+      "lines": 230,
+      "dead_code_ratio": 0.03,
+      "crap_max": 23
+    },
+    {
+      "benchmark_id": "file-score-0362",
+      "kind": "file-score",
+      "export_name": "file_score_5",
+      "path": "src/features/file-score/module-005.ts",
+      "line": 15,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for file-score finding 5; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect file-score-0362, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "maintainability_index": 57,
+      "lines": 240,
+      "dead_code_ratio": 0.04,
+      "crap_max": 24
+    }
+  ],
+  "targets": [
+    {
+      "benchmark_id": "refactoring-target-0363",
+      "kind": "refactoring-target",
+      "export_name": "refactoring_target_1",
+      "path": "src/features/refactoring-target/module-001.ts",
+      "line": 11,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for refactoring-target finding 1; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect refactoring-target-0363, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "category": "extract-module",
+      "priority": 90,
+      "effort": "medium",
+      "recommendation": "Extract cohesive responsibilities for target 1."
+    },
+    {
+      "benchmark_id": "refactoring-target-0364",
+      "kind": "refactoring-target",
+      "export_name": "refactoring_target_2",
+      "path": "src/features/refactoring-target/module-002.ts",
+      "line": 12,
+      "severity": "moderate",
+      "evidence": "Deterministic benchmark evidence for refactoring-target finding 2; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect refactoring-target-0364, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "category": "extract-module",
+      "priority": 89,
+      "effort": "medium",
+      "recommendation": "Extract cohesive responsibilities for target 2."
+    },
+    {
+      "benchmark_id": "refactoring-target-0365",
+      "kind": "refactoring-target",
+      "export_name": "refactoring_target_3",
+      "path": "src/features/refactoring-target/module-003.ts",
+      "line": 13,
+      "severity": "low",
+      "evidence": "Deterministic benchmark evidence for refactoring-target finding 3; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect refactoring-target-0365, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "category": "extract-module",
+      "priority": 88,
+      "effort": "medium",
+      "recommendation": "Extract cohesive responsibilities for target 3."
+    },
+    {
+      "benchmark_id": "refactoring-target-0366",
+      "kind": "refactoring-target",
+      "export_name": "refactoring_target_4",
+      "path": "src/features/refactoring-target/module-004.ts",
+      "line": 14,
+      "severity": "critical",
+      "evidence": "Deterministic benchmark evidence for refactoring-target finding 4; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect refactoring-target-0366, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "category": "extract-module",
+      "priority": 87,
+      "effort": "medium",
+      "recommendation": "Extract cohesive responsibilities for target 4."
+    },
+    {
+      "benchmark_id": "refactoring-target-0367",
+      "kind": "refactoring-target",
+      "export_name": "refactoring_target_5",
+      "path": "src/features/refactoring-target/module-005.ts",
+      "line": 15,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for refactoring-target finding 5; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect refactoring-target-0367, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "category": "extract-module",
+      "priority": 86,
+      "effort": "medium",
+      "recommendation": "Extract cohesive responsibilities for target 5."
+    }
+  ],
+  "hotspots": [
+    {
+      "benchmark_id": "hotspot-0368",
+      "kind": "hotspot",
+      "export_name": "hotspot_1",
+      "path": "src/features/hotspot/module-001.ts",
+      "line": 11,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for hotspot finding 1; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect hotspot-0368, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "score": 50,
+      "commits": 12,
+      "lines_added": 300,
+      "lines_deleted": 150,
+      "trend": "accelerating"
+    },
+    {
+      "benchmark_id": "hotspot-0369",
+      "kind": "hotspot",
+      "export_name": "hotspot_2",
+      "path": "src/features/hotspot/module-002.ts",
+      "line": 12,
+      "severity": "moderate",
+      "evidence": "Deterministic benchmark evidence for hotspot finding 2; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect hotspot-0369, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "score": 49,
+      "commits": 11,
+      "lines_added": 301,
+      "lines_deleted": 151,
+      "trend": "stable"
+    },
+    {
+      "benchmark_id": "hotspot-0370",
+      "kind": "hotspot",
+      "export_name": "hotspot_3",
+      "path": "src/features/hotspot/module-003.ts",
+      "line": 13,
+      "severity": "low",
+      "evidence": "Deterministic benchmark evidence for hotspot finding 3; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect hotspot-0370, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "score": 48,
+      "commits": 10,
+      "lines_added": 302,
+      "lines_deleted": 152,
+      "trend": "accelerating"
+    },
+    {
+      "benchmark_id": "hotspot-0371",
+      "kind": "hotspot",
+      "export_name": "hotspot_4",
+      "path": "src/features/hotspot/module-004.ts",
+      "line": 14,
+      "severity": "critical",
+      "evidence": "Deterministic benchmark evidence for hotspot finding 4; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect hotspot-0371, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "score": 47,
+      "commits": 9,
+      "lines_added": 303,
+      "lines_deleted": 153,
+      "trend": "stable"
+    },
+    {
+      "benchmark_id": "hotspot-0372",
+      "kind": "hotspot",
+      "export_name": "hotspot_5",
+      "path": "src/features/hotspot/module-005.ts",
+      "line": 15,
+      "severity": "high",
+      "evidence": "Deterministic benchmark evidence for hotspot finding 5; verify callers and framework usage before changing code.",
+      "actions": [
+        {
+          "type": "review-finding",
+          "auto_fixable": false,
+          "description": "Inspect hotspot-0372, make the smallest safe change, and rerun the relevant Fallow check."
+        }
+      ],
+      "score": 46,
+      "commits": 8,
+      "lines_added": 304,
+      "lines_deleted": 154,
+      "trend": "accelerating"
+    }
+  ],
+  "summary": {
+    "files_analyzed": 120,
+    "functions_above_threshold": 4,
+    "average_maintainability": 82.4
+  },
+  "health_score": {
+    "formula_version": 2,
+    "score": 81.7,
+    "grade": "B"
+  }
+}

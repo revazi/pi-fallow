@@ -5,6 +5,7 @@ import { commandDisplay, fallowExitLabel } from "../tool-render";
 import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
+import { buildFallowTranscriptContent } from "./transcript";
 import type { FallowCommandContext } from "./types";
 
 const FALLOW_NAVIGATOR_MAX_WIDTH_RATIO = 0.9;
@@ -75,17 +76,13 @@ function renderFallowResultMessage(
 	const hasNavigator = formatted.overview?.sections.some((section) => section.items.length > 0);
 	pi.sendMessage({
 		customType: "fallow-result",
-		content: hasNavigator ? buildNavigatorOpenedMessage(resultPrefix, formatted.summary) : content,
+		content: buildFallowTranscriptContent(resultPrefix, formatted.summary, content, !!hasNavigator),
 		display: true,
 		details: {
 			...commandDetails,
 			compact: !!(ctx.hasUI && hasNavigator),
 		},
 	});
-}
-
-function buildNavigatorOpenedMessage(resultPrefix: string, summary: string): string {
-	return `Opened Fallow issue navigator.\n${resultPrefix ? `${resultPrefix}\n` : ""}${summary}`;
 }
 
 function openFallowNavigator(

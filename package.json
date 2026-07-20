@@ -30,6 +30,8 @@
     "dead-code": "npx -y fallow dead-code --format json --quiet",
     "test": "node --test",
     "coverage": "node -e \"require('node:fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
+    "bench:tokens": "node scripts/token-benchmark.mjs",
+    "bench:tokens:compare": "node scripts/token-benchmark-compare.mjs",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "pack:check": "npm pack --dry-run",
     "publish:public": "npm publish --access public"
@@ -71,6 +73,7 @@
     "@earendil-works/pi-coding-agent": "^0.80.2",
     "@earendil-works/pi-tui": "^0.80.2",
     "jiti": "^2.7.0",
+    "js-tiktoken": "^1.0.21",
     "typebox": "^1.3.2"
   }
 }

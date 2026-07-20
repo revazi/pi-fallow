@@ -1,0 +1,29 @@
+{
+  "kind": "dead-code",
+  "schema_version": 7,
+  "version": "3.6.0",
+  "elapsed_ms": 37,
+  "total_issues": 0,
+  "summary": {
+    "total_issues": 0,
+    "files_analyzed": 120
+  },
+  "unused_files": [],
+  "unused_exports": [],
+  "unused_dependencies": [],
+  "unlisted_dependencies": [],
+  "unused_types": [],
+  "unused_class_members": [],
+  "unresolved_imports": [],
+  "duplicate_exports": [],
+  "circular_dependencies": [],
+  "boundary_violations": [],
+  "stale_suppressions": [],
+  "next_steps": [
+    {
+      "id": "verify",
+      "command": "fallow dead-code",
+      "reason": "Verify no findings"
+    }
+  ]
+}

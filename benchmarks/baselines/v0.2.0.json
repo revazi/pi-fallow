@@ -1,0 +1,1813 @@
+{
+  "benchmarkVersion": 1,
+  "label": "v0.2.0-before",
+  "generatedAt": "2026-07-20T06:48:35.134Z",
+  "corpusHash": "sha256:797662e9f1331e272aed39c5b61a600a841018341c15047355add5fc20c2555e",
+  "primaryEncoding": "o200k_base",
+  "tokenizers": [
+    {
+      "encoding": "o200k_base",
+      "implementation": "js-tiktoken",
+      "version": "1.0.21"
+    },
+    {
+      "encoding": "cl100k_base",
+      "implementation": "js-tiktoken",
+      "version": "1.0.21"
+    }
+  ],
+  "environment": {
+    "piFallowVersion": "0.2.0",
+    "gitSha": "7c50eacd767950f45403ce5c5ffb0c865f70cea6",
+    "node": "v24.12.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "measurements": [
+    {
+      "key": "tool-contract/active",
+      "surface": "tool-contract",
+      "scenario": "active",
+      "characters": 9820,
+      "utf8Bytes": 9820,
+      "lines": 284,
+      "tokens": {
+        "o200k_base": 2237,
+        "cl100k_base": 2228
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      }
+    },
+    {
+      "key": "raw-report/no-findings",
+      "surface": "raw-report",
+      "scenario": "no-findings",
+      "characters": 612,
+      "utf8Bytes": 612,
+      "lines": 29,
+      "tokens": {
+        "o200k_base": 185,
+        "cl100k_base": 182
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 0
+    },
+    {
+      "key": "tool-result/no-findings",
+      "surface": "tool-result",
+      "scenario": "no-findings",
+      "characters": 1012,
+      "utf8Bytes": 1012,
+      "lines": 37,
+      "tokens": {
+        "o200k_base": 309,
+        "cl100k_base": 303
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 0,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2546,
+          "fiveTurnExposure": 12730
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2531,
+          "fiveTurnExposure": 12655
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/no-findings",
+      "surface": "slash-transcript",
+      "scenario": "no-findings",
+      "characters": 1012,
+      "utf8Bytes": 1012,
+      "lines": 37,
+      "tokens": {
+        "o200k_base": 309,
+        "cl100k_base": 303
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 0,
+      "hasNavigator": false,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2546,
+          "fiveTurnExposure": 12730
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2531,
+          "fiveTurnExposure": 12655
+        }
+      }
+    },
+    {
+      "key": "raw-report/small-findings",
+      "surface": "raw-report",
+      "scenario": "small-findings",
+      "characters": 3718,
+      "utf8Bytes": 3718,
+      "lines": 114,
+      "tokens": {
+        "o200k_base": 940,
+        "cl100k_base": 932
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5
+    },
+    {
+      "key": "tool-result/small-findings",
+      "surface": "tool-result",
+      "scenario": "small-findings",
+      "characters": 4118,
+      "utf8Bytes": 4118,
+      "lines": 122,
+      "tokens": {
+        "o200k_base": 1064,
+        "cl100k_base": 1053
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3301,
+          "fiveTurnExposure": 16505
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3281,
+          "fiveTurnExposure": 16405
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/small-findings",
+      "surface": "slash-transcript",
+      "scenario": "small-findings",
+      "characters": 403,
+      "utf8Bytes": 403,
+      "lines": 6,
+      "tokens": {
+        "o200k_base": 122,
+        "cl100k_base": 119
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 0,
+        "omittedFindings": 5,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "hasNavigator": true,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2359,
+          "fiveTurnExposure": 11795
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2347,
+          "fiveTurnExposure": 11735
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/small-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "small-findings:1",
+      "characters": 1221,
+      "utf8Bytes": 1221,
+      "lines": 31,
+      "tokens": {
+        "o200k_base": 298,
+        "cl100k_base": 297
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 6,
+        "retainedFields": 6,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "selectedRows": 1,
+      "availableRows": 5,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2535,
+          "fiveTurnExposure": 12675
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2525,
+          "fiveTurnExposure": 12625
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/small-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "small-findings:5",
+      "characters": 4514,
+      "utf8Bytes": 4514,
+      "lines": 128,
+      "tokens": {
+        "o200k_base": 1162,
+        "cl100k_base": 1161
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "selectedRows": 5,
+      "availableRows": 5,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3399,
+          "fiveTurnExposure": 16995
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3389,
+          "fiveTurnExposure": 16945
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/small-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "small-findings:all",
+      "characters": 4514,
+      "utf8Bytes": 4514,
+      "lines": 128,
+      "tokens": {
+        "o200k_base": 1162,
+        "cl100k_base": 1161
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "selectedRows": 5,
+      "availableRows": 5,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3399,
+          "fiveTurnExposure": 16995
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3389,
+          "fiveTurnExposure": 16945
+        }
+      }
+    },
+    {
+      "key": "raw-report/medium-findings",
+      "surface": "raw-report",
+      "scenario": "medium-findings",
+      "characters": 26080,
+      "utf8Bytes": 26080,
+      "lines": 687,
+      "tokens": {
+        "o200k_base": 6279,
+        "cl100k_base": 6236
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 40,
+        "omittedFindings": 0,
+        "requiredFields": 240,
+        "retainedFields": 240,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40
+    },
+    {
+      "key": "tool-result/medium-findings",
+      "surface": "tool-result",
+      "scenario": "medium-findings",
+      "characters": 26482,
+      "utf8Bytes": 26482,
+      "lines": 695,
+      "tokens": {
+        "o200k_base": 6403,
+        "cl100k_base": 6357
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 40,
+        "omittedFindings": 0,
+        "requiredFields": 240,
+        "retainedFields": 240,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 8640,
+          "fiveTurnExposure": 43200
+        },
+        "cl100k_base": {
+          "nextTurnTax": 8585,
+          "fiveTurnExposure": 42925
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/medium-findings",
+      "surface": "slash-transcript",
+      "scenario": "medium-findings",
+      "characters": 405,
+      "utf8Bytes": 405,
+      "lines": 6,
+      "tokens": {
+        "o200k_base": 122,
+        "cl100k_base": 119
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 0,
+        "omittedFindings": 40,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "hasNavigator": true,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2359,
+          "fiveTurnExposure": 11795
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2347,
+          "fiveTurnExposure": 11735
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/medium-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "medium-findings:1",
+      "characters": 1221,
+      "utf8Bytes": 1221,
+      "lines": 31,
+      "tokens": {
+        "o200k_base": 298,
+        "cl100k_base": 297
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 6,
+        "retainedFields": 6,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 1,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2535,
+          "fiveTurnExposure": 12675
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2525,
+          "fiveTurnExposure": 12625
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/medium-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "medium-findings:5",
+      "characters": 4367,
+      "utf8Bytes": 4367,
+      "lines": 127,
+      "tokens": {
+        "o200k_base": 1143,
+        "cl100k_base": 1142
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 5,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3380,
+          "fiveTurnExposure": 16900
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3370,
+          "fiveTurnExposure": 16850
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/medium-findings:20",
+      "surface": "editor-prompt",
+      "scenario": "medium-findings:20",
+      "characters": 17475,
+      "utf8Bytes": 17475,
+      "lines": 497,
+      "tokens": {
+        "o200k_base": 4541,
+        "cl100k_base": 4545
+      },
+      "quality": {
+        "expectedFindings": 20,
+        "includedFindings": 20,
+        "omittedFindings": 0,
+        "requiredFields": 120,
+        "retainedFields": 120,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 20,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 6778,
+          "fiveTurnExposure": 33890
+        },
+        "cl100k_base": {
+          "nextTurnTax": 6773,
+          "fiveTurnExposure": 33865
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/medium-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "medium-findings:all",
+      "characters": 34256,
+      "utf8Bytes": 34256,
+      "lines": 977,
+      "tokens": {
+        "o200k_base": 8830,
+        "cl100k_base": 8844
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 40,
+        "omittedFindings": 0,
+        "requiredFields": 240,
+        "retainedFields": 240,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 40,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 11067,
+          "fiveTurnExposure": 55335
+        },
+        "cl100k_base": {
+          "nextTurnTax": 11072,
+          "fiveTurnExposure": 55360
+        }
+      }
+    },
+    {
+      "key": "raw-report/large-findings",
+      "surface": "raw-report",
+      "scenario": "large-findings",
+      "characters": 185041,
+      "utf8Bytes": 185041,
+      "lines": 4830,
+      "tokens": {
+        "o200k_base": 44062,
+        "cl100k_base": 43759
+      },
+      "quality": {
+        "expectedFindings": 300,
+        "includedFindings": 300,
+        "omittedFindings": 0,
+        "requiredFields": 1800,
+        "retainedFields": 1800,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 300
+    },
+    {
+      "key": "tool-result/large-findings",
+      "surface": "tool-result",
+      "scenario": "large-findings",
+      "characters": 51715,
+      "utf8Bytes": 51715,
+      "lines": 1354,
+      "tokens": {
+        "o200k_base": 12416,
+        "cl100k_base": 12328
+      },
+      "quality": {
+        "expectedFindings": 300,
+        "includedFindings": 84,
+        "omittedFindings": 216,
+        "requiredFields": 504,
+        "retainedFields": 501,
+        "requiredFieldRetentionPct": 99.4,
+        "hasFullOutputReference": true
+      },
+      "reportFindings": 300,
+      "truncated": true,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 14653,
+          "fiveTurnExposure": 73265
+        },
+        "cl100k_base": {
+          "nextTurnTax": 14556,
+          "fiveTurnExposure": 72780
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/large-findings",
+      "surface": "slash-transcript",
+      "scenario": "large-findings",
+      "characters": 409,
+      "utf8Bytes": 409,
+      "lines": 6,
+      "tokens": {
+        "o200k_base": 122,
+        "cl100k_base": 119
+      },
+      "quality": {
+        "expectedFindings": 300,
+        "includedFindings": 0,
+        "omittedFindings": 300,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 300,
+      "hasNavigator": true,
+      "truncated": true,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2359,
+          "fiveTurnExposure": 11795
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2347,
+          "fiveTurnExposure": 11735
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/large-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "large-findings:1",
+      "characters": 1243,
+      "utf8Bytes": 1243,
+      "lines": 31,
+      "tokens": {
+        "o200k_base": 298,
+        "cl100k_base": 297
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 6,
+        "retainedFields": 6,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "selectedRows": 1,
+      "availableRows": 5,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2535,
+          "fiveTurnExposure": 12675
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2525,
+          "fiveTurnExposure": 12625
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/large-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "large-findings:5",
+      "characters": 4477,
+      "utf8Bytes": 4477,
+      "lines": 127,
+      "tokens": {
+        "o200k_base": 1143,
+        "cl100k_base": 1142
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "selectedRows": 5,
+      "availableRows": 5,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3380,
+          "fiveTurnExposure": 16900
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3370,
+          "fiveTurnExposure": 16850
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/large-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "large-findings:all",
+      "characters": 4477,
+      "utf8Bytes": 4477,
+      "lines": 127,
+      "tokens": {
+        "o200k_base": 1143,
+        "cl100k_base": 1142
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 5,
+      "selectedRows": 5,
+      "availableRows": 5,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3380,
+          "fiveTurnExposure": 16900
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3370,
+          "fiveTurnExposure": 16850
+        }
+      }
+    },
+    {
+      "key": "raw-report/audit-findings",
+      "surface": "raw-report",
+      "scenario": "audit-findings",
+      "characters": 29276,
+      "utf8Bytes": 29276,
+      "lines": 759,
+      "tokens": {
+        "o200k_base": 6755,
+        "cl100k_base": 6748
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 40,
+        "omittedFindings": 0,
+        "requiredFields": 240,
+        "retainedFields": 240,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40
+    },
+    {
+      "key": "tool-result/audit-findings",
+      "surface": "tool-result",
+      "scenario": "audit-findings",
+      "characters": 30239,
+      "utf8Bytes": 30239,
+      "lines": 776,
+      "tokens": {
+        "o200k_base": 7037,
+        "cl100k_base": 7026
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 40,
+        "omittedFindings": 0,
+        "requiredFields": 240,
+        "retainedFields": 240,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 9274,
+          "fiveTurnExposure": 46370
+        },
+        "cl100k_base": {
+          "nextTurnTax": 9254,
+          "fiveTurnExposure": 46270
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/audit-findings",
+      "surface": "slash-transcript",
+      "scenario": "audit-findings",
+      "characters": 966,
+      "utf8Bytes": 966,
+      "lines": 15,
+      "tokens": {
+        "o200k_base": 280,
+        "cl100k_base": 276
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 0,
+        "omittedFindings": 40,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "hasNavigator": true,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2517,
+          "fiveTurnExposure": 12585
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2504,
+          "fiveTurnExposure": 12520
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/audit-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "audit-findings:1",
+      "characters": 1286,
+      "utf8Bytes": 1287,
+      "lines": 32,
+      "tokens": {
+        "o200k_base": 314,
+        "cl100k_base": 314
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 6,
+        "retainedFields": 6,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 1,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2551,
+          "fiveTurnExposure": 12755
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2542,
+          "fiveTurnExposure": 12710
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/audit-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "audit-findings:5",
+      "characters": 4568,
+      "utf8Bytes": 4573,
+      "lines": 132,
+      "tokens": {
+        "o200k_base": 1195,
+        "cl100k_base": 1199
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 5,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3432,
+          "fiveTurnExposure": 17160
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3427,
+          "fiveTurnExposure": 17135
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/audit-findings:20",
+      "surface": "editor-prompt",
+      "scenario": "audit-findings:20",
+      "characters": 18186,
+      "utf8Bytes": 18206,
+      "lines": 517,
+      "tokens": {
+        "o200k_base": 4728,
+        "cl100k_base": 4752
+      },
+      "quality": {
+        "expectedFindings": 20,
+        "includedFindings": 20,
+        "omittedFindings": 0,
+        "requiredFields": 120,
+        "retainedFields": 120,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 20,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 6965,
+          "fiveTurnExposure": 34825
+        },
+        "cl100k_base": {
+          "nextTurnTax": 6980,
+          "fiveTurnExposure": 34900
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/audit-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "audit-findings:all",
+      "characters": 35647,
+      "utf8Bytes": 35687,
+      "lines": 1017,
+      "tokens": {
+        "o200k_base": 9197,
+        "cl100k_base": 9251
+      },
+      "quality": {
+        "expectedFindings": 40,
+        "includedFindings": 40,
+        "omittedFindings": 0,
+        "requiredFields": 240,
+        "retainedFields": 240,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 40,
+      "selectedRows": 40,
+      "availableRows": 40,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 11434,
+          "fiveTurnExposure": 57170
+        },
+        "cl100k_base": {
+          "nextTurnTax": 11479,
+          "fiveTurnExposure": 57395
+        }
+      }
+    },
+    {
+      "key": "raw-report/dupes-findings",
+      "surface": "raw-report",
+      "scenario": "dupes-findings",
+      "characters": 4367,
+      "utf8Bytes": 4367,
+      "lines": 170,
+      "tokens": {
+        "o200k_base": 1154,
+        "cl100k_base": 1148
+      },
+      "quality": {
+        "expectedFindings": 6,
+        "includedFindings": 6,
+        "omittedFindings": 0,
+        "requiredFields": 24,
+        "retainedFields": 24,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 6
+    },
+    {
+      "key": "tool-result/dupes-findings",
+      "surface": "tool-result",
+      "scenario": "dupes-findings",
+      "characters": 4557,
+      "utf8Bytes": 4557,
+      "lines": 177,
+      "tokens": {
+        "o200k_base": 1210,
+        "cl100k_base": 1204
+      },
+      "quality": {
+        "expectedFindings": 6,
+        "includedFindings": 6,
+        "omittedFindings": 0,
+        "requiredFields": 24,
+        "retainedFields": 24,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 6,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3447,
+          "fiveTurnExposure": 17235
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3432,
+          "fiveTurnExposure": 17160
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/dupes-findings",
+      "surface": "slash-transcript",
+      "scenario": "dupes-findings",
+      "characters": 193,
+      "utf8Bytes": 193,
+      "lines": 5,
+      "tokens": {
+        "o200k_base": 54,
+        "cl100k_base": 54
+      },
+      "quality": {
+        "expectedFindings": 6,
+        "includedFindings": 0,
+        "omittedFindings": 6,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 6,
+      "hasNavigator": true,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2291,
+          "fiveTurnExposure": 11455
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2282,
+          "fiveTurnExposure": 11410
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/dupes-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "dupes-findings:1",
+      "characters": 1202,
+      "utf8Bytes": 1204,
+      "lines": 41,
+      "tokens": {
+        "o200k_base": 323,
+        "cl100k_base": 321
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 4,
+        "retainedFields": 4,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 6,
+      "selectedRows": 1,
+      "availableRows": 6,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2560,
+          "fiveTurnExposure": 12800
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2549,
+          "fiveTurnExposure": 12745
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/dupes-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "dupes-findings:5",
+      "characters": 4286,
+      "utf8Bytes": 4296,
+      "lines": 177,
+      "tokens": {
+        "o200k_base": 1270,
+        "cl100k_base": 1264
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 20,
+        "retainedFields": 20,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 6,
+      "selectedRows": 5,
+      "availableRows": 6,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3507,
+          "fiveTurnExposure": 17535
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3492,
+          "fiveTurnExposure": 17460
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/dupes-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "dupes-findings:all",
+      "characters": 5058,
+      "utf8Bytes": 5070,
+      "lines": 211,
+      "tokens": {
+        "o200k_base": 1507,
+        "cl100k_base": 1500
+      },
+      "quality": {
+        "expectedFindings": 6,
+        "includedFindings": 6,
+        "omittedFindings": 0,
+        "requiredFields": 24,
+        "retainedFields": 24,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 6,
+      "selectedRows": 6,
+      "availableRows": 6,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3744,
+          "fiveTurnExposure": 18720
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3728,
+          "fiveTurnExposure": 18640
+        }
+      }
+    },
+    {
+      "key": "raw-report/health-findings",
+      "surface": "raw-report",
+      "scenario": "health-findings",
+      "characters": 14081,
+      "utf8Bytes": 14081,
+      "lines": 409,
+      "tokens": {
+        "o200k_base": 3607,
+        "cl100k_base": 3586
+      },
+      "quality": {
+        "expectedFindings": 19,
+        "includedFindings": 19,
+        "omittedFindings": 0,
+        "requiredFields": 114,
+        "retainedFields": 114,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19
+    },
+    {
+      "key": "tool-result/health-findings",
+      "surface": "tool-result",
+      "scenario": "health-findings",
+      "characters": 14362,
+      "utf8Bytes": 14362,
+      "lines": 421,
+      "tokens": {
+        "o200k_base": 3705,
+        "cl100k_base": 3684
+      },
+      "quality": {
+        "expectedFindings": 19,
+        "includedFindings": 19,
+        "omittedFindings": 0,
+        "requiredFields": 114,
+        "retainedFields": 114,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 5942,
+          "fiveTurnExposure": 29710
+        },
+        "cl100k_base": {
+          "nextTurnTax": 5912,
+          "fiveTurnExposure": 29560
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/health-findings",
+      "surface": "slash-transcript",
+      "scenario": "health-findings",
+      "characters": 284,
+      "utf8Bytes": 284,
+      "lines": 10,
+      "tokens": {
+        "o200k_base": 96,
+        "cl100k_base": 96
+      },
+      "quality": {
+        "expectedFindings": 19,
+        "includedFindings": 0,
+        "omittedFindings": 19,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19,
+      "hasNavigator": true,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2333,
+          "fiveTurnExposure": 11665
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2324,
+          "fiveTurnExposure": 11620
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/health-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "health-findings:1",
+      "characters": 1370,
+      "utf8Bytes": 1374,
+      "lines": 35,
+      "tokens": {
+        "o200k_base": 351,
+        "cl100k_base": 350
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 6,
+        "retainedFields": 6,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19,
+      "selectedRows": 1,
+      "availableRows": 19,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2588,
+          "fiveTurnExposure": 12940
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2578,
+          "fiveTurnExposure": 12890
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/health-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "health-findings:5",
+      "characters": 4824,
+      "utf8Bytes": 4842,
+      "lines": 146,
+      "tokens": {
+        "o200k_base": 1340,
+        "cl100k_base": 1337
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19,
+      "selectedRows": 5,
+      "availableRows": 19,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3577,
+          "fiveTurnExposure": 17885
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3565,
+          "fiveTurnExposure": 17825
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/health-findings:10",
+      "surface": "editor-prompt",
+      "scenario": "health-findings:10",
+      "characters": 8837,
+      "utf8Bytes": 8864,
+      "lines": 282,
+      "tokens": {
+        "o200k_base": 2489,
+        "cl100k_base": 2478
+      },
+      "quality": {
+        "expectedFindings": 10,
+        "includedFindings": 10,
+        "omittedFindings": 0,
+        "requiredFields": 60,
+        "retainedFields": 60,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19,
+      "selectedRows": 10,
+      "availableRows": 19,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 4726,
+          "fiveTurnExposure": 23630
+        },
+        "cl100k_base": {
+          "nextTurnTax": 4706,
+          "fiveTurnExposure": 23530
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/health-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "health-findings:all",
+      "characters": 16910,
+      "utf8Bytes": 16951,
+      "lines": 539,
+      "tokens": {
+        "o200k_base": 4673,
+        "cl100k_base": 4675
+      },
+      "quality": {
+        "expectedFindings": 19,
+        "includedFindings": 19,
+        "omittedFindings": 0,
+        "requiredFields": 114,
+        "retainedFields": 114,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 19,
+      "selectedRows": 19,
+      "availableRows": 19,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 6910,
+          "fiveTurnExposure": 34550
+        },
+        "cl100k_base": {
+          "nextTurnTax": 6903,
+          "fiveTurnExposure": 34515
+        }
+      }
+    },
+    {
+      "key": "raw-report/security-findings",
+      "surface": "raw-report",
+      "scenario": "security-findings",
+      "characters": 5614,
+      "utf8Bytes": 5614,
+      "lines": 164,
+      "tokens": {
+        "o200k_base": 1418,
+        "cl100k_base": 1408
+      },
+      "quality": {
+        "expectedFindings": 8,
+        "includedFindings": 8,
+        "omittedFindings": 0,
+        "requiredFields": 48,
+        "retainedFields": 48,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 8
+    },
+    {
+      "key": "tool-result/security-findings",
+      "surface": "tool-result",
+      "scenario": "security-findings",
+      "characters": 5764,
+      "utf8Bytes": 5764,
+      "lines": 171,
+      "tokens": {
+        "o200k_base": 1463,
+        "cl100k_base": 1453
+      },
+      "quality": {
+        "expectedFindings": 8,
+        "includedFindings": 8,
+        "omittedFindings": 0,
+        "requiredFields": 48,
+        "retainedFields": 48,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 8,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3700,
+          "fiveTurnExposure": 18500
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3681,
+          "fiveTurnExposure": 18405
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/security-findings",
+      "surface": "slash-transcript",
+      "scenario": "security-findings",
+      "characters": 153,
+      "utf8Bytes": 153,
+      "lines": 5,
+      "tokens": {
+        "o200k_base": 43,
+        "cl100k_base": 43
+      },
+      "quality": {
+        "expectedFindings": 8,
+        "includedFindings": 0,
+        "omittedFindings": 8,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 8,
+      "hasNavigator": true,
+      "truncated": false,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2280,
+          "fiveTurnExposure": 11400
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2271,
+          "fiveTurnExposure": 11355
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/security-findings:1",
+      "surface": "editor-prompt",
+      "scenario": "security-findings:1",
+      "characters": 1298,
+      "utf8Bytes": 1299,
+      "lines": 34,
+      "tokens": {
+        "o200k_base": 317,
+        "cl100k_base": 317
+      },
+      "quality": {
+        "expectedFindings": 1,
+        "includedFindings": 1,
+        "omittedFindings": 0,
+        "requiredFields": 6,
+        "retainedFields": 6,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 8,
+      "selectedRows": 1,
+      "availableRows": 8,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 2554,
+          "fiveTurnExposure": 12770
+        },
+        "cl100k_base": {
+          "nextTurnTax": 2545,
+          "fiveTurnExposure": 12725
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/security-findings:5",
+      "surface": "editor-prompt",
+      "scenario": "security-findings:5",
+      "characters": 4756,
+      "utf8Bytes": 4761,
+      "lines": 142,
+      "tokens": {
+        "o200k_base": 1244,
+        "cl100k_base": 1246
+      },
+      "quality": {
+        "expectedFindings": 5,
+        "includedFindings": 5,
+        "omittedFindings": 0,
+        "requiredFields": 30,
+        "retainedFields": 30,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 8,
+      "selectedRows": 5,
+      "availableRows": 8,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 3481,
+          "fiveTurnExposure": 17405
+        },
+        "cl100k_base": {
+          "nextTurnTax": 3474,
+          "fiveTurnExposure": 17370
+        }
+      }
+    },
+    {
+      "key": "editor-prompt/security-findings:all",
+      "surface": "editor-prompt",
+      "scenario": "security-findings:all",
+      "characters": 7353,
+      "utf8Bytes": 7361,
+      "lines": 223,
+      "tokens": {
+        "o200k_base": 1940,
+        "cl100k_base": 1943
+      },
+      "quality": {
+        "expectedFindings": 8,
+        "includedFindings": 8,
+        "omittedFindings": 0,
+        "requiredFields": 48,
+        "retainedFields": 48,
+        "requiredFieldRetentionPct": 100,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 8,
+      "selectedRows": 8,
+      "availableRows": 8,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 4177,
+          "fiveTurnExposure": 20885
+        },
+        "cl100k_base": {
+          "nextTurnTax": 4171,
+          "fiveTurnExposure": 20855
+        }
+      }
+    },
+    {
+      "key": "raw-report/schema",
+      "surface": "raw-report",
+      "scenario": "schema",
+      "characters": 240794,
+      "utf8Bytes": 240800,
+      "lines": 6954,
+      "tokens": {
+        "o200k_base": 58329,
+        "cl100k_base": 57832
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": false
+      },
+      "reportFindings": 0
+    },
+    {
+      "key": "tool-result/schema",
+      "surface": "tool-result",
+      "scenario": "schema",
+      "characters": 51538,
+      "utf8Bytes": 51542,
+      "lines": 1578,
+      "tokens": {
+        "o200k_base": 11497,
+        "cl100k_base": 11479
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": true
+      },
+      "reportFindings": 0,
+      "truncated": true,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 13734,
+          "fiveTurnExposure": 68670
+        },
+        "cl100k_base": {
+          "nextTurnTax": 13707,
+          "fiveTurnExposure": 68535
+        }
+      }
+    },
+    {
+      "key": "slash-transcript/schema",
+      "surface": "slash-transcript",
+      "scenario": "schema",
+      "characters": 51538,
+      "utf8Bytes": 51542,
+      "lines": 1578,
+      "tokens": {
+        "o200k_base": 11497,
+        "cl100k_base": 11479
+      },
+      "quality": {
+        "expectedFindings": 0,
+        "includedFindings": 0,
+        "omittedFindings": 0,
+        "requiredFields": 0,
+        "retainedFields": 0,
+        "requiredFieldRetentionPct": null,
+        "hasFullOutputReference": true
+      },
+      "reportFindings": 0,
+      "hasNavigator": false,
+      "truncated": true,
+      "context": {
+        "o200k_base": {
+          "nextTurnTax": 13734,
+          "fiveTurnExposure": 68670
+        },
+        "cl100k_base": {
+          "nextTurnTax": 13707,
+          "fiveTurnExposure": 68535
+        }
+      }
+    }
+  ],
+  "aggregates": {
+    "tool-contract": {
+      "cases": 1,
+      "characters": {
+        "total": 9820,
+        "median": 9820,
+        "p95": 9820,
+        "max": 9820
+      },
+      "utf8Bytes": {
+        "total": 9820,
+        "median": 9820,
+        "p95": 9820,
+        "max": 9820
+      },
+      "tokens": {
+        "o200k_base": {
+          "total": 2237,
+          "median": 2237,
+          "p95": 2237,
+          "max": 2237
+        },
+        "cl100k_base": {
+          "total": 2228,
+          "median": 2228,
+          "p95": 2228,
+          "max": 2228
+        }
+      }
+    },
+    "raw-report": {
+      "cases": 9,
+      "characters": {
+        "total": 509583,
+        "median": 14081,
+        "p95": 240794,
+        "max": 240794
+      },
+      "utf8Bytes": {
+        "total": 509589,
+        "median": 14081,
+        "p95": 240800,
+        "max": 240800
+      },
+      "tokens": {
+        "o200k_base": {
+          "total": 122729,
+          "median": 3607,
+          "p95": 58329,
+          "max": 58329
+        },
+        "cl100k_base": {
+          "total": 121831,
+          "median": 3586,
+          "p95": 57832,
+          "max": 57832
+        }
+      }
+    },
+    "tool-result": {
+      "cases": 9,
+      "characters": {
+        "total": 189787,
+        "median": 14362,
+        "p95": 51715,
+        "max": 51715
+      },
+      "utf8Bytes": {
+        "total": 189791,
+        "median": 14362,
+        "p95": 51715,
+        "max": 51715
+      },
+      "tokens": {
+        "o200k_base": {
+          "total": 45104,
+          "median": 3705,
+          "p95": 12416,
+          "max": 12416
+        },
+        "cl100k_base": {
+          "total": 44887,
+          "median": 3684,
+          "p95": 12328,
+          "max": 12328
+        }
+      }
+    },
+    "slash-transcript": {
+      "cases": 9,
+      "characters": {
+        "total": 55363,
+        "median": 405,
+        "p95": 51538,
+        "max": 51538
+      },
+      "utf8Bytes": {
+        "total": 55367,
+        "median": 405,
+        "p95": 51542,
+        "max": 51542
+      },
+      "tokens": {
+        "o200k_base": {
+          "total": 12645,
+          "median": 122,
+          "p95": 11497,
+          "max": 11497
+        },
+        "cl100k_base": {
+          "total": 12608,
+          "median": 119,
+          "p95": 11479,
+          "max": 11479
+        }
+      }
+    },
+    "editor-prompt": {
+      "cases": 24,
+      "characters": {
+        "total": 193346,
+        "median": 4514,
+        "p95": 34256,
+        "max": 35647
+      },
+      "utf8Bytes": {
+        "total": 193540,
+        "median": 4514,
+        "p95": 34256,
+        "max": 35687
+      },
+      "tokens": {
+        "o200k_base": {
+          "total": 50906,
+          "median": 1162,
+          "p95": 8830,
+          "max": 9197
+        },
+        "cl100k_base": {
+          "total": 50975,
+          "median": 1161,
+          "p95": 8844,
+          "max": 9251
+        }
+      }
+    }
+  }
+}
