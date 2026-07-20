@@ -4,7 +4,10 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-20
+
 ### Added
+- Added frozen token and execution baselines with deterministic token, runner, Git, parser, memory, and cold/warm benchmark tooling.
 - Added Node.js compatibility matrices, dependency audits, dependency review, CodeQL, package-install smoke checks, coverage thresholds, Dependabot, and OIDC-based npm release automation.
 
 ### Changed
@@ -48,4 +51,6 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/revazi/pi-fallow/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/revazi/pi-fallow/compare/v0.1.3...v0.2.0
