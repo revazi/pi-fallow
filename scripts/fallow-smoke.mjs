@@ -18,7 +18,7 @@ function run(command, args, options = {}) {
 }
 
 function runFallow(args) {
-	return run("npx", ["-y", "fallow", ...args]);
+	return run("fallow", args);
 }
 
 function parseJsonOutput(raw) {
