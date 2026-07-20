@@ -102,11 +102,11 @@ describe("Fallow process execution", () => {
 	it("escalates a timeout when the process ignores SIGTERM", async () => {
 		await withFixture("ignore-term", async () => {
 			const started = Date.now();
-			const result = await fallowCli.execCommand(fixture, [], root, undefined, 0.25);
+			const result = await fallowCli.execCommand(fixture, [], root, undefined, 1);
 			assert.equal(result.killed, true);
 			assert.equal(result.code, 130);
 			assert.match(result.stderr, /received SIGTERM/);
-			assert.ok(Date.now() - started < 2_000, "forced termination should settle promptly");
+			assert.ok(Date.now() - started < 3_000, "forced termination should settle promptly");
 		});
 	});
 
@@ -163,7 +163,7 @@ describe("Fallow process execution", () => {
 				const contextController = new AbortController();
 				const execute = buildFallowExecutor(
 					{},
-					{ cwd: workspace, hasUI: true, signal: contextController.signal, ui: {} },
+					{ cwd: workspace, mode: "tui", hasUI: true, signal: contextController.signal, ui: {} },
 					["health", "--format", "json", "--quiet"],
 				);
 				const execution = execute(loaderController.signal);

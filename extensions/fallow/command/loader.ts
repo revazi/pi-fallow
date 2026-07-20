@@ -3,6 +3,7 @@ import { BorderedLoader } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { fallowPurple } from "../colors";
 import { fallowEngine } from "../engine";
+import { isFallowTuiMode } from "./mode";
 import type { FallowCommandContext } from "./types";
 
 export type FallowCommandResult = Awaited<ReturnType<typeof fallowEngine.runFallowWithExecutor>>;
@@ -36,8 +37,12 @@ export async function runFallowWithLoaderIfUi(
 	executeCommand: FallowCommandExecutor,
 	finalArgs: string[],
 ): Promise<NullableFallowCommandResult> {
+	if (isFallowTuiMode(ctx.mode)) {
+		return runFallowWithLoader(ctx, executeCommand, finalArgs).finally(() => clearFallowStatus(ctx));
+	}
 	if (!ctx.hasUI) return executeCommand();
-	return runFallowWithLoader(ctx, executeCommand, finalArgs).finally(() => clearFallowStatus(ctx));
+	ctx.ui.setStatus("fallow", "fallow running…");
+	return executeCommand(ctx.signal).finally(() => clearFallowStatus(ctx));
 }
 
 function clearFallowStatus(ctx: FallowCommandContext): void {

@@ -1,7 +1,11 @@
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+
 export type FallowCommandState = { lastArgs: string[] | null };
+export type FallowRunMode = ExtensionContext["mode"];
 
 export type FallowCommandContext = {
 	cwd: string;
+	mode: FallowRunMode;
 	hasUI: boolean;
 	signal?: AbortSignal | undefined;
 	ui: {

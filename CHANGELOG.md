@@ -13,6 +13,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Fixed
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.
+- Made `/fallow` execute directly in RPC, JSON, and print modes while reserving loaders and navigator overlays for TUI mode and retaining full non-TUI transcript output.
 
 ## [0.2.0] - 2026-07-01
 

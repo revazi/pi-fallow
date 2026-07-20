@@ -5,6 +5,7 @@ import { commandDisplay, fallowExitLabel } from "../tool-render";
 import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
+import { hasFallowNavigator, isFallowTuiMode } from "./mode";
 import { buildFallowTranscriptContent } from "./transcript";
 import type { FallowCommandContext } from "./types";
 
@@ -73,14 +74,14 @@ function renderFallowResultMessage(
 	resultPrefix: string,
 ): void {
 	const { details: commandDetails, formatted, content } = result;
-	const hasNavigator = formatted.overview?.sections.some((section) => section.items.length > 0);
+	const hasNavigator = hasFallowNavigator(ctx.mode, formatted.overview);
 	pi.sendMessage({
 		customType: "fallow-result",
-		content: buildFallowTranscriptContent(resultPrefix, formatted.summary, content, !!hasNavigator),
+		content: buildFallowTranscriptContent(resultPrefix, formatted.summary, content, hasNavigator),
 		display: true,
 		details: {
 			...commandDetails,
-			compact: !!(ctx.hasUI && hasNavigator),
+			compact: hasNavigator,
 		},
 	});
 }
@@ -94,7 +95,7 @@ function openFallowNavigator(
 	prSummary: FallowPrSummary | undefined,
 ): Promise<FallowNavigatorResult | null> {
 	const { formatted } = result;
-	if (!ctx.hasUI || !formatted.overview) return Promise.resolve(null);
+	if (!isFallowTuiMode(ctx.mode) || !formatted.overview) return Promise.resolve(null);
 	let navigator: FallowIssueNavigator | undefined;
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
 		navigator = new FallowIssueNavigator(

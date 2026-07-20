@@ -4,6 +4,7 @@ import { detectFallowGitState } from "../project/git";
 import type { FallowNavigatorResult } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs } from "./args";
+import { isFallowTuiMode } from "./mode";
 import { executeFallowResult } from "./result-flow";
 import type { FallowCommandContext, FallowCommandState } from "./types";
 
@@ -46,7 +47,7 @@ async function executeFallowCommandLoop(
 	initialArgs: string[],
 ): Promise<FallowNavigatorResult | null | undefined> {
 	let result = await runFallowCommandOnce(pi, ctx, commandState, initialArgs, true);
-	while (ctx.hasUI && result?.type === "trace") {
+	while (isFallowTuiMode(ctx.mode) && result?.type === "trace") {
 		result = await runFallowCommandOnce(pi, ctx, commandState, result.commandArgs, false);
 	}
 	return result;
@@ -65,7 +66,7 @@ function runFallowCommandOnce(
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {
-	if (!ctx.hasUI || result?.type !== "prompt") return;
+	if (!isFallowTuiMode(ctx.mode) || result?.type !== "prompt") return;
 	ctx.ui.setEditorText(result.prompt);
 	ctx.ui.notify(`Loaded ${result.issueCount} Fallow finding(s) into the editor. Add comments, then submit when ready.`, "info");
 }
