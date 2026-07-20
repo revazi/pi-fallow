@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 import { createJiti } from "jiti";
 
 const jiti = createJiti(import.meta.url);
-const { formatToolOutput, parseJson } = await jiti.import("../extensions/fallow/output.ts");
+const { parseJson } = await jiti.import("../extensions/fallow/json.ts");
+const { formatToolOutput } = await jiti.import("../extensions/fallow/output.ts");
 
 describe("parseJson", () => {
 	it("parses direct JSON from stdout", () => {
@@ -19,6 +20,66 @@ describe("parseJson", () => {
 		assert.equal(result.parsed, true);
 		assert.deepEqual(result.data, { kind: "dead-code", summary: { unused_files: 0 } });
 		assert.equal(result.raw, '{"kind":"dead-code","summary":{"unused_files":0}}');
+	});
+
+	it("accepts embedded object and array root values", () => {
+		for (const expected of [{}, [], [true, false, null, -1, 0, "value"], { nested: [1, 2] }]) {
+			const result = parseJson(`prefix ${JSON.stringify(expected)} suffix`, "");
+			assert.equal(result.parsed, true);
+			assert.deepEqual(result.data, expected);
+		}
+	});
+
+	it("handles nested structures, quoted braces, and escaped string characters", () => {
+		const expected = {
+			kind: "inspect",
+			message: 'quoted } ] { [ and " characters with a trailing \\\\',
+			nested: { items: [{ value: 1 }, { value: 2 }] },
+		};
+		const encoded = JSON.stringify(expected);
+		const result = parseJson(`log prefix {not-json}\n${encoded}\nlog suffix`, "");
+
+		assert.equal(result.parsed, true);
+		assert.deepEqual(result.data, expected);
+		assert.equal(result.raw, encoded);
+	});
+
+	it("skips malformed balanced and mismatched candidates before valid JSON", () => {
+		const result = parseJson('log {not-json} mismatch {] then [{"kind":"health","total_issues":0}] done', "");
+
+		assert.equal(result.parsed, true);
+		assert.deepEqual(result.data, [{ kind: "health", total_issues: 0 }]);
+	});
+
+	it("recovers when noisy quoted text contains an unmatched opening brace", () => {
+		const result = parseJson('log "message {not json" then {"kind":"health"} done', "");
+
+		assert.equal(result.parsed, true);
+		assert.deepEqual(result.data, { kind: "health" });
+	});
+
+	it("preserves the last complete embedded document without parsing overlapping suffixes", () => {
+		const second = { kind: "audit", message: "second" };
+		const result = parseJson(`prefix {"kind":"health","message":"first"} middle ${JSON.stringify(second)} suffix`, "");
+
+		assert.deepEqual(result.data, second);
+		assert.equal(result.raw, JSON.stringify(second));
+	});
+
+	it("can recover JSON split across stdout and stderr", () => {
+		const result = parseJson('prefix {"kind":', '"health","total_issues":0} suffix');
+
+		assert.equal(result.parsed, true);
+		assert.deepEqual(result.data, { kind: "health", total_issues: 0 });
+	});
+
+	it("scans deeply nested noisy JSON without retrying overlapping suffixes", () => {
+		const depth = 800;
+		const nested = `${'{"child":'.repeat(depth)}0${"}".repeat(depth)}`;
+		const result = parseJson(`prefix ${nested} suffix {"kind":"health"}`, "");
+
+		assert.equal(result.parsed, true);
+		assert.deepEqual(result.data, { kind: "health" });
 	});
 
 	it("falls back to stderr JSON", () => {
