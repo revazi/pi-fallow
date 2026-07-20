@@ -1,9 +1,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCompletions } from "./autocomplete";
+import { fallowCli } from "./cli";
 import { scheduleFallowUpdateNotice } from "./update-notice";
 
 export function registerFallowSessionStart(pi: ExtensionAPI): void {
 	pi.on("session_start", (_event, ctx) => {
+		fallowCli.clearRunnerCache(pi);
 		if (ctx.mode !== "tui") return;
 		void fallowCompletions.preloadGitReferences(pi, ctx.cwd);
 		scheduleFallowUpdateNotice(pi, ctx);

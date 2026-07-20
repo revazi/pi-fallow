@@ -28,7 +28,10 @@ const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
 const { fallowEngine } = await jiti.import("../extensions/fallow/engine.ts");
 const { fallowCompletions } = await jiti.import("../extensions/fallow/autocomplete.ts");
 const { detectFallowBaseRef } = await jiti.import("../extensions/fallow/project/git.ts");
+const { createFallowRunner } = await jiti.import("../extensions/fallow/runner.ts");
 
+const benchmarkPi = {};
+const benchmarkRunner = createFallowRunner({ packageRoot: null });
 const cli = parseCli(process.argv.slice(2));
 const packageJson = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
 const corpus = JSON.parse(await readFile(join(ROOT, "benchmarks", "corpus.json"), "utf8"));
@@ -169,7 +172,7 @@ async function benchmarkSystemResolution(pathValue, cwd, config) {
 }
 
 async function runSystemFallow(cwd) {
-	const { result, binary } = await fallowCli.execFallow({}, ["dupes", "--format", "json", "--quiet"], cwd, undefined, 120);
+	const { result, binary } = await benchmarkRunner.execute(benchmarkPi, ["dupes", "--format", "json", "--quiet"], cwd, undefined, 120);
 	const parsed = JSON.parse(result.stdout);
 	return { internalElapsedMs: parsed.elapsed_ms, binary, fallowVersion: parsed.version };
 }
@@ -180,7 +183,7 @@ async function copyExecutable(source, target) {
 }
 
 async function runFallowFixture() {
-	const { result, binary } = await fallowCli.execFallow({}, ["dead-code", "--format", "json", "--quiet"], ROOT, undefined, 120);
+	const { result, binary } = await benchmarkRunner.execute(benchmarkPi, ["dead-code", "--format", "json", "--quiet"], ROOT, undefined, 120);
 	const parsed = JSON.parse(result.stdout);
 	return { internalElapsedMs: parsed.elapsed_ms, binary };
 }
