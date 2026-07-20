@@ -1,7 +1,9 @@
 {
   "entry": [
     "extensions/index.ts",
-    "tests/*.test.mjs"
+    "tests/*.test.mjs",
+    "scripts/performance-memory-worker.mjs",
+    "benchmarks/bin/fallow-fixture.mjs"
   ],
   "ignoreDependencies": [
     "jiti",

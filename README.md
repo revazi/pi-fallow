@@ -138,9 +138,11 @@ npm run dupes
 npm run pack:check
 npm run bench:tokens -- --label candidate --output /tmp/pi-fallow-token-candidate.json
 npm run bench:tokens:compare -- benchmarks/baselines/v0.2.0.json /tmp/pi-fallow-token-candidate.json
+npm run bench:performance -- --label candidate --output /tmp/pi-fallow-performance-candidate.json
+npm run bench:performance:compare -- benchmarks/baselines/performance-v0.2.0.json /tmp/pi-fallow-performance-candidate.json
 ```
 
-See the [token benchmark documentation](https://github.com/revazi/pi-fallow/blob/main/benchmarks/README.md) for the frozen `0.2.0` baseline, fixture corpus, and before/after methodology.
+See the [token benchmark documentation](https://github.com/revazi/pi-fallow/blob/main/benchmarks/README.md) and [performance benchmark documentation](https://github.com/revazi/pi-fallow/blob/main/benchmarks/PERFORMANCE.md) for the frozen before states and comparison methodology.
 
 This repo includes `.fallowrc.json` so Fallow knows the Pi entrypoint is `extensions/index.ts` and treats TUI component callbacks such as `handleInput` and `invalidate` as framework-used.
 

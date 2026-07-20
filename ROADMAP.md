@@ -10,7 +10,7 @@ Measured on the current `0.2.0` checkout:
 - Reported coverage for loaded source files is 58.71% lines, 80.19% branches, and 67.58% functions. Unloaded production modules are not currently included, so true repository coverage is lower.
 - Fallow health score is 88.4 (A), average maintainability is 90.5, and there are no complexity-threshold, duplication, circular-dependency, or dead-export findings.
 - The remaining dead-code report is a test-classification finding for `jiti`, which is used by tests and should not be moved into runtime dependencies without another reason.
-- Local command measurements showed about 0.8–1.6 seconds through `npx -y fallow`, while invoking the cached Fallow executable directly took about 0.14 seconds for a small report. These numbers are machine-specific, but show that process discovery can cost more than analysis.
+- The frozen Apple M1 Pro performance baseline measures the same Fallow 3.6.0 installation at 124.72 ms warm median when invoked directly and 819.42 ms through cached npx fallback. Git ref autocomplete blocks for a 12.88 ms cold median, base detection takes 34.46 ms warm median through three Git processes, and large/schema reports retain roughly 2.43–2.45× their fixture size on the heap. These values are machine-specific and must be compared in a matching environment.
 - `fallow schema` currently produces roughly 180 KB of JSON, demonstrating why output and prompt budgets need to be independent of Fallow's report size.
 - The frozen canonical `fallow_run` contract contains 9,820 characters and 2,237 `o200k_base` tokens before provider-specific serialization. This is a fixed context cost whenever the tool is active and must be included in token optimization work.
 

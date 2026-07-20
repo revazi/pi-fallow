@@ -32,6 +32,8 @@
     "coverage": "node -e \"require('node:fs').mkdirSync('coverage',{recursive:true})\" && node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
     "bench:tokens": "node scripts/token-benchmark.mjs",
     "bench:tokens:compare": "node scripts/token-benchmark-compare.mjs",
+    "bench:performance": "node scripts/performance-benchmark.mjs",
+    "bench:performance:compare": "node scripts/performance-benchmark-compare.mjs",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "pack:check": "npm pack --dry-run",
     "publish:public": "npm publish --access public"

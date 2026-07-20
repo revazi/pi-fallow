@@ -1,6 +1,6 @@
 # Token benchmarks
 
-This directory freezes Pi Fallow's model-visible `0.2.0` behavior before token optimizations.
+This directory freezes Pi Fallow's model-visible `0.2.0` behavior before token optimizations. Execution, Git, cold/warm, and memory measurements are documented separately in [`PERFORMANCE.md`](./PERFORMANCE.md).
 
 ## What is measured
 

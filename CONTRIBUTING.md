@@ -41,6 +41,8 @@ npm run smoke:fallow
 npm run coverage
 npm run bench:tokens -- --label candidate --output /tmp/pi-fallow-token-candidate.json
 npm run bench:tokens:compare -- benchmarks/baselines/v0.2.0.json /tmp/pi-fallow-token-candidate.json
+npm run bench:performance -- --label candidate --output /tmp/pi-fallow-performance-candidate.json
+npm run bench:performance:compare -- benchmarks/baselines/performance-v0.2.0.json /tmp/pi-fallow-performance-candidate.json
 npm run pack:check
 ```
 
@@ -55,6 +57,7 @@ What these cover:
 - `npm run smoke:fallow` smoke-tests modeled Fallow CLI surfaces.
 - `npm run coverage` generates text and lcov coverage reports.
 - `npm run bench:tokens` and `npm run bench:tokens:compare` measure model-visible output against the frozen `0.2.0` baseline.
+- `npm run bench:performance` and `npm run bench:performance:compare` measure runner, processing, Git, memory, and cold/warm behavior against the performance baseline.
 - `npm run pack:check` verifies the npm package contents.
 
 ## Pull requests
