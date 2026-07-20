@@ -1,10 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize } from "@earendil-works/pi-coding-agent";
 import { fallowCompletions } from "./fallow/autocomplete";
 import { fallowCli } from "./fallow/cli";
+import { fallowToolContract } from "./fallow/contract";
 import { runFallowCommandHandler } from "./fallow/command/handler";
 import type { FallowCommandState } from "./fallow/command/types";
-import { fallowRunParams } from "./fallow/schema";
 import { registerFallowSessionStart } from "./fallow/session";
 import { renderFallowMessageRenderer, renderFallowToolCall, renderFallowToolResult } from "./fallow/tool-render";
 import { renderFallowAboutMessage } from "./fallow/update-notice";
@@ -19,12 +18,8 @@ export default function (pi: ExtensionAPI) {
 
 function registerFallowTool(pi: ExtensionAPI): void {
 	pi.registerTool({
-		name: "fallow_run",
-		label: "Fallow",
-		description: buildFallowToolDescription(),
-		promptSnippet: "Run Fallow static/runtime codebase intelligence and return JSON summaries.",
-		promptGuidelines: fallowToolPromptGuidelines,
-		parameters: fallowRunParams,
+		...fallowToolContract,
+		prepareArguments: fallowCli.prepareFallowRunParams,
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			onUpdate?.({ content: [{ type: "text", text: `Running fallow ${params.command}...` }] });
 			if (signal?.aborted) return { content: [{ type: "text", text: "Cancelled." }], details: {} };
@@ -38,18 +33,6 @@ function registerFallowTool(pi: ExtensionAPI): void {
 		},
 	});
 }
-
-function buildFallowToolDescription(): string {
-	return `Run Fallow codebase intelligence for TypeScript/JavaScript: PR/new-issue audits (audit --base ... --gate new-only), changed-file checks, dead code, duplication, health, inspect/trace evidence, security candidates, decision surfaces, project/config/schema info, feature flags, impact, auto-fix preview/apply, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Caches FALLOW_BIN, PATH, package-local, or npx runner resolution per session.`;
-}
-
-const fallowToolPromptGuidelines = [
-	"Use fallow_run after making TypeScript/JavaScript changes when the user asks for cleanup, quality, dead-code, duplication, architecture, complexity, or PR-readiness checks.",
-	"Use fallow_run with command=\"audit\", base=\"main\" or \"origin/main\", and gate=\"new-only\" for PR/new-issue checks; use command=\"check-changed\" with changedSince for changed-file checks.",
-	"Use command=\"all\" for full-repo context; command=\"fix-preview\" before command=\"fix-apply\" unless the user explicitly requested automatic cleanup.",
-	"Use fallow_run command=\"inspect\" with file or symbol before editing unfamiliar code when bundled evidence would reduce risk.",
-	"Use fallow_run trace commands, especially command=\"trace-file\" with file or command=\"trace-symbol\" with symbol/file+exportName, before deleting exports, files, dependencies, or clone groups when confidence is low.",
-];
 
 function registerFallowCommand(pi: ExtensionAPI, commandState: FallowCommandState): void {
 	pi.registerCommand("fallow", {

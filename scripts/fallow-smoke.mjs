@@ -49,27 +49,27 @@ function hasGitRef(ref) {
 
 function assertModeledArgs() {
 	assertArgs(
-		{ command: "inspect", file: "extensions/fallow/cli.ts" },
+		{ command: "inspect", args: ["--file", "extensions/fallow/cli.ts"] },
 		["inspect", "--format", "json", "--quiet", "--file", "extensions/fallow/cli.ts"],
 	);
 	assertArgs(
-		{ command: "inspect", symbol: "extensions/fallow/cli.ts:fallowCli", symbolChain: true },
+		{ command: "inspect", args: ["--symbol", "extensions/fallow/cli.ts:fallowCli", "--symbol-chain"] },
 		["inspect", "--format", "json", "--quiet", "--symbol", "extensions/fallow/cli.ts:fallowCli", "--symbol-chain"],
 	);
 	assertArgs(
-		{ command: "trace-symbol", file: "extensions/fallow/cli.ts", exportName: "fallowCli", callers: true, depth: 2 },
+		{ command: "trace-symbol", args: ["extensions/fallow/cli.ts:fallowCli", "--callers", "--depth", "2"] },
 		["trace", "extensions/fallow/cli.ts:fallowCli", "--format", "json", "--quiet", "--callers", "--depth", "2"],
 	);
 	assertArgs(
-		{ command: "security", changedSince: "HEAD~1", securityGate: "new", surface: true },
+		{ command: "security", args: ["--changed-since", "HEAD~1", "--gate", "new", "--surface"] },
 		["security", "--format", "json", "--quiet", "--changed-since", "HEAD~1", "--gate", "new", "--surface"],
 	);
 	assertArgs(
-		{ command: "decision-surface", changedSince: "HEAD~1", maxDecisions: 4 },
+		{ command: "decision-surface", args: ["--changed-since", "HEAD~1", "--max-decisions", "4"] },
 		["decision-surface", "--format", "json", "--quiet", "--changed-since", "HEAD~1", "--max-decisions", "4"],
 	);
 	assertArgs(
-		{ command: "project-info", listWorkspaces: true },
+		{ command: "project-info", args: ["--workspaces"] },
 		["list", "--format", "json", "--quiet", "--workspaces"],
 	);
 	for (const command of ["workspaces", "config", "schema", "impact"]) {

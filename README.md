@@ -16,7 +16,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 
 ## Highlights
 
-- **Agent tool:** `fallow_run` gives Pi structured JSON summaries from Fallow.
+- **Compact agent tool:** `fallow_run` uses a small command-plus-args contract while preserving internal validation and older-session compatibility.
 - **Slash command:** `/fallow ...` runs the Fallow CLI from inside Pi.
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
@@ -90,6 +90,8 @@ Manual slash command examples:
 ```
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
+
+The agent-facing `fallow_run` tool passes command-specific flags as separate `args` tokens. For example, a PR audit uses `{ "command": "audit", "args": ["--base", "main", "--gate", "new-only"] }`. Manual `/fallow` command syntax is unchanged.
 
 `/fallow about` shows the installed Pi Fallow version, latest npm version, update command, and project links. Pi Fallow also checks npm once per TUI session and shows a non-blocking update notice when a newer version is available. Set `PI_FALLOW_DISABLE_UPDATE_NOTICE=1` to disable startup update notices.
 
