@@ -21,6 +21,11 @@ if (mode === "error") {
 	process.exit(2);
 }
 
+if (mode === "exit-127") {
+	process.stderr.write("fixture returned 127 after launch\n");
+	process.exit(127);
+}
+
 if (mode === "ignore-term") {
 	process.on("SIGTERM", () => process.stderr.write("received SIGTERM\n"));
 	setInterval(() => {}, 1_000);

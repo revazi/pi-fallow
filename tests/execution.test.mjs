@@ -93,10 +93,19 @@ describe("Fallow process execution", () => {
 		assert.deepEqual(result, { stdout: "", stderr: "", code: 130, killed: true });
 	});
 
-	it("reports a missing executable with the fallback exit code", async () => {
+	it("reports a missing executable as a pre-execution launch failure", async () => {
 		const result = await fallowCli.execCommand(join(root, "missing-fallow-binary"), [], root, undefined, 10);
 		assert.equal(result.code, 127);
 		assert.equal(result.killed, false);
+		assert.equal(result.launchError?.code, "ENOENT");
+	});
+
+	it("distinguishes a launched command's exit 127 from a launch failure", async () => {
+		await withFixture("exit-127", async () => {
+			const result = await fallowCli.execCommand(fixture, [], root, undefined, 10);
+			assert.equal(result.code, 127);
+			assert.equal(result.launchError, undefined);
+		});
 	});
 
 	it("escalates a timeout when the process ignores SIGTERM", async () => {

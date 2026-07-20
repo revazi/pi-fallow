@@ -1,8 +1,9 @@
 import { resolve } from "node:path";
-import type { ExtensionAPI, ExtensionContext, ExecResult } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { fallowEngine } from "./engine";
 import { stripAtPrefix } from "./path";
 import { execFallowProcess } from "./process";
+import { createFallowRunner } from "./runner";
 import type { FallowRunParams } from "./schema";
 
 function addValue(args: string[], flag: string, value: unknown): void {
@@ -285,33 +286,14 @@ function buildFallowArgs(params: FallowRunParams): string[] {
 	return args;
 }
 
-async function execFallow(_pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<{ binary: string; args: string[]; result: ExecResult }> {
-	const configuredBin = process.env.FALLOW_BIN;
-	const binary = configuredBin || "fallow";
-	const result = await execFallowProcess(binary, args, cwd, signal, timeoutSecs);
-	if (!shouldTryNpxFallback(configuredBin, result)) {
-		return { binary, args, result };
-	}
-	const npxArgs = buildNpxArgs(args);
-	return { binary: "npx", args: npxArgs, result: await execFallowProcess("npx", npxArgs, cwd, signal, timeoutSecs) };
+const fallowRunner = createFallowRunner();
+
+function execFallow(pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number) {
+	return fallowRunner.execute(pi, args, cwd, signal, timeoutSecs);
 }
 
-function shouldTryNpxFallback(configuredBin: string | undefined, result: ExecResult): boolean {
-	if (configuredBin) return false;
-	if (!isNpxFallbackCode(result.code)) return false;
-	return result.code === 127 || isEmptyFailureOutput(result);
-}
-
-function isNpxFallbackCode(code: number): boolean {
-	return code === 127 || code === 1;
-}
-
-function isEmptyFailureOutput(result: ExecResult): boolean {
-	return !result.stdout.trim() && !result.stderr.trim();
-}
-
-function buildNpxArgs(args: string[]): string[] {
-	return ["-y", "fallow", ...args];
+function clearRunnerCache(pi: ExtensionAPI): void {
+	fallowRunner.clear(pi);
 }
 
 function resolveFallowRoot(params: FallowRunParams, contextRoot: string): string {
@@ -428,6 +410,7 @@ export const fallowCli = {
 	runFallow,
 	execFallow,
 	execCommand: execFallowProcess,
+	clearRunnerCache,
 	splitArgs,
 	buildFallowArgs,
 };

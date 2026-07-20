@@ -24,7 +24,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Interactive navigator:** findings open in a bordered TUI view where you can inspect, select, trace, or load issues into the editor.
 - **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
 - **Safe defaults:** JSON and quiet output are added when appropriate; large output is truncated for the transcript and saved to a temp file.
-- **Flexible CLI lookup:** uses `FALLOW_BIN` first, then `fallow` from `PATH`, then falls back to `npx -y fallow`.
+- **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
 
 ## Installation
 
@@ -108,7 +108,10 @@ In the interactive navigator:
 - Fallow available through one of:
   - `FALLOW_BIN=/path/to/fallow`
   - `fallow` on `PATH`
+  - a package-local Fallow installation
   - `npx -y fallow` fallback
+
+Runner resolution is refreshed when `FALLOW_BIN` or `PATH` changes. The npx fallback locates the installed package once and invokes its executable directly for later commands. If an automatically resolved executable disappears, Pi Fallow invalidates it and retries the next route once. An invalid explicit `FALLOW_BIN`, cancellation, timeout, or a command that already started never falls through to another installation.
 
 The Pi package declares Pi libraries as peer dependencies, as recommended for Pi extensions.
 

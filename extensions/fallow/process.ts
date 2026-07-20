@@ -7,6 +7,13 @@ const PROCESS_KILL_GRACE_MS = 1_000;
 type SpawnedProcess = ReturnType<typeof spawn>;
 type ProcessSignal = "SIGTERM" | "SIGKILL";
 
+export interface FallowProcessResult extends ExecResult {
+	launchError?: {
+		code?: string;
+		message: string;
+	};
+}
+
 function signalWindowsTree(proc: SpawnedProcess, force: boolean): void {
 	const taskkillArgs = ["/PID", String(proc.pid), "/T", ...(force ? ["/F"] : [])];
 	const taskkill = spawn("taskkill", taskkillArgs, { stdio: "ignore", windowsHide: true });
@@ -75,7 +82,7 @@ export async function execFallowProcess(
 	cwd: string,
 	signal: AbortSignal | undefined,
 	timeoutSecs: number,
-): Promise<ExecResult> {
+): Promise<FallowProcessResult> {
 	if (signal?.aborted) return { stdout: "", stderr: "", code: 130, killed: true };
 	return new Promise((resolve) => {
 		const proc = spawn(command, args, {
@@ -89,6 +96,7 @@ export async function execFallowProcess(
 		let stdout = "";
 		let stderr = "";
 		let killed = false;
+		let launched = false;
 		let settled = false;
 		let timeoutId: ReturnType<typeof setTimeout> | undefined;
 		let forceKillId: ReturnType<typeof setTimeout> | undefined;
@@ -116,8 +124,15 @@ export async function execFallowProcess(
 
 		proc.stdout?.on("data", (data) => { stdout += data.toString(); });
 		proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+		proc.on("spawn", () => { launched = true; });
 		proc.on("error", (error: NodeJS.ErrnoException) => {
-			finish({ stdout, stderr: stderr || error.message, code: error.code === "ENOENT" ? 127 : 1, killed });
+			finish({
+				stdout,
+				stderr: stderr || error.message,
+				code: error.code === "ENOENT" ? 127 : 1,
+				killed,
+				launchError: launched ? undefined : { code: error.code, message: error.message },
+			});
 		});
 		proc.on("close", (code) => {
 			forceRemainingProcessTree(proc, killed);

@@ -40,7 +40,7 @@ function registerFallowTool(pi: ExtensionAPI): void {
 }
 
 function buildFallowToolDescription(): string {
-	return `Run Fallow codebase intelligence for TypeScript/JavaScript: PR/new-issue audits (audit --base ... --gate new-only), changed-file checks, dead code, duplication, health, inspect/trace evidence, security candidates, decision surfaces, project/config/schema info, feature flags, impact, auto-fix preview/apply, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Uses FALLOW_BIN if set, otherwise fallow from PATH, falling back to npx -y fallow.`;
+	return `Run Fallow codebase intelligence for TypeScript/JavaScript: PR/new-issue audits (audit --base ... --gate new-only), changed-file checks, dead code, duplication, health, inspect/trace evidence, security candidates, decision surfaces, project/config/schema info, feature flags, impact, auto-fix preview/apply, and runtime coverage. JSON output is truncated to ${DEFAULT_MAX_LINES} lines or ${formatSize(DEFAULT_MAX_BYTES)}; full output is saved to a temp file when truncated. Caches FALLOW_BIN, PATH, package-local, or npx runner resolution per session.`;
 }
 
 const fallowToolPromptGuidelines = [
