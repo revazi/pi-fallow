@@ -24,6 +24,7 @@ All notable changes to Pi Fallow are documented here.
 - Validated `/fallow explain` issue types before execution and removed contradictory “No issues found” and project-config context from execution-error rendering.
 
 ### Fixed
+- Corrected update notices to recommend `pi update npm:pi-fallow` and display outdated installations as warnings.
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.
 - Made `/fallow` execute directly in RPC, JSON, and print modes while reserving loaders and navigator overlays for TUI mode and retaining full non-TUI transcript output.
 
