@@ -1,7 +1,9 @@
 import { execFile } from "node:child_process";
-import type { FallowGitState } from "../types";
 
 const BASE_REF_CANDIDATES = ["origin/main", "main", "origin/master", "master"];
+const BASE_REF_NAMES = BASE_REF_CANDIDATES.map((candidate) => candidate.startsWith("origin/")
+	? `refs/remotes/${candidate}`
+	: `refs/heads/${candidate}`);
 
 async function git(cwd: string, args: string[]): Promise<string | undefined> {
 	return new Promise((resolve) => {
@@ -12,29 +14,10 @@ async function git(cwd: string, args: string[]): Promise<string | undefined> {
 	});
 }
 
-export async function detectFallowGitState(cwd: string): Promise<FallowGitState> {
-	const isGitRepo = await git(cwd, ["rev-parse", "--is-inside-work-tree"]);
-	if (isGitRepo !== "true") return { isGitRepo: false };
-	const branchName = await git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
-	const detached = isDetachedBranch(branchName);
-	const baseRef = await resolveBaseRef(cwd);
-	return {
-		isGitRepo: true,
-		detached,
-		branch: detached ? undefined : branchName,
-		baseRef,
-	};
-}
-
-function isDetachedBranch(branchName: string | undefined): boolean {
-	return !branchName || branchName === "HEAD";
-}
-
-async function resolveBaseRef(cwd: string): Promise<string | undefined> {
-	for (const candidate of BASE_REF_CANDIDATES) {
-		const resolved = await git(cwd, ["rev-parse", "--verify", candidate]);
-		if (resolved) return candidate;
-	}
-	return undefined;
+export async function detectFallowBaseRef(cwd: string): Promise<string | undefined> {
+	const output = await git(cwd, ["for-each-ref", "--format=%(refname:short)", ...BASE_REF_NAMES]);
+	if (!output) return undefined;
+	const available = new Set(output.split(/\r?\n/));
+	return BASE_REF_CANDIDATES.find((candidate) => available.has(candidate));
 }
 

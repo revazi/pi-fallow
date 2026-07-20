@@ -27,7 +27,7 @@ const jiti = createJiti(import.meta.url);
 const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
 const { fallowEngine } = await jiti.import("../extensions/fallow/engine.ts");
 const { fallowCompletions } = await jiti.import("../extensions/fallow/autocomplete.ts");
-const { detectFallowGitState } = await jiti.import("../extensions/fallow/project/git.ts");
+const { detectFallowBaseRef } = await jiti.import("../extensions/fallow/project/git.ts");
 
 const cli = parseCli(process.argv.slice(2));
 const packageJson = JSON.parse(await readFile(join(ROOT, "package.json"), "utf8"));
@@ -218,7 +218,7 @@ async function benchmarkGit(workspacePath, config) {
 	const detection = await benchmarkOperation(
 		"git",
 		"base-detection",
-		() => detectFallowGitState(sourceRepo),
+		() => detectFallowBaseRef(sourceRepo),
 		config,
 	);
 	const counts = await countGitSubprocesses(workspacePath, sourceRepo);
@@ -289,7 +289,7 @@ async function countGitSubprocesses(workspacePath, sourceRepo) {
 			process.chdir(tracedRepo);
 			completeBaseRef();
 			const autocomplete = await countLogLines(logPath);
-			await detectFallowGitState(tracedRepo);
+			await detectFallowBaseRef(tracedRepo);
 			const total = await countLogLines(logPath);
 			return { autocomplete, baseDetection: total - autocomplete };
 		} finally {

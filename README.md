@@ -20,7 +20,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Slash command:** `/fallow ...` runs the Fallow CLI from inside Pi.
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
-- **Autocomplete:** subcommands, flags, enum values, and branch refs are suggested in the editor.
+- **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
 - **Interactive navigator:** findings open in a bordered TUI view where you can inspect, select, trace, or load issues into the editor.
 - **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
 - **Safe defaults:** JSON and quiet output are added when appropriate; large output is truncated for the transcript and saved to a temp file.

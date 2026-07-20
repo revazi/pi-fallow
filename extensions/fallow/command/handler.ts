@@ -1,9 +1,10 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
-import { detectFallowGitState } from "../project/git";
+import { detectFallowBaseRef } from "../project/git";
 import type { FallowNavigatorResult } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs } from "./args";
+import { resolveFallowCommandBaseRef } from "./base";
 import { isFallowTuiMode } from "./mode";
 import { executeFallowResult } from "./result-flow";
 import type { FallowCommandContext, FallowCommandState } from "./types";
@@ -34,7 +35,7 @@ async function normalizeFallowHandlerArgs(
 	commandState: FallowCommandState,
 	parsedArgs: string[],
 ): Promise<string[] | null> {
-	const baseRef = (await detectFallowGitState(ctx.cwd)).baseRef ?? "main";
+	const baseRef = await resolveFallowCommandBaseRef(parsedArgs, ctx.cwd, commandState, detectFallowBaseRef);
 	return normalizeFallowArgs(parsedArgs, baseRef, commandState.lastArgs, (message, level) => {
 		if (ctx.hasUI) ctx.ui.notify(message, level);
 	});
