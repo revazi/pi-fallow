@@ -178,7 +178,7 @@ describe("Fallow process execution", () => {
 				const execution = execute(loaderController.signal);
 				setTimeout(() => loaderController.abort(), 50);
 				const result = await execution;
-				assert.equal(result.result.killed, true);
+				assert.equal(result.execution.killed, true);
 				assert.equal(contextController.signal.aborted, false);
 			});
 		} finally {

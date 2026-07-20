@@ -34,9 +34,9 @@ async function runFallowResultFlow(
 	const commandResult = await runFallowWithLoaderIfUi(ctx, executeCommand, finalArgs);
 	if (!commandResult) return handleMissingFallowResult(ctx);
 
-	const { binary, args: executedArgs, result, projectState, prSummary } = commandResult;
+	const { binary, args: executedArgs, execution, projectState, prSummary } = commandResult;
 	const resultPrefix = buildFallowResultPrefix(projectState, prSummary);
-	notifyFallowCompletion(ctx, result, binary, executedArgs);
+	notifyFallowCompletion(ctx, execution, binary, executedArgs);
 	renderFallowResultMessage(pi, ctx, commandResult, resultPrefix);
 	return openFallowNavigator(ctx, commandResult, binary, executedArgs, projectState, prSummary);
 }
@@ -52,9 +52,9 @@ function buildFallowResultPrefix(projectState: FallowProjectState | undefined, p
 	return [prSummaryText, projectStateText].filter(Boolean).join("\n");
 }
 
-function notifyFallowCompletion(ctx: FallowCommandContext, result: FallowCommandResult["result"], binary: string, args: string[]): void {
+function notifyFallowCompletion(ctx: FallowCommandContext, execution: FallowCommandResult["execution"], binary: string, args: string[]): void {
 	if (!ctx.hasUI) return;
-	ctx.ui.notify(buildFallowCompletionMessage(result.code, result.killed, binary, args), shouldNotifyAsError(result) ? "error" : "info");
+	ctx.ui.notify(buildFallowCompletionMessage(execution.code, execution.killed, binary, args), shouldNotifyAsError(execution) ? "error" : "info");
 }
 
 function buildFallowCompletionMessage(code: number, killed: boolean, binary: string, args: string[]): string {

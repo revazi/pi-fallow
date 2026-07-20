@@ -12,6 +12,7 @@ All notable changes to Pi Fallow are documented here.
 - Pinned Fallow, esbuild, and coverage tooling for reproducible development and CI checks.
 - Made Git ref autocomplete non-blocking and keyed it to Pi's project directory; base-ref detection now runs only for `/fallow pr` without an explicit base and is cached per project.
 - Cached Fallow runner resolution per project/session, including direct reuse of the npx-installed executable, environment-aware refresh, and one safe retry when an automatically discovered executable disappears.
+- Slimmed completed engine results to bounded execution and formatting metadata, releasing raw stdout, stderr, and parsed report roots before navigator or transcript retention.
 
 ### Fixed
 - Propagated the tool abort signal through Fallow execution and made cancellation terminate wrapper process trees, including force-killing commands that ignore graceful termination.
