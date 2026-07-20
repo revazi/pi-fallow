@@ -54,7 +54,7 @@ describe("formatToolOutput", () => {
 		assert.equal(result.overview?.status, "success");
 		assert.equal(result.truncated, false);
 		assert.match(result.text, /^Fallow summary:\ntotal_issues: 0/m);
-		assert.match(result.text, /Raw JSON:\n{/);
+		assert.match(result.text, /Raw JSON:\n{\n  "kind": "dead-code"/);
 	});
 
 	it("uses raw output when no structured JSON is available", async () => {

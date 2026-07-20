@@ -27,9 +27,8 @@ interface FallowCommandInput {
 interface ExecutedFallowCommand {
 	binary: string;
 	args: string[];
-	result: ExecResult;
 	stdout: string;
-	stderr: string;	
+	stderr: string;
 	code: number;
 	killed: boolean;
 	elapsedMs: number;
@@ -38,15 +37,16 @@ interface ExecutedFallowCommand {
 interface FallowCommandResult {
 	binary: string;
 	args: string[];
-	result: ExecResult;
+	execution: {
+		code: number;
+		killed: boolean;
+	};
 	formatted: {
-		text: string;
 		summary: string;
 		overview?: FallowOverview;
 		fullOutputPath?: string;
 		truncated?: boolean;
 	};
-	parsed: { parsed: boolean; data?: unknown; raw: string };
 	projectState: FallowProjectState;
 	prSummary?: FallowPrSummary;
 	details: FallowDetails;
@@ -60,23 +60,24 @@ function formatCommandLine(binary: string, args: string[]): string {
 
 async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowCommandResult> {
 	const execution = await executeCommand(input);
-	const projectState = await detectFallowProjectState(input.cwd, execution.args);
+	const projectStatePromise = detectFallowProjectState(input.cwd, execution.args);
 	const parsed = parseJson(execution.stdout, execution.stderr);
-	const formatted = await formatToolOutput(parsed, input.cwd, execution.code);
+	const formattedPromise = formatToolOutput(parsed, input.cwd, execution.code);
 	const prSummary = buildFallowPrSummary(parsed.data, execution.args, execution.code);
+	const [projectState, formattedOutput] = await Promise.all([projectStatePromise, formattedPromise]);
 	if (shouldThrowExecutionError(execution, input.throwOnExecutionError ?? true)) {
-		throwExecutionError(execution, formatted.text);
+		throwExecutionError(execution, formattedOutput.text);
 	}
+	const formatted = retainFormattedMetadata(formattedOutput);
 	return {
 		binary: execution.binary,
 		args: execution.args,
-		result: execution.result,
+		execution: { code: execution.code, killed: execution.killed },
 		formatted,
-		parsed,
 		projectState,
 		prSummary,
 		details: buildFallowDetails(execution, parsed.parsed, input.cwd, formatted, projectState, prSummary),
-		content: buildFallowResultContent(formatted, projectState, prSummary),
+		content: buildFallowResultContent(formattedOutput.text, projectState, prSummary),
 	};
 }
 
@@ -87,7 +88,6 @@ async function executeCommand(input: FallowCommandInput): Promise<ExecutedFallow
 	return {
 		binary,
 		args: executedArgs,
-		result,
 		stdout: result.stdout,
 		stderr: result.stderr,
 		code: result.code,
@@ -137,15 +137,29 @@ function buildFallowDetails(
 	};
 }
 
+function retainFormattedMetadata(formatted: {
+	summary: string;
+	overview?: FallowOverview;
+	fullOutputPath?: string;
+	truncated?: boolean;
+}): FallowCommandResult["formatted"] {
+	return {
+		summary: formatted.summary,
+		overview: formatted.overview,
+		fullOutputPath: formatted.fullOutputPath,
+		truncated: formatted.truncated,
+	};
+}
+
 function buildFallowResultContent(
-	formatted: { text: string },
+	formattedText: string,
 	projectState: FallowProjectState,
 	prSummary: FallowPrSummary | undefined,
 ): string {
 	const prSummaryText = formatFallowPrSummaryText(prSummary);
 	const projectStateText = formatFallowProjectStateText(projectState);
 	const contentPrefix = [prSummaryText, projectStateText].filter(Boolean).join("\n");
-	return contentPrefix ? `${contentPrefix}\n\n${formatted.text}` : formatted.text;
+	return contentPrefix ? `${contentPrefix}\n\n${formattedText}` : formattedText;
 }
 
 export const fallowEngine = {
