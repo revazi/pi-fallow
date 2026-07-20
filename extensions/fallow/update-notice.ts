@@ -9,7 +9,7 @@ const PI_FALLOW_RELEASES_URL = "https://github.com/revazi/pi-fallow/releases";
 const PI_FALLOW_ISSUES_URL = "https://github.com/revazi/pi-fallow/issues";
 const PI_REPO_URL = "https://github.com/earendil-works/pi";
 const FALLOW_DOCS_URL = "https://fallow.tools/docs/";
-const PI_FALLOW_UPDATE_COMMAND = "pi install npm:pi-fallow";
+const PI_FALLOW_UPDATE_COMMAND = "pi update npm:pi-fallow";
 const PI_FALLOW_DISABLE_UPDATE_ENV = "PI_FALLOW_DISABLE_UPDATE_NOTICE";
 
 const NPM_LATEST_URL = `https://registry.npmjs.org/${PI_FALLOW_PACKAGE_NAME}/latest`;
@@ -58,7 +58,7 @@ export function scheduleFallowUpdateNotice(
 	void getPiFallowVersionInfo()
 		.then((info) => {
 			if (!info.updateAvailable || !info.latestVersion) return;
-			ctx.ui?.notify(buildShortUpdateNotice(info), "info");
+			ctx.ui?.notify(buildShortUpdateNotice(info), "warning");
 		})
 		.catch(() => {
 			// Update checks are best-effort and must never affect Pi startup.
