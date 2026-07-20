@@ -102,7 +102,7 @@ In the interactive navigator:
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22.19+
 - Pi coding agent
 - Fallow available through one of:
   - `FALLOW_BIN=/path/to/fallow`
@@ -135,6 +135,9 @@ Useful checks:
 npm run check:bundle
 npm run health
 npm run dupes
+npm run coverage
+npm run audit:production
+npm run package:smoke
 npm run pack:check
 npm run bench:tokens -- --label candidate --output /tmp/pi-fallow-token-candidate.json
 npm run bench:tokens:compare -- benchmarks/baselines/v0.2.0.json /tmp/pi-fallow-token-candidate.json

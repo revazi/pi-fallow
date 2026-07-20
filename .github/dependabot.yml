@@ -1,0 +1,56 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 10
+    rebase-strategy: auto
+    versioning-strategy: increase-if-necessary
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      pi-packages:
+        patterns:
+          - "@earendil-works/*"
+      analysis-and-build-tooling:
+        patterns:
+          - c8
+          - esbuild
+          - fallow
+          - jiti
+          - js-tiktoken
+      remaining-development-dependencies:
+        dependency-type: development
+        exclude-patterns:
+          - "@earendil-works/*"
+          - c8
+          - esbuild
+          - fallow
+          - jiti
+          - js-tiktoken
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 10
+    rebase-strategy: auto
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

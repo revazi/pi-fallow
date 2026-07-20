@@ -90,7 +90,7 @@ async function benchmarkRunners(workspacePath, config) {
 	const pathNpx = join(runnerDir, "npx");
 	await copyExecutable(FIXTURE_BIN, pathFallow);
 	await copyExecutable(FIXTURE_BIN, pathNpx);
-	const originalPath = process.env.PATH;
+	const originalPath = runtimePath(process.env.PATH);
 	const nodePath = dirname(process.execPath);
 	const fixturePath = [runnerDir, nodePath, "/usr/bin", "/bin"].join(delimiter);
 	await execFileAsync(FIXTURE_BIN, ["dead-code", "--format", "json", "--quiet"]);
@@ -108,10 +108,17 @@ async function benchmarkRunners(workspacePath, config) {
 		config,
 	));
 	const deterministicFallback = await benchmarkNpxFallback(workspacePath, pathNpx, nodePath, config);
+	const systemProject = join(workspacePath, "system-project");
+	await populateFallowProject(systemProject);
 	const systemFallowBinary = resolveSystemFallowBinary(originalPath);
-	const systemDirect = await benchmarkSystemDirect(systemFallowBinary, originalPath, config);
-	const systemResolution = await benchmarkSystemResolution(originalPath, config);
+	const systemDirect = await benchmarkSystemDirect(systemFallowBinary, originalPath, systemProject, config);
+	const systemResolution = await benchmarkSystemResolution(originalPath, systemProject, config);
 	return [configured, pathResolved, deterministicFallback, systemDirect, systemResolution];
+}
+
+function runtimePath(pathValue) {
+	const localBin = join(ROOT, "node_modules", ".bin");
+	return pathValue.split(delimiter).filter((entry) => resolve(entry) !== localBin).join(delimiter);
 }
 
 async function benchmarkNpxFallback(workspacePath, npxFixture, nodePath, config) {
@@ -135,12 +142,12 @@ function resolveSystemFallowBinary(pathValue) {
 	}).trim();
 }
 
-async function benchmarkSystemDirect(fallowBinary, pathValue, config) {
+async function benchmarkSystemDirect(fallowBinary, pathValue, cwd, config) {
 	const systemConfig = { ...config, warmups: 1, iterations: config.systemRunnerIterations };
 	const measurement = await withEnvironment({ FALLOW_BIN: fallowBinary, PATH: pathValue }, () => benchmarkOperation(
 		"runner",
 		"system-direct-fallow",
-		() => runSystemFallow(),
+		() => runSystemFallow(cwd),
 		systemConfig,
 	));
 	measurement.resolvedBinary = measurement.cold.binary;
@@ -148,12 +155,12 @@ async function benchmarkSystemDirect(fallowBinary, pathValue, config) {
 	return measurement;
 }
 
-async function benchmarkSystemResolution(pathValue, config) {
+async function benchmarkSystemResolution(pathValue, cwd, config) {
 	const systemConfig = { ...config, warmups: 1, iterations: config.systemRunnerIterations };
 	const measurement = await withEnvironment({ FALLOW_BIN: undefined, PATH: pathValue }, () => benchmarkOperation(
 		"runner",
 		"system-resolution",
-		() => runSystemFallow(),
+		() => runSystemFallow(cwd),
 		systemConfig,
 	));
 	measurement.resolvedBinary = measurement.cold.binary;
@@ -161,8 +168,8 @@ async function benchmarkSystemResolution(pathValue, config) {
 	return measurement;
 }
 
-async function runSystemFallow() {
-	const { result, binary } = await fallowCli.execFallow({}, ["dupes", "--format", "json", "--quiet"], ROOT, undefined, 120);
+async function runSystemFallow(cwd) {
+	const { result, binary } = await fallowCli.execFallow({}, ["dupes", "--format", "json", "--quiet"], cwd, undefined, 120);
 	const parsed = JSON.parse(result.stdout);
 	return { internalElapsedMs: parsed.elapsed_ms, binary, fallowVersion: parsed.version };
 }

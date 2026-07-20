@@ -2,6 +2,15 @@
 
 All notable changes to Pi Fallow are documented here.
 
+## [Unreleased]
+
+### Added
+- Added Node.js compatibility matrices, dependency audits, dependency review, CodeQL, package-install smoke checks, coverage thresholds, Dependabot, and OIDC-based npm release automation.
+
+### Changed
+- Raised the minimum Node.js version to 22.19 to match the current Pi peer packages.
+- Pinned Fallow, esbuild, and coverage tooling for reproducible development and CI checks.
+
 ## [0.2.0] - 2026-07-01
 
 ### Added

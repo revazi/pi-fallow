@@ -39,6 +39,9 @@ npm run dupes
 npm run dead-code
 npm run smoke:fallow
 npm run coverage
+npm run audit:production
+npm run audit:all
+npm run package:smoke
 npm run bench:tokens -- --label candidate --output /tmp/pi-fallow-token-candidate.json
 npm run bench:tokens:compare -- benchmarks/baselines/v0.2.0.json /tmp/pi-fallow-token-candidate.json
 npm run bench:performance -- --label candidate --output /tmp/pi-fallow-performance-candidate.json
@@ -55,7 +58,9 @@ What these cover:
 - `npm run dupes` checks for duplicate code.
 - `npm run dead-code` checks for unused files/exports and stale suppressions.
 - `npm run smoke:fallow` smoke-tests modeled Fallow CLI surfaces.
-- `npm run coverage` generates text and lcov coverage reports.
+- `npm run coverage` generates text/lcov reports and enforces gradual all-file thresholds.
+- `npm run audit:production` and `npm run audit:all` check the shipped and complete dependency trees.
+- `npm run package:smoke` packs, installs, and validates the npm tarball in an isolated project.
 - `npm run bench:tokens` and `npm run bench:tokens:compare` measure model-visible output against the frozen `0.2.0` baseline.
 - `npm run bench:performance` and `npm run bench:performance:compare` measure runner, processing, Git, memory, and cold/warm behavior against the performance baseline.
 - `npm run pack:check` verifies the npm package contents.
@@ -69,6 +74,13 @@ A good PR should include:
 - confirmation that the checks above pass
 - notes about any behavior changes to `/fallow`, the navigator, or `fallow_run`
 
-## Release notes
+## Releases
 
-This package is published to npm as `pi-fallow`. Maintainers should bump the version with `npm version patch|minor|major`, publish with `npm publish --access public`, and push tags with `git push --follow-tags`.
+Releases use npm trusted publishing and GitHub OIDC; maintainers should not need a long-lived npm token.
+
+1. Run `npm version patch|minor|major --no-git-tag-version`.
+2. Update `CHANGELOG.md` and run `npm run check:publish`.
+3. Commit the release changes and create the matching `vX.Y.Z` tag.
+4. Push `main` and the tag with `git push --follow-tags`.
+
+The tag triggers `.github/workflows/release.yml`, which validates the package, publishes it with provenance, and creates the GitHub release. See `.github/REPOSITORY_SETTINGS.md` for the one-time trusted-publisher setup.

@@ -1,7 +1,7 @@
 {
   "benchmarkVersion": 1,
   "label": "v0.2.0-before",
-  "generatedAt": "2026-07-20T07:18:21.038Z",
+  "generatedAt": "2026-07-20T07:53:52.241Z",
   "config": {
     "warmups": 3,
     "iterations": 15,
@@ -11,7 +11,7 @@
   },
   "environment": {
     "piFallowVersion": "0.2.0",
-    "gitSha": "9c5c3ceac5219a106288739b222c60bac77d36ab",
+    "gitSha": "d9556ec7290d934ddf4546ceb9e7aed9a81a5f9e",
     "node": "v24.12.0",
     "platform": "darwin",
     "arch": "arm64",
@@ -25,34 +25,34 @@
       "category": "runner",
       "scenario": "configured-fallow-bin",
       "cold": {
-        "wallMs": 34.87,
-        "parentCpuUserMs": 0.98,
-        "parentCpuSystemMs": 0.43,
+        "wallMs": 32.76,
+        "parentCpuUserMs": 0.88,
+        "parentCpuSystemMs": 0.41,
         "internalElapsedMs": 1,
-        "wrapperOverheadMs": 33.87,
+        "wrapperOverheadMs": 31.76,
         "binary": "/Users/revaz/Work/fallow-pi/benchmarks/bin/fallow-fixture.mjs"
       },
       "coldStats": {
         "wallMs": {
-          "min": 34.87,
-          "median": 34.87,
-          "p95": 34.87,
-          "max": 34.87,
-          "mean": 34.87
+          "min": 32.76,
+          "median": 32.76,
+          "p95": 32.76,
+          "max": 32.76,
+          "mean": 32.76
         },
         "parentCpuUserMs": {
-          "min": 0.98,
-          "median": 0.98,
-          "p95": 0.98,
-          "max": 0.98,
-          "mean": 0.98
+          "min": 0.88,
+          "median": 0.88,
+          "p95": 0.88,
+          "max": 0.88,
+          "mean": 0.88
         },
         "parentCpuSystemMs": {
-          "min": 0.43,
-          "median": 0.43,
-          "p95": 0.43,
-          "max": 0.43,
-          "mean": 0.43
+          "min": 0.41,
+          "median": 0.41,
+          "p95": 0.41,
+          "max": 0.41,
+          "mean": 0.41
         },
         "internalElapsedMs": {
           "min": 1,
@@ -62,34 +62,34 @@
           "mean": 1
         },
         "wrapperOverheadMs": {
-          "min": 33.87,
-          "median": 33.87,
-          "p95": 33.87,
-          "max": 33.87,
-          "mean": 33.87
+          "min": 31.76,
+          "median": 31.76,
+          "p95": 31.76,
+          "max": 31.76,
+          "mean": 31.76
         }
       },
       "warm": {
         "wallMs": {
-          "min": 32.28,
-          "median": 36.56,
-          "p95": 43.51,
-          "max": 43.51,
-          "mean": 36.79
+          "min": 30.56,
+          "median": 32.19,
+          "p95": 39.09,
+          "max": 39.09,
+          "mean": 32.43
         },
         "parentCpuUserMs": {
-          "min": 0.51,
-          "median": 0.64,
-          "p95": 6.15,
-          "max": 6.15,
-          "mean": 0.99
+          "min": 0.43,
+          "median": 0.56,
+          "p95": 5.69,
+          "max": 5.69,
+          "mean": 0.88
         },
         "parentCpuSystemMs": {
-          "min": 0.42,
-          "median": 0.46,
-          "p95": 2.75,
-          "max": 2.75,
-          "mean": 0.62
+          "min": 0.35,
+          "median": 0.38,
+          "p95": 1.96,
+          "max": 1.96,
+          "mean": 0.49
         },
         "internalElapsedMs": {
           "min": 1,
@@ -99,11 +99,11 @@
           "mean": 1
         },
         "wrapperOverheadMs": {
-          "min": 31.28,
-          "median": 35.56,
-          "p95": 42.51,
-          "max": 42.51,
-          "mean": 35.79
+          "min": 29.56,
+          "median": 31.19,
+          "p95": 38.09,
+          "max": 38.09,
+          "mean": 31.43
         }
       }
     },
@@ -112,34 +112,34 @@
       "category": "runner",
       "scenario": "path-fallow",
       "cold": {
-        "wallMs": 401.57,
-        "parentCpuUserMs": 0.57,
-        "parentCpuSystemMs": 0.42,
+        "wallMs": 381.53,
+        "parentCpuUserMs": 0.55,
+        "parentCpuSystemMs": 0.44,
         "internalElapsedMs": 1,
-        "wrapperOverheadMs": 400.57,
+        "wrapperOverheadMs": 380.53,
         "binary": "fallow"
       },
       "coldStats": {
         "wallMs": {
-          "min": 401.57,
-          "median": 401.57,
-          "p95": 401.57,
-          "max": 401.57,
-          "mean": 401.57
+          "min": 381.53,
+          "median": 381.53,
+          "p95": 381.53,
+          "max": 381.53,
+          "mean": 381.53
         },
         "parentCpuUserMs": {
-          "min": 0.57,
-          "median": 0.57,
-          "p95": 0.57,
-          "max": 0.57,
-          "mean": 0.57
+          "min": 0.55,
+          "median": 0.55,
+          "p95": 0.55,
+          "max": 0.55,
+          "mean": 0.55
         },
         "parentCpuSystemMs": {
-          "min": 0.42,
-          "median": 0.42,
-          "p95": 0.42,
-          "max": 0.42,
-          "mean": 0.42
+          "min": 0.44,
+          "median": 0.44,
+          "p95": 0.44,
+          "max": 0.44,
+          "mean": 0.44
         },
         "internalElapsedMs": {
           "min": 1,
@@ -149,34 +149,34 @@
           "mean": 1
         },
         "wrapperOverheadMs": {
-          "min": 400.57,
-          "median": 400.57,
-          "p95": 400.57,
-          "max": 400.57,
-          "mean": 400.57
+          "min": 380.53,
+          "median": 380.53,
+          "p95": 380.53,
+          "max": 380.53,
+          "mean": 380.53
         }
       },
       "warm": {
         "wallMs": {
-          "min": 29.14,
-          "median": 29.92,
-          "p95": 30.52,
-          "max": 30.52,
-          "mean": 29.9
+          "min": 29.47,
+          "median": 29.7,
+          "p95": 30.84,
+          "max": 30.84,
+          "mean": 29.89
         },
         "parentCpuUserMs": {
-          "min": 0.4,
-          "median": 0.53,
-          "p95": 1.14,
-          "max": 1.14,
+          "min": 0.39,
+          "median": 0.51,
+          "p95": 1.29,
+          "max": 1.29,
           "mean": 0.6
         },
         "parentCpuSystemMs": {
-          "min": 0.36,
-          "median": 0.39,
-          "p95": 0.94,
-          "max": 0.94,
-          "mean": 0.43
+          "min": 0.35,
+          "median": 0.38,
+          "p95": 0.45,
+          "max": 0.45,
+          "mean": 0.38
         },
         "internalElapsedMs": {
           "min": 1,
@@ -186,11 +186,11 @@
           "mean": 1
         },
         "wrapperOverheadMs": {
-          "min": 28.14,
-          "median": 28.92,
-          "p95": 29.52,
-          "max": 29.52,
-          "mean": 28.9
+          "min": 28.47,
+          "median": 28.7,
+          "p95": 29.84,
+          "max": 29.84,
+          "mean": 28.89
         }
       }
     },
@@ -199,34 +199,34 @@
       "category": "runner",
       "scenario": "npx-fallback-fixture",
       "cold": {
-        "wallMs": 259.89,
-        "parentCpuUserMs": 0.83,
-        "parentCpuSystemMs": 0.63,
+        "wallMs": 255.66,
+        "parentCpuUserMs": 0.73,
+        "parentCpuSystemMs": 0.59,
         "internalElapsedMs": 1,
-        "wrapperOverheadMs": 258.89,
+        "wrapperOverheadMs": 254.66,
         "binary": "npx"
       },
       "coldStats": {
         "wallMs": {
-          "min": 259.89,
-          "median": 259.89,
-          "p95": 259.89,
-          "max": 259.89,
-          "mean": 259.89
+          "min": 255.66,
+          "median": 255.66,
+          "p95": 255.66,
+          "max": 255.66,
+          "mean": 255.66
         },
         "parentCpuUserMs": {
-          "min": 0.83,
-          "median": 0.83,
-          "p95": 0.83,
-          "max": 0.83,
-          "mean": 0.83
+          "min": 0.73,
+          "median": 0.73,
+          "p95": 0.73,
+          "max": 0.73,
+          "mean": 0.73
         },
         "parentCpuSystemMs": {
-          "min": 0.63,
-          "median": 0.63,
-          "p95": 0.63,
-          "max": 0.63,
-          "mean": 0.63
+          "min": 0.59,
+          "median": 0.59,
+          "p95": 0.59,
+          "max": 0.59,
+          "mean": 0.59
         },
         "internalElapsedMs": {
           "min": 1,
@@ -236,34 +236,34 @@
           "mean": 1
         },
         "wrapperOverheadMs": {
-          "min": 258.89,
-          "median": 258.89,
-          "p95": 258.89,
-          "max": 258.89,
-          "mean": 258.89
+          "min": 254.66,
+          "median": 254.66,
+          "p95": 254.66,
+          "max": 254.66,
+          "mean": 254.66
         }
       },
       "warm": {
         "wallMs": {
-          "min": 29.49,
-          "median": 31.02,
-          "p95": 39.83,
-          "max": 39.83,
-          "mean": 32.01
+          "min": 29.16,
+          "median": 30.43,
+          "p95": 31.18,
+          "max": 31.18,
+          "mean": 30.37
         },
         "parentCpuUserMs": {
-          "min": 0.62,
+          "min": 0.6,
           "median": 0.67,
-          "p95": 1.76,
-          "max": 1.76,
-          "mean": 0.81
+          "p95": 1.57,
+          "max": 1.57,
+          "mean": 0.78
         },
         "parentCpuSystemMs": {
-          "min": 0.57,
-          "median": 0.66,
-          "p95": 0.82,
-          "max": 0.82,
-          "mean": 0.65
+          "min": 0.54,
+          "median": 0.61,
+          "p95": 0.69,
+          "max": 0.69,
+          "mean": 0.61
         },
         "internalElapsedMs": {
           "min": 1,
@@ -273,11 +273,11 @@
           "mean": 1
         },
         "wrapperOverheadMs": {
-          "min": 28.49,
-          "median": 30.02,
-          "p95": 38.83,
-          "max": 38.83,
-          "mean": 31.01
+          "min": 28.16,
+          "median": 29.43,
+          "p95": 30.18,
+          "max": 30.18,
+          "mean": 29.37
         }
       }
     },
@@ -286,212 +286,212 @@
       "category": "runner",
       "scenario": "system-direct-fallow",
       "cold": {
-        "wallMs": 148.18,
-        "parentCpuUserMs": 0.58,
-        "parentCpuSystemMs": 0.55,
-        "internalElapsedMs": 14,
-        "wrapperOverheadMs": 134.18,
-        "binary": "/Users/revaz/.npm/_npx/e6d07818f0a04ee4/node_modules/.bin/fallow",
-        "fallowVersion": "3.6.0"
+        "wallMs": 861.82,
+        "parentCpuUserMs": 0.74,
+        "parentCpuSystemMs": 0.49,
+        "internalElapsedMs": 7,
+        "wrapperOverheadMs": 854.82,
+        "binary": "/Users/revaz/Work/fallow-pi/node_modules/.bin/fallow",
+        "fallowVersion": "3.7.0"
       },
       "coldStats": {
         "wallMs": {
-          "min": 148.18,
-          "median": 148.18,
-          "p95": 148.18,
-          "max": 148.18,
-          "mean": 148.18
+          "min": 861.82,
+          "median": 861.82,
+          "p95": 861.82,
+          "max": 861.82,
+          "mean": 861.82
         },
         "parentCpuUserMs": {
-          "min": 0.58,
-          "median": 0.58,
-          "p95": 0.58,
-          "max": 0.58,
-          "mean": 0.58
+          "min": 0.74,
+          "median": 0.74,
+          "p95": 0.74,
+          "max": 0.74,
+          "mean": 0.74
         },
         "parentCpuSystemMs": {
-          "min": 0.55,
-          "median": 0.55,
-          "p95": 0.55,
-          "max": 0.55,
-          "mean": 0.55
+          "min": 0.49,
+          "median": 0.49,
+          "p95": 0.49,
+          "max": 0.49,
+          "mean": 0.49
         },
         "internalElapsedMs": {
-          "min": 14,
-          "median": 14,
-          "p95": 14,
-          "max": 14,
-          "mean": 14
+          "min": 7,
+          "median": 7,
+          "p95": 7,
+          "max": 7,
+          "mean": 7
         },
         "wrapperOverheadMs": {
-          "min": 134.18,
-          "median": 134.18,
-          "p95": 134.18,
-          "max": 134.18,
-          "mean": 134.18
+          "min": 854.82,
+          "median": 854.82,
+          "p95": 854.82,
+          "max": 854.82,
+          "mean": 854.82
         }
       },
       "warm": {
         "wallMs": {
-          "min": 119.84,
-          "median": 124.72,
-          "p95": 125.27,
-          "max": 125.27,
-          "mean": 123.25
+          "min": 109.52,
+          "median": 111.23,
+          "p95": 115.66,
+          "max": 115.66,
+          "mean": 111.61
         },
         "parentCpuUserMs": {
-          "min": 0.48,
-          "median": 0.72,
-          "p95": 0.97,
-          "max": 0.97,
-          "mean": 0.75
+          "min": 0.54,
+          "median": 0.98,
+          "p95": 1.06,
+          "max": 1.06,
+          "mean": 0.85
         },
         "parentCpuSystemMs": {
-          "min": 0.4,
-          "median": 0.41,
-          "p95": 0.46,
-          "max": 0.46,
-          "mean": 0.42
+          "min": 0.34,
+          "median": 0.4,
+          "p95": 0.42,
+          "max": 0.42,
+          "mean": 0.39
         },
         "internalElapsedMs": {
-          "min": 11,
-          "median": 12,
-          "p95": 13,
-          "max": 13,
-          "mean": 11.8
+          "min": 4,
+          "median": 5,
+          "p95": 5,
+          "max": 5,
+          "mean": 4.6
         },
         "wrapperOverheadMs": {
-          "min": 107.84,
-          "median": 112.27,
-          "p95": 114.24,
-          "max": 114.24,
-          "mean": 111.45
+          "min": 104.52,
+          "median": 106.23,
+          "p95": 110.66,
+          "max": 110.66,
+          "mean": 107.01
         }
       },
-      "resolvedBinary": "/Users/revaz/.npm/_npx/e6d07818f0a04ee4/node_modules/.bin/fallow",
-      "fallowVersion": "3.6.0"
+      "resolvedBinary": "/Users/revaz/Work/fallow-pi/node_modules/.bin/fallow",
+      "fallowVersion": "3.7.0"
     },
     {
       "key": "runner/system-resolution",
       "category": "runner",
       "scenario": "system-resolution",
       "cold": {
-        "wallMs": 852.07,
-        "parentCpuUserMs": 1.33,
-        "parentCpuSystemMs": 2.9,
-        "internalElapsedMs": 10,
-        "wrapperOverheadMs": 842.07,
+        "wallMs": 811.56,
+        "parentCpuUserMs": 1.11,
+        "parentCpuSystemMs": 2.68,
+        "internalElapsedMs": 7,
+        "wrapperOverheadMs": 804.56,
         "binary": "npx",
-        "fallowVersion": "3.6.0"
+        "fallowVersion": "3.7.0"
       },
       "coldStats": {
         "wallMs": {
-          "min": 852.07,
-          "median": 852.07,
-          "p95": 852.07,
-          "max": 852.07,
-          "mean": 852.07
+          "min": 811.56,
+          "median": 811.56,
+          "p95": 811.56,
+          "max": 811.56,
+          "mean": 811.56
         },
         "parentCpuUserMs": {
-          "min": 1.33,
-          "median": 1.33,
-          "p95": 1.33,
-          "max": 1.33,
-          "mean": 1.33
+          "min": 1.11,
+          "median": 1.11,
+          "p95": 1.11,
+          "max": 1.11,
+          "mean": 1.11
         },
         "parentCpuSystemMs": {
-          "min": 2.9,
-          "median": 2.9,
-          "p95": 2.9,
-          "max": 2.9,
-          "mean": 2.9
+          "min": 2.68,
+          "median": 2.68,
+          "p95": 2.68,
+          "max": 2.68,
+          "mean": 2.68
         },
         "internalElapsedMs": {
-          "min": 10,
-          "median": 10,
-          "p95": 10,
-          "max": 10,
-          "mean": 10
+          "min": 7,
+          "median": 7,
+          "p95": 7,
+          "max": 7,
+          "mean": 7
         },
         "wrapperOverheadMs": {
-          "min": 842.07,
-          "median": 842.07,
-          "p95": 842.07,
-          "max": 842.07,
-          "mean": 842.07
+          "min": 804.56,
+          "median": 804.56,
+          "p95": 804.56,
+          "max": 804.56,
+          "mean": 804.56
         }
       },
       "warm": {
         "wallMs": {
-          "min": 803.34,
-          "median": 819.42,
-          "p95": 845.81,
-          "max": 845.81,
-          "mean": 819.36
+          "min": 777.86,
+          "median": 804.5,
+          "p95": 813.15,
+          "max": 813.15,
+          "mean": 797.46
         },
         "parentCpuUserMs": {
-          "min": 0.76,
-          "median": 0.88,
-          "p95": 43.79,
-          "max": 43.79,
-          "mean": 16.75
+          "min": 0.82,
+          "median": 1.1,
+          "p95": 39.8,
+          "max": 39.8,
+          "mean": 16.33
         },
         "parentCpuSystemMs": {
-          "min": 2.67,
-          "median": 2.73,
-          "p95": 14.05,
-          "max": 14.05,
-          "mean": 5.38
+          "min": 2.59,
+          "median": 2.87,
+          "p95": 11.89,
+          "max": 11.89,
+          "mean": 5.1
         },
         "internalElapsedMs": {
-          "min": 11,
-          "median": 12,
-          "p95": 13,
-          "max": 13,
-          "mean": 12
+          "min": 4,
+          "median": 4,
+          "p95": 5,
+          "max": 5,
+          "mean": 4.4
         },
         "wrapperOverheadMs": {
-          "min": 791.34,
-          "median": 807.94,
-          "p95": 833.81,
-          "max": 833.81,
-          "mean": 807.36
+          "min": 773.86,
+          "median": 800.5,
+          "p95": 809.15,
+          "max": 809.15,
+          "mean": 793.06
         }
       },
       "resolvedBinary": "npx",
-      "fallowVersion": "3.6.0"
+      "fallowVersion": "3.7.0"
     },
     {
       "key": "processing/no-findings",
       "category": "processing",
       "scenario": "no-findings",
       "cold": {
-        "wallMs": 1.61,
-        "parentCpuUserMs": 1.56,
-        "parentCpuSystemMs": 0.15,
+        "wallMs": 1.59,
+        "parentCpuUserMs": 1.53,
+        "parentCpuSystemMs": 0.16,
         "outputBytes": 1012
       },
       "coldStats": {
         "wallMs": {
-          "min": 1.61,
-          "median": 1.61,
-          "p95": 1.61,
-          "max": 1.61,
-          "mean": 1.61
+          "min": 1.59,
+          "median": 1.59,
+          "p95": 1.59,
+          "max": 1.59,
+          "mean": 1.59
         },
         "parentCpuUserMs": {
-          "min": 1.56,
-          "median": 1.56,
-          "p95": 1.56,
-          "max": 1.56,
-          "mean": 1.56
+          "min": 1.53,
+          "median": 1.53,
+          "p95": 1.53,
+          "max": 1.53,
+          "mean": 1.53
         },
         "parentCpuSystemMs": {
-          "min": 0.15,
-          "median": 0.15,
-          "p95": 0.15,
-          "max": 0.15,
-          "mean": 0.15
+          "min": 0.16,
+          "median": 0.16,
+          "p95": 0.16,
+          "max": 0.16,
+          "mean": 0.16
         },
         "outputBytes": {
           "min": 1012,
@@ -505,22 +505,22 @@
         "wallMs": {
           "min": 0.1,
           "median": 0.16,
-          "p95": 0.43,
-          "max": 0.43,
-          "mean": 0.18
+          "p95": 0.33,
+          "max": 0.33,
+          "mean": 0.17
         },
         "parentCpuUserMs": {
           "min": 0.07,
-          "median": 0.11,
-          "p95": 0.51,
-          "max": 0.51,
-          "mean": 0.16
+          "median": 0.13,
+          "p95": 0.47,
+          "max": 0.47,
+          "mean": 0.15
         },
         "parentCpuSystemMs": {
           "min": 0.05,
           "median": 0.06,
-          "p95": 0.13,
-          "max": 0.13,
+          "p95": 0.11,
+          "max": 0.11,
           "mean": 0.07
         },
         "outputBytes": {
@@ -537,25 +537,25 @@
       "category": "processing",
       "scenario": "small-findings",
       "cold": {
-        "wallMs": 0.43,
-        "parentCpuUserMs": 0.42,
+        "wallMs": 0.38,
+        "parentCpuUserMs": 0.38,
         "parentCpuSystemMs": 0.07,
         "outputBytes": 4118
       },
       "coldStats": {
         "wallMs": {
-          "min": 0.43,
-          "median": 0.43,
-          "p95": 0.43,
-          "max": 0.43,
-          "mean": 0.43
+          "min": 0.38,
+          "median": 0.38,
+          "p95": 0.38,
+          "max": 0.38,
+          "mean": 0.38
         },
         "parentCpuUserMs": {
-          "min": 0.42,
-          "median": 0.42,
-          "p95": 0.42,
-          "max": 0.42,
-          "mean": 0.42
+          "min": 0.38,
+          "median": 0.38,
+          "p95": 0.38,
+          "max": 0.38,
+          "mean": 0.38
         },
         "parentCpuSystemMs": {
           "min": 0.07,
@@ -575,23 +575,23 @@
       "warm": {
         "wallMs": {
           "min": 0.12,
-          "median": 0.14,
-          "p95": 0.3,
-          "max": 0.3,
-          "mean": 0.16
+          "median": 0.13,
+          "p95": 0.24,
+          "max": 0.24,
+          "mean": 0.15
         },
         "parentCpuUserMs": {
           "min": 0.08,
-          "median": 0.11,
-          "p95": 0.46,
-          "max": 0.46,
-          "mean": 0.16
+          "median": 0.1,
+          "p95": 0.33,
+          "max": 0.33,
+          "mean": 0.15
         },
         "parentCpuSystemMs": {
-          "min": 0.04,
+          "min": 0.05,
           "median": 0.05,
-          "p95": 0.08,
-          "max": 0.08,
+          "p95": 0.06,
+          "max": 0.06,
           "mean": 0.05
         },
         "outputBytes": {
@@ -608,32 +608,32 @@
       "category": "processing",
       "scenario": "medium-findings",
       "cold": {
-        "wallMs": 0.31,
-        "parentCpuUserMs": 0.26,
-        "parentCpuSystemMs": 0.06,
+        "wallMs": 0.25,
+        "parentCpuUserMs": 0.22,
+        "parentCpuSystemMs": 0.05,
         "outputBytes": 26482
       },
       "coldStats": {
         "wallMs": {
-          "min": 0.31,
-          "median": 0.31,
-          "p95": 0.31,
-          "max": 0.31,
-          "mean": 0.31
+          "min": 0.25,
+          "median": 0.25,
+          "p95": 0.25,
+          "max": 0.25,
+          "mean": 0.25
         },
         "parentCpuUserMs": {
-          "min": 0.26,
-          "median": 0.26,
-          "p95": 0.26,
-          "max": 0.26,
-          "mean": 0.26
+          "min": 0.22,
+          "median": 0.22,
+          "p95": 0.22,
+          "max": 0.22,
+          "mean": 0.22
         },
         "parentCpuSystemMs": {
-          "min": 0.06,
-          "median": 0.06,
-          "p95": 0.06,
-          "max": 0.06,
-          "mean": 0.06
+          "min": 0.05,
+          "median": 0.05,
+          "p95": 0.05,
+          "max": 0.05,
+          "mean": 0.05
         },
         "outputBytes": {
           "min": 26482,
@@ -645,25 +645,25 @@
       },
       "warm": {
         "wallMs": {
-          "min": 0.19,
-          "median": 0.26,
-          "p95": 0.38,
-          "max": 0.38,
-          "mean": 0.28
+          "min": 0.18,
+          "median": 0.24,
+          "p95": 0.29,
+          "max": 0.29,
+          "mean": 0.23
         },
         "parentCpuUserMs": {
-          "min": 0.15,
-          "median": 0.24,
-          "p95": 1.03,
-          "max": 1.03,
-          "mean": 0.33
+          "min": 0.14,
+          "median": 0.2,
+          "p95": 0.7,
+          "max": 0.7,
+          "mean": 0.29
         },
         "parentCpuSystemMs": {
-          "min": 0.05,
-          "median": 0.07,
-          "p95": 0.14,
-          "max": 0.14,
-          "mean": 0.08
+          "min": 0.04,
+          "median": 0.06,
+          "p95": 0.07,
+          "max": 0.07,
+          "mean": 0.06
         },
         "outputBytes": {
           "min": 26482,
@@ -679,32 +679,32 @@
       "category": "processing",
       "scenario": "large-findings",
       "cold": {
-        "wallMs": 2.64,
-        "parentCpuUserMs": 2.02,
-        "parentCpuSystemMs": 0.55,
+        "wallMs": 2,
+        "parentCpuUserMs": 1.62,
+        "parentCpuSystemMs": 0.51,
         "outputBytes": 51781
       },
       "coldStats": {
         "wallMs": {
-          "min": 2.64,
-          "median": 2.64,
-          "p95": 2.64,
-          "max": 2.64,
-          "mean": 2.64
+          "min": 2,
+          "median": 2,
+          "p95": 2,
+          "max": 2,
+          "mean": 2
         },
         "parentCpuUserMs": {
-          "min": 2.02,
-          "median": 2.02,
-          "p95": 2.02,
-          "max": 2.02,
-          "mean": 2.02
+          "min": 1.62,
+          "median": 1.62,
+          "p95": 1.62,
+          "max": 1.62,
+          "mean": 1.62
         },
         "parentCpuSystemMs": {
-          "min": 0.55,
-          "median": 0.55,
-          "p95": 0.55,
-          "max": 0.55,
-          "mean": 0.55
+          "min": 0.51,
+          "median": 0.51,
+          "p95": 0.51,
+          "max": 0.51,
+          "mean": 0.51
         },
         "outputBytes": {
           "min": 51781,
@@ -716,24 +716,24 @@
       },
       "warm": {
         "wallMs": {
-          "min": 1.16,
-          "median": 1.45,
-          "p95": 2.14,
-          "max": 2.14,
-          "mean": 1.51
+          "min": 1.15,
+          "median": 1.71,
+          "p95": 3.45,
+          "max": 3.45,
+          "mean": 1.73
         },
         "parentCpuUserMs": {
           "min": 0.89,
-          "median": 1.02,
-          "p95": 2.08,
-          "max": 2.08,
-          "mean": 1.13
+          "median": 1.05,
+          "p95": 1.79,
+          "max": 1.79,
+          "mean": 1.11
         },
         "parentCpuSystemMs": {
-          "min": 0.3,
-          "median": 0.4,
-          "p95": 0.6,
-          "max": 0.6,
+          "min": 0.28,
+          "median": 0.39,
+          "p95": 0.56,
+          "max": 0.56,
           "mean": 0.41
         },
         "outputBytes": {
@@ -750,32 +750,32 @@
       "category": "processing",
       "scenario": "schema",
       "cold": {
-        "wallMs": 3.64,
-        "parentCpuUserMs": 2.64,
-        "parentCpuSystemMs": 0.66,
+        "wallMs": 3.34,
+        "parentCpuUserMs": 2.93,
+        "parentCpuSystemMs": 0.6,
         "outputBytes": 51608
       },
       "coldStats": {
         "wallMs": {
-          "min": 3.64,
-          "median": 3.64,
-          "p95": 3.64,
-          "max": 3.64,
-          "mean": 3.64
+          "min": 3.34,
+          "median": 3.34,
+          "p95": 3.34,
+          "max": 3.34,
+          "mean": 3.34
         },
         "parentCpuUserMs": {
-          "min": 2.64,
-          "median": 2.64,
-          "p95": 2.64,
-          "max": 2.64,
-          "mean": 2.64
+          "min": 2.93,
+          "median": 2.93,
+          "p95": 2.93,
+          "max": 2.93,
+          "mean": 2.93
         },
         "parentCpuSystemMs": {
-          "min": 0.66,
-          "median": 0.66,
-          "p95": 0.66,
-          "max": 0.66,
-          "mean": 0.66
+          "min": 0.6,
+          "median": 0.6,
+          "p95": 0.6,
+          "max": 0.6,
+          "mean": 0.6
         },
         "outputBytes": {
           "min": 51608,
@@ -787,25 +787,25 @@
       },
       "warm": {
         "wallMs": {
-          "min": 2.74,
-          "median": 2.93,
-          "p95": 3.9,
-          "max": 3.9,
-          "mean": 3.12
+          "min": 2.75,
+          "median": 3.16,
+          "p95": 3.88,
+          "max": 3.88,
+          "mean": 3.21
         },
         "parentCpuUserMs": {
-          "min": 2.41,
-          "median": 2.63,
-          "p95": 16.98,
-          "max": 16.98,
-          "mean": 3.91
+          "min": 2.43,
+          "median": 2.74,
+          "p95": 18.45,
+          "max": 18.45,
+          "mean": 4.46
         },
         "parentCpuSystemMs": {
           "min": 0.36,
-          "median": 0.45,
-          "p95": 1.03,
-          "max": 1.03,
-          "mean": 0.53
+          "median": 0.5,
+          "p95": 0.93,
+          "max": 0.93,
+          "mean": 0.55
         },
         "outputBytes": {
           "min": 51608,
@@ -821,31 +821,31 @@
       "category": "git",
       "scenario": "autocomplete-refs",
       "cold": {
-        "wallMs": 14.13,
-        "parentCpuUserMs": 1.19,
-        "parentCpuSystemMs": 1.08
+        "wallMs": 12.73,
+        "parentCpuUserMs": 1.24,
+        "parentCpuSystemMs": 1.07
       },
       "coldStats": {
         "wallMs": {
-          "min": 12.12,
-          "median": 12.88,
-          "p95": 16.28,
-          "max": 16.28,
-          "mean": 13.59
+          "min": 11.86,
+          "median": 12.14,
+          "p95": 12.85,
+          "max": 12.85,
+          "mean": 12.29
         },
         "parentCpuUserMs": {
-          "min": 0.35,
-          "median": 0.42,
-          "p95": 1.19,
-          "max": 1.19,
+          "min": 0.36,
+          "median": 0.4,
+          "p95": 1.24,
+          "max": 1.24,
           "mean": 0.52
         },
         "parentCpuSystemMs": {
-          "min": 0.96,
-          "median": 1.06,
-          "p95": 1.2,
-          "max": 1.2,
-          "mean": 1.07
+          "min": 0.94,
+          "median": 0.99,
+          "p95": 1.07,
+          "max": 1.07,
+          "mean": 1
         }
       },
       "warm": {
@@ -854,29 +854,29 @@
           "median": 0.01,
           "p95": 0.06,
           "max": 0.06,
-          "mean": 0.01
+          "mean": 0.02
         },
         "parentCpuUserMs": {
           "min": 0.01,
           "median": 0.01,
-          "p95": 0.15,
-          "max": 0.15,
-          "mean": 0.02
+          "p95": 0.17,
+          "max": 0.17,
+          "mean": 0.03
         },
         "parentCpuSystemMs": {
           "min": 0,
           "median": 0,
-          "p95": 0.02,
-          "max": 0.02,
+          "p95": 0.01,
+          "max": 0.01,
           "mean": 0
         }
       },
       "eventLoopBlockedMs": {
-        "min": 12.12,
-        "median": 12.88,
-        "p95": 16.28,
-        "max": 16.28,
-        "mean": 13.59
+        "min": 11.86,
+        "median": 12.14,
+        "p95": 12.85,
+        "max": 12.85,
+        "mean": 12.29
       },
       "subprocessesPerColdInvocation": 1
     },
@@ -885,54 +885,54 @@
       "category": "git",
       "scenario": "base-detection",
       "cold": {
-        "wallMs": 37.03,
-        "parentCpuUserMs": 2.64,
-        "parentCpuSystemMs": 3.37
+        "wallMs": 37.29,
+        "parentCpuUserMs": 2.86,
+        "parentCpuSystemMs": 3.24
       },
       "coldStats": {
         "wallMs": {
-          "min": 37.03,
-          "median": 37.03,
-          "p95": 37.03,
-          "max": 37.03,
-          "mean": 37.03
+          "min": 37.29,
+          "median": 37.29,
+          "p95": 37.29,
+          "max": 37.29,
+          "mean": 37.29
         },
         "parentCpuUserMs": {
-          "min": 2.64,
-          "median": 2.64,
-          "p95": 2.64,
-          "max": 2.64,
-          "mean": 2.64
+          "min": 2.86,
+          "median": 2.86,
+          "p95": 2.86,
+          "max": 2.86,
+          "mean": 2.86
         },
         "parentCpuSystemMs": {
-          "min": 3.37,
-          "median": 3.37,
-          "p95": 3.37,
-          "max": 3.37,
-          "mean": 3.37
+          "min": 3.24,
+          "median": 3.24,
+          "p95": 3.24,
+          "max": 3.24,
+          "mean": 3.24
         }
       },
       "warm": {
         "wallMs": {
-          "min": 33.02,
-          "median": 34.46,
-          "p95": 36.11,
-          "max": 36.11,
-          "mean": 34.46
+          "min": 33.08,
+          "median": 34.7,
+          "p95": 38.12,
+          "max": 38.12,
+          "mean": 35.03
         },
         "parentCpuUserMs": {
-          "min": 1.21,
-          "median": 1.38,
+          "min": 1.26,
+          "median": 1.4,
           "p95": 1.77,
           "max": 1.77,
-          "mean": 1.43
+          "mean": 1.44
         },
         "parentCpuSystemMs": {
-          "min": 2.81,
-          "median": 2.98,
+          "min": 2.92,
+          "median": 3.04,
           "p95": 3.13,
           "max": 3.13,
-          "mean": 2.98
+          "mean": 3.04
         }
       },
       "subprocessesPerInvocation": 3
@@ -944,11 +944,11 @@
       "fixtureBytes": 3719,
       "retained": {
         "rssBytes": {
-          "min": 49152,
-          "median": 65536,
-          "p95": 98304,
-          "max": 98304,
-          "mean": 70997.33
+          "min": 81920,
+          "median": 114688,
+          "p95": 131072,
+          "max": 131072,
+          "mean": 109226.67
         },
         "heapUsedBytes": {
           "min": 89688,
@@ -974,11 +974,11 @@
       },
       "afterRelease": {
         "rssBytes": {
-          "min": 49152,
-          "median": 98304,
-          "p95": 98304,
-          "max": 98304,
-          "mean": 81920
+          "min": 114688,
+          "median": 131072,
+          "p95": 131072,
+          "max": 131072,
+          "mean": 125610.67
         },
         "heapUsedBytes": {
           "min": 95416,
@@ -1003,11 +1003,11 @@
         }
       },
       "maxRssBytes": {
-        "min": 196083712,
-        "median": 198344704,
-        "p95": 199442432,
-        "max": 199442432,
-        "mean": 197956949.33
+        "min": 198164480,
+        "median": 198803456,
+        "p95": 199016448,
+        "max": 199016448,
+        "mean": 198661461.33
       },
       "retainedHeapAmplification": 24.12
     },
@@ -1018,11 +1018,11 @@
       "fixtureBytes": 26081,
       "retained": {
         "rssBytes": {
-          "min": 114688,
-          "median": 180224,
-          "p95": 196608,
-          "max": 196608,
-          "mean": 163840
+          "min": 49152,
+          "median": 49152,
+          "p95": 98304,
+          "max": 98304,
+          "mean": 65536
         },
         "heapUsedBytes": {
           "min": 157192,
@@ -1048,11 +1048,11 @@
       },
       "afterRelease": {
         "rssBytes": {
-          "min": 131072,
-          "median": 180224,
-          "p95": 212992,
-          "max": 212992,
-          "mean": 174762.67
+          "min": 81920,
+          "median": 81920,
+          "p95": 98304,
+          "max": 98304,
+          "mean": 87381.33
         },
         "heapUsedBytes": {
           "min": 157488,
@@ -1077,11 +1077,11 @@
         }
       },
       "maxRssBytes": {
-        "min": 197902336,
-        "median": 197935104,
-        "p95": 199213056,
-        "max": 199213056,
-        "mean": 198350165.33
+        "min": 197492736,
+        "median": 197951488,
+        "p95": 198639616,
+        "max": 198639616,
+        "mean": 198027946.67
       },
       "retainedHeapAmplification": 6.03
     },
@@ -1092,18 +1092,18 @@
       "fixtureBytes": 144414,
       "retained": {
         "rssBytes": {
-          "min": 114688,
-          "median": 245760,
-          "p95": 311296,
-          "max": 311296,
-          "mean": 223914.67
+          "min": 81920,
+          "median": 147456,
+          "p95": 163840,
+          "max": 163840,
+          "mean": 131072
         },
         "heapUsedBytes": {
           "min": 350392,
           "median": 350392,
-          "p95": 350408,
-          "max": 350408,
-          "mean": 350397.33
+          "p95": 350392,
+          "max": 350392,
+          "mean": 350392
         },
         "externalBytes": {
           "min": 40,
@@ -1122,18 +1122,18 @@
       },
       "afterRelease": {
         "rssBytes": {
-          "min": 114688,
-          "median": 245760,
-          "p95": 311296,
-          "max": 311296,
-          "mean": 223914.67
+          "min": 81920,
+          "median": 163840,
+          "p95": 180224,
+          "max": 180224,
+          "mean": 141994.67
         },
         "heapUsedBytes": {
           "min": 350672,
           "median": 350672,
-          "p95": 350688,
-          "max": 350688,
-          "mean": 350677.33
+          "p95": 350672,
+          "max": 350672,
+          "mean": 350672
         },
         "externalBytes": {
           "min": 40,
@@ -1151,11 +1151,11 @@
         }
       },
       "maxRssBytes": {
-        "min": 197640192,
-        "median": 198770688,
-        "p95": 198934528,
-        "max": 198934528,
-        "mean": 198448469.33
+        "min": 198524928,
+        "median": 198541312,
+        "p95": 199426048,
+        "max": 199426048,
+        "mean": 198830762.67
       },
       "retainedHeapAmplification": 2.43
     },
@@ -1166,11 +1166,11 @@
       "fixtureBytes": 181574,
       "retained": {
         "rssBytes": {
-          "min": 262144,
-          "median": 294912,
-          "p95": 344064,
-          "max": 344064,
-          "mean": 300373.33
+          "min": 180224,
+          "median": 196608,
+          "p95": 278528,
+          "max": 278528,
+          "mean": 218453.33
         },
         "heapUsedBytes": {
           "min": 445056,
@@ -1196,11 +1196,11 @@
       },
       "afterRelease": {
         "rssBytes": {
-          "min": 262144,
-          "median": 311296,
-          "p95": 360448,
-          "max": 360448,
-          "mean": 311296
+          "min": 196608,
+          "median": 229376,
+          "p95": 278528,
+          "max": 278528,
+          "mean": 234837.33
         },
         "heapUsedBytes": {
           "min": 445336,
@@ -1225,74 +1225,74 @@
         }
       },
       "maxRssBytes": {
-        "min": 199639040,
-        "median": 199737344,
-        "p95": 200589312,
-        "max": 200589312,
-        "mean": 199988565.33
+        "min": 198246400,
+        "median": 199360512,
+        "p95": 199557120,
+        "max": 199557120,
+        "mean": 199054677.33
       },
       "retainedHeapAmplification": 2.45
     }
   ],
   "findings": {
     "runner": {
-      "fixtureDirectWarmMedianMs": 36.56,
-      "deterministicFallbackWarmMedianMs": 31.02,
-      "fallowVersion": "3.6.0",
-      "directFallowWarmMedianMs": 124.72,
-      "npxFallbackWarmMedianMs": 819.42,
-      "npxWrapperOverheadMedianMs": 694.7,
-      "npxToDirectRatio": 6.57
+      "fixtureDirectWarmMedianMs": 32.19,
+      "deterministicFallbackWarmMedianMs": 30.43,
+      "fallowVersion": "3.7.0",
+      "directFallowWarmMedianMs": 111.23,
+      "npxFallbackWarmMedianMs": 804.5,
+      "npxWrapperOverheadMedianMs": 693.27,
+      "npxToDirectRatio": 7.23
     },
     "processing": {
       "no-findings": {
         "warmMedianMs": 0.16,
-        "warmP95Ms": 0.43
+        "warmP95Ms": 0.33
       },
       "small-findings": {
-        "warmMedianMs": 0.14,
-        "warmP95Ms": 0.3
+        "warmMedianMs": 0.13,
+        "warmP95Ms": 0.24
       },
       "medium-findings": {
-        "warmMedianMs": 0.26,
-        "warmP95Ms": 0.38
+        "warmMedianMs": 0.24,
+        "warmP95Ms": 0.29
       },
       "large-findings": {
-        "warmMedianMs": 1.45,
-        "warmP95Ms": 2.14
+        "warmMedianMs": 1.71,
+        "warmP95Ms": 3.45
       },
       "schema": {
-        "warmMedianMs": 2.93,
-        "warmP95Ms": 3.9
+        "warmMedianMs": 3.16,
+        "warmP95Ms": 3.88
       }
     },
     "git": {
-      "autocompleteColdMedianBlockedMs": 12.88,
+      "autocompleteColdMedianBlockedMs": 12.14,
       "autocompleteWarmMedianMs": 0.01,
       "autocompleteGitProcesses": 1,
-      "baseDetectionWarmMedianMs": 34.46,
+      "baseDetectionWarmMedianMs": 34.7,
       "baseDetectionGitProcesses": 3
     },
     "memory": {
       "small-findings": {
         "retainedHeapMedianBytes": 89688,
         "retainedHeapAmplification": 24.12,
-        "maxRssMedianBytes": 198344704
+        "maxRssMedianBytes": 198803456
       },
       "medium-findings": {
         "retainedHeapMedianBytes": 157192,
         "retainedHeapAmplification": 6.03,
-        "maxRssMedianBytes": 197935104
+        "maxRssMedianBytes": 197951488
       },
       "large-findings": {
         "retainedHeapMedianBytes": 350392,
         "retainedHeapAmplification": 2.43,
-        "maxRssMedianBytes": 198770688
+        "maxRssMedianBytes": 198541312
       },
       "schema": {
         "retainedHeapMedianBytes": 445056,
         "retainedHeapAmplification": 2.45,
-        "maxRssMedianBytes": 199737344
+        "maxRssMedianBytes": 199360512
       }
     }
   }
