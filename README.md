@@ -22,6 +22,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
 - **Autocomplete:** subcommands, flags, enum values, and branch refs are suggested in the editor.
 - **Interactive navigator:** findings open in a bordered TUI view where you can inspect, select, trace, or load issues into the editor.
+- **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
 - **Safe defaults:** JSON and quiet output are added when appropriate; large output is truncated for the transcript and saved to a temp file.
 - **Flexible CLI lookup:** uses `FALLOW_BIN` first, then `fallow` from `PATH`, then falls back to `npx -y fallow`.
 
