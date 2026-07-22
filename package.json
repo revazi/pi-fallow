@@ -77,9 +77,9 @@
     "image": "https://raw.githubusercontent.com/revazi/pi-fallow/main/pi-fallow.png"
   },
   "devDependencies": {
-    "@earendil-works/pi-ai": "^0.80.2",
-    "@earendil-works/pi-coding-agent": "^0.80.2",
-    "@earendil-works/pi-tui": "^0.80.2",
+    "@earendil-works/pi-ai": "^0.81.1",
+    "@earendil-works/pi-coding-agent": "^0.81.1",
+    "@earendil-works/pi-tui": "^0.81.1",
     "c8": "12.0.0",
     "esbuild": "0.28.1",
     "fallow": "3.7.0",
