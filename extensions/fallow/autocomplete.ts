@@ -280,12 +280,57 @@ const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 
 function parseTokens(input: string): string[] {
 	const tokens: string[] = [];
-	const tokenPattern = /"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\S+/g;
-	for (const match of input.matchAll(tokenPattern)) {
-		const raw = match[0];
-		tokens.push(raw.replace(/^(["'])(.*)\1$/, "$2"));
+	let index = 0;
+	while (index < input.length) {
+		index = skipTokenWhitespace(input, index);
+		if (index >= input.length) break;
+		const parsed = readToken(input, index);
+		tokens.push(parsed.value);
+		index = parsed.nextIndex;
 	}
 	return tokens;
+}
+
+function skipTokenWhitespace(input: string, startIndex: number): number {
+	let index = startIndex;
+	while (index < input.length && isTokenWhitespace(input[index])) index++;
+	return index;
+}
+
+function isTokenWhitespace(value: string): boolean {
+	return value.trim().length === 0;
+}
+
+function readToken(input: string, startIndex: number): { value: string; nextIndex: number } {
+	const quote = input[startIndex];
+	return isTokenQuote(quote) ? readQuotedToken(input, startIndex, quote) : readUnquotedToken(input, startIndex);
+}
+
+function isTokenQuote(value: string): boolean {
+	return value === '"' || value === "'";
+}
+
+function readUnquotedToken(input: string, startIndex: number): { value: string; nextIndex: number } {
+	let index = startIndex;
+	while (index < input.length && !isTokenWhitespace(input[index])) index++;
+	return { value: input.slice(startIndex, index), nextIndex: index };
+}
+
+function readQuotedToken(input: string, startIndex: number, quote: string): { value: string; nextIndex: number } {
+	let index = startIndex + 1;
+	while (index < input.length) {
+		if (isEscapedTokenCharacter(input, index)) {
+			index += 2;
+			continue;
+		}
+		if (input[index] === quote) return { value: input.slice(startIndex + 1, index), nextIndex: index + 1 };
+		index++;
+	}
+	return { value: input.slice(startIndex), nextIndex: input.length };
+}
+
+function isEscapedTokenCharacter(input: string, index: number): boolean {
+	return input[index] === "\\" && index + 1 < input.length;
 }
 
 function currentToken(argumentText: string): { beforeCurrent: string; current: string; previousTokens: string[] } {
@@ -298,9 +343,12 @@ function currentToken(argumentText: string): { beforeCurrent: string; current: s
 }
 
 function splitCurrentToken(argumentText: string): { beforeCurrent: string; current: string } {
-	const match = argumentText.match(/^(.*?)(\S*)$/) ?? ["", argumentText, ""];
-	const [, beforeCurrent, current] = match;
-	return { beforeCurrent, current };
+	let currentStart = argumentText.length;
+	while (currentStart > 0 && !isTokenWhitespace(argumentText[currentStart - 1])) currentStart--;
+	return {
+		beforeCurrent: argumentText.slice(0, currentStart),
+		current: argumentText.slice(currentStart),
+	};
 }
 
 function commandKey(tokens: string[]): string | undefined {
