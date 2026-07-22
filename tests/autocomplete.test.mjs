@@ -48,6 +48,21 @@ describe("Fallow autocomplete", () => {
 		assert.equal(fallowCompletions.getFallowArgumentCompletions("rerun "), null);
 	});
 
+	it("parses quoted and escaped completion tokens", () => {
+		assert.deepEqual(completionLabels("health --coverage 'coverage dir' --group-by o"), ["owner"]);
+		assert.deepEqual(completionLabels('health --coverage "coverage \\"dir\\"" --group-by o'), ["owner"]);
+	});
+
+	it("handles adversarial unmatched quotes in linear time", () => {
+		for (const [quote, escaped] of [["\"", "\\!"], ["'", "\\&"]]) {
+			const input = `${quote}${escaped.repeat(25_000)} `;
+			const startedAt = performance.now();
+			fallowCompletions.getFallowArgumentCompletions(input);
+			const elapsedMs = performance.now() - startedAt;
+			assert.ok(elapsedMs < 250, `${quote} input took ${elapsedMs.toFixed(2)} ms`);
+		}
+	});
+
 	it("uses the configured default command for run flag completion", () => {
 		const previous = process.env.PI_FALLOW_DEFAULT_COMMAND;
 		try {

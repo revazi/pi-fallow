@@ -6,6 +6,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Fixed
 - Updated the coordinated Pi development packages to 0.81.1, replacing the vulnerable shrinkwrapped `brace-expansion` 5.0.6 with 5.0.7.
+- Replaced the autocomplete token regex with a linear scanner to prevent pathological quoted input from blocking the TUI.
 
 ## [0.3.0] - 2026-07-20
 
