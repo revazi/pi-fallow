@@ -19,7 +19,7 @@ describe("package and automation metadata", () => {
 	it("pins analysis tooling and enables npm provenance", () => {
 		assert.deepEqual(
 			Object.fromEntries(["c8", "esbuild", "fallow"].map((name) => [name, manifest.devDependencies[name]])),
-			{ c8: "12.0.0", esbuild: "0.28.1", fallow: "3.7.0" },
+			{ c8: "12.0.0", esbuild: "0.28.1", fallow: "3.9.1" },
 		);
 		assert.equal(manifest.publishConfig.provenance, true);
 		assert.match(manifest.scripts["publish:public"], /--provenance/);

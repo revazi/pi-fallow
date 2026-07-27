@@ -4,6 +4,9 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Changed
+- Validated Pi Fallow against Fallow 3.9.1; its report-command flags remain schema-compatible with 3.7.0, while the new browser/file-oriented `viz` surface remains a direct Fallow CLI feature rather than an agent-report command.
+
 ## [0.3.1] - 2026-07-22
 
 ### Fixed

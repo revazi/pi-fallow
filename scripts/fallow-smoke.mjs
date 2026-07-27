@@ -77,6 +77,20 @@ function assertModeledArgs() {
 	}
 }
 
+function assertCurrentFallowSchema(data) {
+	assert.equal(data.name, "fallow");
+	assert.equal(data.version, "3.9.1");
+	assert.ok(Array.isArray(data.commands));
+	const commands = new Map(data.commands.map((command) => [command.name, command]));
+	for (const command of [
+		"dead-code", "inspect", "trace", "fix", "config", "list", "workspaces", "dupes", "health",
+		"flags", "explain", "audit", "decision-surface", "impact", "security", "schema", "coverage",
+	]) {
+		assert.ok(commands.has(command), `Fallow schema is missing ${command}`);
+	}
+	assert.deepEqual(commands.get("viz")?.flags?.map((flag) => flag.name), ["--out", "--no-open", "--viz-format"]);
+}
+
 function assertCliSurfaces() {
 	assertFallowJson(["inspect", "--file", "extensions/fallow/cli.ts"], (data) => {
 		assert.equal(data.kind, "inspect_target");
@@ -94,10 +108,7 @@ function assertCliSurfaces() {
 		assert.equal(data.kind, "list-workspaces");
 		assert.ok(Array.isArray(data.workspaces));
 	});
-	assertFallowJson(["schema"], (data) => {
-		assert.equal(data.name, "fallow");
-		assert.ok(Array.isArray(data.commands));
-	});
+	assertFallowJson(["schema"], assertCurrentFallowSchema);
 	assertFallowJson(["impact"], (data) => {
 		assert.equal(data.kind, "impact");
 	});
