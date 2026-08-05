@@ -1,18 +1,21 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const BASELINE_PATH = resolve(ROOT, ".github", "npm-audit-ci-baseline.json");
+const BASELINE_PATH = resolve(ROOT, ".github", "npm-audit-accepted-development.json");
 const LOCKFILE_PATH = resolve(ROOT, "package-lock.json");
+const MANIFEST_PATH = resolve(ROOT, "package.json");
 const FINDING_KEYS = ["effects", "fixAvailable", "isDirect", "name", "nodes", "range", "severity", "via"];
 const ADVISORY_KEYS = ["cwe", "cvss", "dependency", "name", "range", "severity", "source", "title", "url"];
 const DEPENDENCY_COUNT_KEYS = ["dev", "optional", "peer", "peerOptional", "prod", "total"];
 const EXPIRY_CEILING = Date.parse("2026-08-19T00:00:00.000Z");
 const UPSTREAM_FIX = "https://github.com/earendil-works/pi/commit/221a842c136ab3af23aef9e70034af86061d27c1";
-const REMEDIATION = "Upgrade @earendil-works/pi-coding-agent to a published release containing upstream fix 221a842c136ab3af23aef9e70034af86061d27c1, regenerate package-lock.json, restore normal CI to audit:all, and remove the temporary baseline.";
+const ACCEPTED_RELEASE_VERSION = "0.4.0";
+const REMEDIATION = "Upgrade @earendil-works/pi-coding-agent to a published release containing upstream fix 221a842c136ab3af23aef9e70034af86061d27c1, regenerate package-lock.json, restore CI and release validation to audit:all, and remove the temporary accepted-development baseline.";
 
 export class AuditBaselineError extends Error {
 	constructor(message) {
@@ -21,8 +24,10 @@ export class AuditBaselineError extends Error {
 	}
 }
 
-export function validateAuditExecution(execution, { baseline, lockfile, now = new Date() }) {
+export function validateAuditExecution(execution, { baseline, lockfile, lockfileSha256, manifest, now = new Date() }) {
 	validateBaselineDefinition(baseline);
+	validateReleaseScope(baseline, manifest);
+	validateLockfileBoundary(baseline, lockfileSha256);
 	validateExpiry(baseline.expiresAt, now);
 	validateExecutionOutcome(execution);
 	const report = parseAuditJson(execution.stdout);
@@ -72,10 +77,13 @@ function validateBaselineDefinition(baseline) {
 	requirePlainObject(baseline, "baseline");
 	requireExactKeys(
 		baseline,
-		["expiresAt", "findings", "schemaVersion", "upstreamFix", "vulnerabilityCounts"],
+		["expiresAt", "findings", "lockfileSha256", "releaseVersion", "schemaVersion", "upstreamFix", "vulnerabilityCounts"],
 		"baseline",
 	);
-	requireEqual(baseline.schemaVersion, 1, "Unsupported audit baseline schema.");
+	requireEqual(baseline.schemaVersion, 2, "Unsupported audit baseline schema.");
+	requireString(baseline.lockfileSha256, "Audit baseline lockfile digest is malformed.");
+	requireValue(/^[a-f0-9]{64}$/.test(baseline.lockfileSha256), "Audit baseline lockfile digest is malformed.");
+	requireEqual(baseline.releaseVersion, ACCEPTED_RELEASE_VERSION, "Audit baseline release scope changed.");
 	validateUpstreamFix(baseline.upstreamFix);
 	validateCountObject(baseline.vulnerabilityCounts, "baseline vulnerability counts");
 	requireArray(baseline.findings, "Audit baseline findings are malformed.");
@@ -86,6 +94,17 @@ function validateBaselineDefinition(baseline) {
 function validateUpstreamFix(upstreamFix) {
 	requireString(upstreamFix, "Audit baseline is missing the reviewed upstream fix.");
 	requireEqual(upstreamFix, UPSTREAM_FIX, "Audit baseline is missing the reviewed upstream fix.");
+}
+
+function validateReleaseScope(baseline, manifest) {
+	requirePlainObject(manifest, "package manifest");
+	requireEqual(manifest.name, "pi-fallow", "Accepted development audit is limited to pi-fallow.");
+	requireEqual(manifest.version, baseline.releaseVersion, `Accepted development audit is limited to pi-fallow@${baseline.releaseVersion}.`);
+}
+
+function validateLockfileBoundary(baseline, lockfileSha256) {
+	requireString(lockfileSha256, "Package lock digest is malformed.");
+	requireEqual(lockfileSha256, baseline.lockfileSha256, "package-lock.json changed outside the accepted development-audit boundary.");
 }
 
 function validateBaselineFindings(findings) {
@@ -348,6 +367,10 @@ function fail(message) {
 	throw new AuditBaselineError(message);
 }
 
+function sha256(bytes) {
+	return createHash("sha256").update(bytes).digest("hex");
+}
+
 function readJson(path, label) {
 	try {
 		return JSON.parse(readFileSync(path, "utf8"));
@@ -359,19 +382,26 @@ function readJson(path, label) {
 export function main() {
 	try {
 		const baseline = readJson(BASELINE_PATH, "audit baseline");
+		const lockfileBytes = readFileSync(LOCKFILE_PATH);
 		const lockfile = readJson(LOCKFILE_PATH, "package lock");
+		const manifest = readJson(MANIFEST_PATH, "package manifest");
 		const execution = spawnSync("npm", ["audit", "--json", "--audit-level=high"], {
 			cwd: ROOT,
 			encoding: "utf8",
 			maxBuffer: 10 * 1024 * 1024,
 			timeout: 120_000,
 		});
-		const result = validateAuditExecution(execution, { baseline, lockfile });
-		console.log(`Temporary CI development-audit baseline matched exactly: ${result.findingCount} findings and ${result.advisoryCount} advisories; expires ${result.expiresAt}.`);
+		const result = validateAuditExecution(execution, {
+			baseline,
+			lockfile,
+			lockfileSha256: sha256(lockfileBytes),
+			manifest,
+		});
+		console.log(`Temporary accepted-development audit matched exactly for pi-fallow@${manifest.version}: ${result.findingCount} findings and ${result.advisoryCount} advisories; expires ${result.expiresAt}.`);
 		console.log(REMEDIATION);
 	} catch (error) {
 		const message = error instanceof AuditBaselineError ? error.message : "Unexpected audit baseline validator failure.";
-		console.error(`CI development audit rejected: ${message}`);
+		console.error(`Accepted development audit rejected: ${message}`);
 		process.exitCode = 1;
 	}
 }

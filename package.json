@@ -25,7 +25,7 @@
   },
   "scripts": {
     "check": "npm test && npm run check:bundle && npm run health",
-    "check:publish": "npm test && npm run check:bundle && npm run health && npm run dupes && npm run dead-code && npm run smoke:fallow && npm run audit:production && npm run audit:all && npm run package:smoke",
+    "check:publish": "npm test && npm run check:bundle && npm run health && npm run dupes && npm run dead-code && npm run smoke:fallow && npm run audit:release && npm run package:smoke",
     "check:bundle": "esbuild extensions/fallow.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild && esbuild extensions/index.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild",
     "health": "fallow health --format json --quiet",
     "dupes": "fallow dupes --format json --quiet",
@@ -33,7 +33,8 @@
     "test": "node --test",
     "coverage": "c8 --all --include='extensions/**/*.ts' --reporter=text --reporter=lcov --reports-dir=coverage --check-coverage --lines=75 --statements=75 --functions=79 --branches=83 node --test",
     "audit:production": "npm audit --omit=dev --audit-level=high",
-    "audit:ci": "node scripts/audit-ci.mjs",
+    "audit:accepted-development": "node scripts/audit-accepted-development.mjs",
+    "audit:release": "npm run audit:production && npm run audit:accepted-development",
     "audit:all": "npm audit --audit-level=high",
     "bench:tokens": "node scripts/token-benchmark.mjs",
     "bench:tokens:compare": "node scripts/token-benchmark-compare.mjs",

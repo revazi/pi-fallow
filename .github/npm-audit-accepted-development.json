@@ -1,5 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "releaseVersion": "0.4.0",
+  "lockfileSha256": "9821a3fb8dfe81a92602b72108f47c1c1cea17435ffe5f959623a587cfc56c4b",
   "expiresAt": "2026-08-19T00:00:00.000Z",
   "upstreamFix": "https://github.com/earendil-works/pi/commit/221a842c136ab3af23aef9e70034af86061d27c1",
   "vulnerabilityCounts": {

@@ -52,6 +52,16 @@ function validateInstalledPackage(cwd) {
 	const packageRoot = join(cwd, "node_modules", "pi-fallow");
 	const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 	assert.equal(manifest.name, "pi-fallow");
+	assert.equal(manifest.dependencies, undefined, "Published package must not own runtime dependencies.");
+	assert.equal(manifest.optionalDependencies, undefined, "Published package must not own optional runtime dependencies.");
+	assert.equal(manifest.bundleDependencies, undefined, "Published package must not bundle dependencies.");
+	assert.equal(manifest.bundledDependencies, undefined, "Published package must not bundle dependencies.");
+	assert.deepEqual(manifest.peerDependencies, {
+		"@earendil-works/pi-ai": "*",
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*",
+		typebox: "*",
+	});
 	assert.deepEqual(manifest.pi?.extensions, ["./extensions/index.ts"]);
 	assert.ok(readFileSync(join(packageRoot, "extensions", "index.ts"), "utf8").length > 0);
 }
