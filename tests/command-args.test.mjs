@@ -61,6 +61,15 @@ describe("normalizeFallowArgs", () => {
 		assert.deepEqual(normalize(["coverage-analyze"]).result, ["coverage", "analyze"]);
 	});
 
+	it("preserves type-aware report flags for direct Fallow commands", () => {
+		assert.deepEqual(normalize(["dead-code", "--type-aware", "--symbol-impact", "src/api.ts:Client"]).result, [
+			"dead-code", "--type-aware", "--symbol-impact", "src/api.ts:Client",
+		]);
+		assert.deepEqual(normalize(["health", "--type-aware", "--type-coupling", "--baseline-mode", "identity"]).result, [
+			"health", "--type-aware", "--type-coupling", "--baseline-mode", "identity",
+		]);
+	});
+
 	it("maps check-changed to root changed-file analysis", () => {
 		assert.deepEqual(normalize(["check-changed", "--changed-since", "main"]).result, ["--changed-since", "main"]);
 		assert.deepEqual(normalize(["check-changed", "--base=origin/main"]).result, ["--base=origin/main"]);

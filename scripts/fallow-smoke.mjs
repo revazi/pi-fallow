@@ -72,6 +72,14 @@ function assertModeledArgs() {
 		{ command: "project-info", args: ["--workspaces"] },
 		["list", "--format", "json", "--quiet", "--workspaces"],
 	);
+	assertArgs(
+		{ command: "dead-code", args: ["--type-aware", "--symbol-impact", "extensions/fallow/cli.ts:fallowCli"] },
+		["dead-code", "--format", "json", "--quiet", "--type-aware", "--symbol-impact", "extensions/fallow/cli.ts:fallowCli"],
+	);
+	assertArgs(
+		{ command: "health", args: ["--type-aware", "--type-coupling", "--baseline-mode", "identity"] },
+		["health", "--format", "json", "--quiet", "--type-aware", "--type-coupling", "--baseline-mode", "identity"],
+	);
 	for (const command of ["workspaces", "config", "schema", "impact"]) {
 		assertArgs({ command }, [command, "--format", "json", "--quiet"]);
 	}
@@ -79,16 +87,24 @@ function assertModeledArgs() {
 
 function assertCurrentFallowSchema(data) {
 	assert.equal(data.name, "fallow");
-	assert.equal(data.version, "3.9.1");
+	assert.equal(data.version, "3.14.0");
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
 	for (const command of [
-		"dead-code", "inspect", "trace", "fix", "config", "list", "workspaces", "dupes", "health",
-		"flags", "explain", "audit", "decision-surface", "impact", "security", "schema", "coverage",
+		"dead-code", "type-aware", "inspect", "trace", "fix", "config", "list", "workspaces", "dupes", "health",
+		"flags", "explain", "audit", "decision-surface", "impact", "security", "report", "schema", "coverage", "viz",
 	]) {
 		assert.ok(commands.has(command), `Fallow schema is missing ${command}`);
 	}
-	assert.deepEqual(commands.get("viz")?.flags?.map((flag) => flag.name), ["--out", "--no-open", "--viz-format"]);
+	const globalFlags = new Set(data.global_flags.map((flag) => flag.name));
+	for (const flag of ["--type-aware", "--type-aware-project", "--type-aware-require", "--no-type-aware", "--baseline-mode"]) {
+		assert.ok(globalFlags.has(flag), `Fallow schema is missing ${flag}`);
+	}
+	assert.ok(commands.get("dead-code").flags.some((flag) => flag.name === "--symbol-impact"));
+	assert.ok(commands.get("health").flags.some((flag) => flag.name === "--type-coupling"));
+	assert.deepEqual(commands.get("type-aware").flags, []);
+	assert.match(commands.get("report").description, /codeclimate.*sarif/);
+	assert.deepEqual(commands.get("viz").flags.map((flag) => flag.name), ["--out", "--no-open", "--viz-format"]);
 }
 
 function assertCliSurfaces() {
@@ -109,6 +125,22 @@ function assertCliSurfaces() {
 		assert.ok(Array.isArray(data.workspaces));
 	});
 	assertFallowJson(["schema"], assertCurrentFallowSchema);
+	assertFallowJson(["type-aware", "status"], (data) => {
+		assert.equal(data.kind, "type-aware-status");
+		assert.equal(data.schema_version, 7);
+		assert.equal(typeof data.available, "boolean");
+	});
+	assertFallowJson(["dead-code", "--type-aware", "--symbol-impact", "extensions/fallow/cli.ts:fallowCli"], (data) => {
+		assert.equal(data.kind, "impact");
+		assert.ok(Array.isArray(data.direct_consumers));
+		assert.ok(Array.isArray(data.affected_files));
+		assert.ok(Array.isArray(data.targeted_tests));
+	});
+	assertFallowJson(["health", "--type-aware", "--type-coupling"], (data) => {
+		assert.equal(data.kind, "health");
+		assert.equal(data._meta?.type_aware?.executed, true);
+		assert.ok(data._meta.type_aware.type_coupling);
+	});
 	assertFallowJson(["impact"], (data) => {
 		assert.equal(data.kind, "impact");
 	});

@@ -355,13 +355,13 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private informationalToggleLine(): string {
 		const checkbox = this.showInformational ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
-		return `${checkbox} ${this.theme.fg("text", `Show informational files (${this.informationalIssues().length})`)} ${pill("i toggle", violet)}`;
+		return `${checkbox} ${this.theme.fg("text", `Show informational context (${this.informationalIssues().length})`)} ${pill("i toggle", violet)}`;
 	}
 
 	private informationalImplicationLine(): string {
-		if (this.isInformationalMode()) return this.theme.fg("muted", "Informational command output: file scores and hotspots are context, not findings.");
-		if (this.showInformational) return this.theme.fg("muted", "Informational file scores and hotspots are visible, but they are not counted as findings.");
-		return this.theme.fg("muted", "File scores and hotspots are context, not findings, and stay hidden by default.");
+		if (this.isInformationalMode()) return this.theme.fg("muted", "Informational command output is context, not findings.");
+		if (this.showInformational) return this.theme.fg("muted", "Informational context is visible, but is not counted as findings.");
+		return this.theme.fg("muted", "Informational context is not counted as findings and stays hidden by default.");
 	}
 
 	private promptDetailLine(): string {

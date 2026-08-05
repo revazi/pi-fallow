@@ -26,6 +26,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Robust output parsing:** direct or noisy embedded JSON is scanned once with nesting, strings, and escapes handled correctly.
 - **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
 - **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
+- **Stable type-aware reports:** Fallow 3.14 semantic symbol impact and advisory public-signature coupling can be requested through both Pi surfaces, with completeness and advisory status kept visible.
 
 ## Installation
 
@@ -78,8 +79,10 @@ Manual slash command examples:
 /fallow audit --base origin/main --gate new-only
 /fallow check-changed --changed-since main
 /fallow dead-code --changed-since main
+/fallow dead-code --type-aware --symbol-impact extensions/fallow/cli.ts:fallowCli
 /fallow dupes --changed-since main
 /fallow health --file-scores --targets --score
+/fallow health --type-aware --type-coupling
 /fallow inspect --file extensions/fallow/cli.ts
 /fallow inspect --symbol extensions/fallow/cli.ts:fallowCli
 /fallow explain unused-export
@@ -103,7 +106,17 @@ Arguments after `/fallow run` are appended to the configured default. Explicit c
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
-The agent-facing `fallow_run` tool passes command-specific flags as separate `args` tokens. For example, a PR audit uses `{ "command": "audit", "args": ["--base", "main", "--gate", "new-only"] }`. Manual `/fallow` command syntax is unchanged.
+The agent-facing `fallow_run` tool passes command-specific flags as separate `args` tokens. For example, a PR audit uses `{ "command": "audit", "args": ["--base", "main", "--gate", "new-only"] }`. Type-aware reports use the existing structured commands, for example `{ "command": "dead-code", "args": ["--type-aware", "--symbol-impact", "src/api.ts:Client"] }` or `{ "command": "health", "args": ["--type-aware", "--type-coupling"] }`. Manual `/fallow` command syntax is unchanged.
+
+`--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow 3.14 also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
+
+Some Fallow surfaces deliberately remain direct CLI features rather than Pi Fallow report commands:
+
+- `fallow type-aware status --format json --quiet` probes companion availability but is not an analysis report.
+- `fallow report --from report.json --format sarif` re-renders a saved file instead of analyzing the current project.
+- `fallow viz --no-open --viz-format html` writes browser/file output rather than a structured finding report.
+
+Pi Fallow therefore does not add these status/file/browser operations to `fallow_run` or its report navigator.
 
 `/fallow about` shows the installed Pi Fallow version, latest npm version, update command, and project links. Pi Fallow also checks npm once per TUI session and shows a non-blocking warning when a newer version is available. Update an npm installation with `pi update npm:pi-fallow`. Set `PI_FALLOW_DISABLE_UPDATE_NOTICE=1` to disable startup update notices.
 
@@ -132,6 +145,7 @@ Plain `fallow health` can return actionable findings alongside informational per
 
 - Node.js 22.19+
 - Pi coding agent
+- Fallow 3.14.0 is the validated development/compatibility target; runtime resolution remains tolerant of separately installed versions.
 - Fallow available through one of:
   - `FALLOW_BIN=/path/to/fallow`
   - `fallow` on `PATH`

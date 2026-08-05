@@ -15,6 +15,7 @@ describe("fallow_run compact contract", () => {
 		assert.equal(tool.parameters.additionalProperties, false);
 		assert.equal(tool.promptSnippet, undefined);
 		assert.equal(tool.promptGuidelines, undefined);
+		assert.match(tool.description, /type-aware impact/);
 	});
 
 	it("stays below the fixed contract token budget", () => {

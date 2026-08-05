@@ -57,6 +57,19 @@ describe("fallowCli.buildFallowArgs", () => {
 		assert.deepEqual(build({ command: "decision-surface", args: ["--changed-since", "origin/main", "--max-decisions", "4"] }), [
 			"decision-surface", "--format", "json", "--quiet", "--changed-since", "origin/main", "--max-decisions", "4",
 		]);
+		assert.deepEqual(build({
+			command: "dead-code",
+			args: ["--type-aware", "--type-aware-project", "tsconfig.json", "--type-aware-require", "complete", "--symbol-impact", "src/api.ts:Client"],
+		}), [
+			"dead-code", "--format", "json", "--quiet", "--type-aware", "--type-aware-project", "tsconfig.json",
+			"--type-aware-require", "complete", "--symbol-impact", "src/api.ts:Client",
+		]);
+		assert.deepEqual(build({ command: "health", args: ["--type-aware", "--type-coupling", "--baseline-mode", "identity"] }), [
+			"health", "--format", "json", "--quiet", "--type-aware", "--type-coupling", "--baseline-mode", "identity",
+		]);
+		assert.deepEqual(build({ command: "health", args: ["--no-type-aware"] }), [
+			"health", "--format", "json", "--quiet", "--no-type-aware",
+		]);
 		assert.deepEqual(build({ command: "project-info", args: ["--workspaces"] }), [
 			"list", "--format", "json", "--quiet", "--workspaces",
 		]);

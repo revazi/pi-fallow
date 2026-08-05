@@ -6,7 +6,7 @@ import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from 
 import { FallowIssueNavigator } from "../ui";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import { hasFallowNavigator, isFallowTuiMode } from "./mode";
-import { FALLOW_NAVIGATOR_OVERLAY_OPTIONS, isInformationalNavigatorCommand, resolveFallowNavigatorVisibleRows } from "./navigator";
+import { FALLOW_NAVIGATOR_OVERLAY_OPTIONS, resolveFallowNavigatorMode, resolveFallowNavigatorVisibleRows } from "./navigator";
 import { buildFallowTranscriptContent } from "./transcript";
 import type { FallowCommandContext } from "./types";
 
@@ -93,7 +93,9 @@ function openFallowNavigator(
 ): Promise<FallowNavigatorResult | null> {
 	const { formatted } = result;
 	if (!isFallowTuiMode(ctx.mode) || !formatted.overview) return Promise.resolve(null);
-	const informationalMode = isInformationalNavigatorCommand(executedArgs);
+	const navigatorMode = resolveFallowNavigatorMode(formatted.overview);
+	if (navigatorMode === "none") return Promise.resolve(null);
+	const informationalMode = navigatorMode === "informational";
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
 		return new FallowIssueNavigator(
 			formatted.overview!,
