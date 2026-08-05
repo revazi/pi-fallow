@@ -119,6 +119,107 @@ describe("buildFallowOverview", () => {
 		assert.equal(overview.sections[0].items[39].raw, undefined);
 	});
 
+	it("summarizes exact-symbol impact and warns on incomplete evidence", () => {
+		const overview = buildFallowOverview({
+			kind: "impact",
+			target: { path: "src/api.ts", exported_name: "Client" },
+			identity: { completeness: "unavailable" },
+			assertion: "no-consumers-found",
+			status: "unavailable",
+			confidence: "unavailable",
+			total_direct_consumer_count: 0,
+			total_affected_file_count: 0,
+			total_targeted_test_count: 0,
+		});
+
+		assert.equal(overview.title, "Fallow symbol impact");
+		assert.deepEqual(overview.stats, [
+			{ label: "target", value: "src/api.ts:Client" },
+			{ label: "status", value: "unavailable" },
+			{ label: "confidence", value: "unavailable" },
+			{ label: "direct consumers", value: 0 },
+			{ label: "affected files", value: 0 },
+			{ label: "targeted tests", value: 0 },
+		]);
+		assert.match(overview.notes[0], /do not treat it as exact delete-safety evidence/);
+	});
+
+	it("keeps complete symbol-impact evidence navigable without classifying it as findings", () => {
+		const overview = buildFallowOverview({
+			kind: "impact",
+			target: { path: "src/api.ts", exported_name: "Client" },
+			assertion: "consumers-found",
+			status: "complete",
+			confidence: "high",
+			direct_consumers: [{ path: "src/consumer.ts", relation: "direct-value-consumer", distance: 1 }],
+			total_direct_consumer_count: 1,
+			affected_files: [{ path: "src/app.ts", relation: "transitive-consumer", distance: 2, via: ["src/consumer.ts"] }],
+			total_affected_file_count: 1,
+			targeted_tests: [{ path: "test/api.test.ts", relation: "targeted-test", distance: 1 }],
+			total_targeted_test_count: 1,
+		});
+
+		assert.equal(overview.title, "Fallow symbol impact");
+		assert.equal(overview.status, "success");
+		assert.deepEqual(overview.sections.map((section) => [section.title, section.role, section.items[0].path]), [
+			["Direct consumers", "context", "src/consumer.ts"],
+			["Affected files", "context", "src/app.ts"],
+			["Targeted tests", "context", "test/api.test.ts"],
+		]);
+		assert.equal(overview.sections[1].items[0].meta, "distance 2 · via src/consumer.ts");
+		assert.deepEqual(overview.sections[0].items[0].raw, {
+			path: "src/consumer.ts", relation: "direct-value-consumer", distance: 1,
+		});
+	});
+
+	it("surfaces type-aware completeness and advisory coupling metadata", () => {
+		const overview = buildFallowOverview({
+			kind: "health",
+			findings: [],
+			summary: { files_analyzed: 2 },
+			_meta: {
+				type_aware: {
+					identity: { completeness: "partial" },
+					protocol_version: 6,
+					type_coupling: {
+						status: "partial",
+						files: [{
+							path: "src/api.ts",
+							public_api_depends_on: 1,
+							public_api_depends_on_files: ["src/model.ts"],
+							public_types_used_by: 0,
+						}],
+					},
+				},
+			},
+		});
+
+		assert.deepEqual(overview.stats, [
+			{ label: "files analyzed", value: "2" },
+			{ label: "type-aware", value: "partial" },
+			{ label: "semantic protocol", value: 6 },
+			{ label: "type coupling", value: "partial" },
+			{ label: "coupled files", value: 1 },
+		]);
+		assert.deepEqual(overview.sections.map((section) => [section.title, section.role]), [["Type coupling", "context"]]);
+		assert.deepEqual(overview.sections[0].items[0], {
+			label: "public-signature coupling",
+			path: "src/api.ts",
+			meta: "depends on 1 · used by 0",
+			action: "depends on src/model.ts",
+			raw: {
+				path: "src/api.ts",
+				public_api_depends_on: 1,
+				public_api_depends_on_files: ["src/model.ts"],
+				public_types_used_by: 0,
+			},
+		});
+		assert.deepEqual(overview.notes, [
+			"Type-coupling evidence is advisory and does not change the health score.",
+			"Type-aware evidence is partial; review omissions and abstentions before relying on semantic conclusions.",
+		]);
+	});
+
 	it("renders execution errors without a contradictory no-issues note", () => {
 		const overview = buildFallowOverview({ error: true, message: "missing required issue type", exit_code: 2 }, 2);
 

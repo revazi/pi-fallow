@@ -40,8 +40,17 @@ describe("Fallow autocomplete", () => {
 		assert.ok(labels(fallowCompletions.getFallowRootCommandCompletions()).includes("health"));
 		assert.ok(labels(fallowCompletions.getFallowRootCommandCompletions()).includes("run"));
 		assert.ok(completionLabels("").includes("audit PR (main)"));
+		assert.ok(completionLabels("").includes("symbol impact"));
+		assert.ok(completionLabels("").includes("health type coupling"));
 		assert.ok(completionLabels("health --").includes("--group-by"));
+		assert.ok(completionLabels("health --").includes("--type-aware"));
+		assert.ok(completionLabels("health --").includes("--no-type-aware"));
+		assert.ok(completionLabels("health --").includes("--type-aware-project"));
+		assert.ok(completionLabels("health --").includes("--type-coupling"));
+		assert.ok(completionLabels("dead-code --").includes("--symbol-impact"));
 		assert.ok(completionLabels("run --").includes("--file-scores"));
+		assert.deepEqual(completionLabels("health --type-aware-require c"), ["complete"]);
+		assert.deepEqual(completionLabels("health --baseline-mode i"), ["identity"]);
 		assert.deepEqual(completionLabels("health --group-by o"), ["owner"]);
 		assert.ok(completionLabels("health --group-by=o").includes("--group-by=owner"));
 		assert.deepEqual(completionLabels("coverage "), ["analyze"]);

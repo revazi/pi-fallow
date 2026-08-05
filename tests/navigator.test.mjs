@@ -262,8 +262,8 @@ describe("FallowIssueNavigator prompt generation", () => {
 		const defaultView = navigator.render(100).join("\n");
 		assert.match(defaultView, /1 finding/);
 		assert.match(defaultView, /2 informational hidden/);
-		assert.match(defaultView, /Show informational files \(2\)/);
-		assert.match(defaultView, /File scores and hotspots are context, not findings/);
+		assert.match(defaultView, /Show informational context \(2\)/);
+		assert.match(defaultView, /Informational context is not counted as findings/);
 		assert.doesNotMatch(defaultView, /src\/healthy\.ts/);
 
 		navigator.handleInput("i");

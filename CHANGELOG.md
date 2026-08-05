@@ -4,6 +4,13 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Added
+- Exposed Fallow 3.14's stable type-aware symbol-impact and advisory type-coupling report flags through `fallow_run`, `/fallow`, and autocomplete, including project/completeness controls, syntactic opt-out, and health baseline identity mode.
+- Added focused semantic-evidence rendering that keeps incomplete symbol-impact results and type-coupling conclusions explicitly advisory.
+
+### Changed
+- Validated Pi Fallow against Fallow 3.14.0 using its signed executable, command help, capability schema, and real JSON outputs. Companion status, saved-report conversion, and browser/file-oriented `viz` remain direct Fallow CLI features rather than Pi Fallow report commands.
+
 ## [0.3.1] - 2026-07-22
 
 ### Fixed

@@ -251,6 +251,196 @@ function addRootStats(root: Record<string, any>, stats: Array<{ label: string; v
 	addSummaryStats(stats, rootSummary, ["total_issues", "files_analyzed", "functions_above_threshold", "severity_critical_count", "clone_groups", "duplicated_lines", "average_maintainability"]);
 }
 
+function addSemanticEvidence(
+	root: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+	sections: FallowOverviewSection[],
+	title: { value: string },
+	notes: string[],
+	includeAllRaw: boolean,
+): void {
+	addTypeAwareStatus(root, stats, title, notes);
+	addSymbolImpact(root, stats, sections, title, notes, includeAllRaw);
+	addTypeAwareMetadata(root, stats, sections, notes, includeAllRaw);
+}
+
+function addTypeAwareStatus(
+	root: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+	title: { value: string },
+	notes: string[],
+): void {
+	if (root.kind !== "type-aware-status") return;
+	title.value = "Fallow type-aware status";
+	addIfDefinedStat(stats, "available", String(root.available === true));
+	addIfDefinedStat(stats, "package", root.package_version);
+	addIfDefinedStat(stats, "protocol", root.protocol_version);
+	addIfDefinedStat(stats, "backend", root.backend_family);
+	if (root.remediation) notes.push(String(root.remediation));
+}
+
+function addSymbolImpact(
+	root: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+	sections: FallowOverviewSection[],
+	title: { value: string },
+	notes: string[],
+	includeAllRaw: boolean,
+): void {
+	const target = asRecord(root.target);
+	if (!isSymbolImpact(root, target)) return;
+	title.value = "Fallow symbol impact";
+	addSymbolImpactStats(root, target, stats);
+	addSymbolImpactSections(root, sections, includeAllRaw);
+	addSymbolImpactWarning(root.status, notes);
+}
+
+function isSymbolImpact(root: Record<string, any>, target: Record<string, any> | undefined): target is Record<string, any> {
+	return root.kind === "impact" && !!target && root.assertion !== undefined;
+}
+
+function addSymbolImpactStats(
+	root: Record<string, any>,
+	target: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+): void {
+	addIfDefinedStat(stats, "target", symbolImpactTarget(target));
+	addIfDefinedStat(stats, "status", root.status);
+	addIfDefinedStat(stats, "confidence", root.confidence);
+	addIfDefinedStat(stats, "direct consumers", root.total_direct_consumer_count);
+	addIfDefinedStat(stats, "affected files", root.total_affected_file_count);
+	addIfDefinedStat(stats, "targeted tests", root.total_targeted_test_count);
+}
+
+function symbolImpactTarget(target: Record<string, any>): string | undefined {
+	const targetName = [target.path, target.exported_name ?? target.local_name].filter(Boolean).join(":");
+	return targetName || undefined;
+}
+
+function addSymbolImpactSections(root: Record<string, any>, sections: FallowOverviewSection[], includeAllRaw: boolean): void {
+	appendSemanticContextSection(sections, "Direct consumers", asArray(root.direct_consumers), includeAllRaw, buildSymbolImpactEvidence);
+	appendSemanticContextSection(sections, "Affected files", asArray(root.affected_files), includeAllRaw, buildSymbolImpactEvidence);
+	appendSemanticContextSection(sections, "Targeted tests", asArray(root.targeted_tests), includeAllRaw, buildSymbolImpactEvidence);
+}
+
+function buildSymbolImpactEvidence(entry: unknown, includeRaw: boolean): FallowIssueLine {
+	const evidence = asRecord(entry) ?? {};
+	return withOptionalRaw({
+		label: symbolImpactEvidenceLabel(evidence),
+		path: evidence.path,
+		line: evidence.line,
+		meta: joinDefinedValues([symbolImpactDistance(evidence), symbolImpactVia(evidence)]),
+	}, evidence, includeRaw);
+}
+
+function symbolImpactEvidenceLabel(evidence: Record<string, any>): string {
+	return firstStringValue([evidence.relation]) ?? "semantic evidence";
+}
+
+function symbolImpactDistance(evidence: Record<string, any>): string | undefined {
+	if (evidence.distance === undefined) return undefined;
+	return `distance ${evidence.distance}`;
+}
+
+function symbolImpactVia(evidence: Record<string, any>): string | undefined {
+	const via = asArray(evidence.via);
+	if (!via.length) return undefined;
+	return `via ${via.join(" → ")}`;
+}
+
+function appendSemanticContextSection(
+	sections: FallowOverviewSection[],
+	title: string,
+	entries: unknown[],
+	includeAllRaw: boolean,
+	buildItem: (entry: unknown, includeRaw: boolean) => FallowIssueLine,
+): void {
+	if (!entries.length) return;
+	sections.push({
+		title,
+		count: entries.length,
+		color: "accent",
+		role: "context",
+		items: entries.map((entry, index) => buildItem(entry, includeAllRaw || index < INLINE_RAW_DEFAULT)),
+	});
+}
+
+function addSymbolImpactWarning(status: unknown, notes: string[]): void {
+	if (status === "complete") return;
+	notes.push(`Symbol-impact evidence is ${status ?? "incomplete"}; do not treat it as exact delete-safety evidence.`);
+}
+
+function addTypeAwareMetadata(
+	root: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+	sections: FallowOverviewSection[],
+	notes: string[],
+	includeAllRaw: boolean,
+): void {
+	const metadata = asRecord(asRecord(root._meta)?.type_aware);
+	if (!metadata) return;
+	const completeness = asRecord(metadata.identity)?.completeness;
+	addTypeAwareStats(metadata, completeness, stats);
+	addTypeCouplingMetadata(metadata, stats, sections, notes, includeAllRaw);
+	addTypeAwareWarning(completeness, notes);
+}
+
+function addTypeAwareStats(
+	metadata: Record<string, any>,
+	completeness: unknown,
+	stats: Array<{ label: string; value: string | number }>,
+): void {
+	addIfDefinedStat(stats, "type-aware", typeAwareState(metadata, completeness));
+	addIfDefinedStat(stats, "semantic protocol", metadata.protocol_version);
+}
+
+function typeAwareState(metadata: Record<string, any>, completeness: unknown): string | undefined {
+	if (typeof completeness === "string") return completeness;
+	return metadata.executed ? "executed" : undefined;
+}
+
+function addTypeCouplingMetadata(
+	metadata: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+	sections: FallowOverviewSection[],
+	notes: string[],
+	includeAllRaw: boolean,
+): void {
+	const coupling = asRecord(metadata.type_coupling);
+	if (!coupling) return;
+	const files = asArray(coupling.files);
+	addIfDefinedStat(stats, "type coupling", coupling.status);
+	addIfDefinedStat(stats, "coupled files", files.length);
+	appendSemanticContextSection(sections, "Type coupling", files, includeAllRaw, buildTypeCouplingEvidence);
+	notes.push("Type-coupling evidence is advisory and does not change the health score.");
+}
+
+function buildTypeCouplingEvidence(entry: unknown, includeRaw: boolean): FallowIssueLine {
+	const evidence = asRecord(entry) ?? {};
+	const dependsOn = Number(evidence.public_api_depends_on ?? 0);
+	const usedBy = Number(evidence.public_types_used_by ?? 0);
+	return withOptionalRaw({
+		label: "public-signature coupling",
+		path: evidence.path,
+		meta: `depends on ${dependsOn} · used by ${usedBy}`,
+		action: typeCouplingAction(evidence),
+	}, evidence, includeRaw);
+}
+
+function typeCouplingAction(evidence: Record<string, any>): string | undefined {
+	const dependsOn = asArray(evidence.public_api_depends_on_files);
+	const usedBy = asArray(evidence.public_types_used_by_files);
+	return joinDefinedValues([
+		dependsOn.length ? `depends on ${dependsOn.join(", ")}` : undefined,
+		usedBy.length ? `used by ${usedBy.join(", ")}` : undefined,
+	]);
+}
+
+function addTypeAwareWarning(completeness: unknown, notes: string[]): void {
+	if (typeof completeness !== "string" || completeness === "complete") return;
+	notes.push(`Type-aware evidence is ${completeness}; review omissions and abstentions before relying on semantic conclusions.`);
+}
+
 function addIfDefinedStat(stats: Array<{ label: string; value: string | number }>, label: string, value: string | number | undefined): void {
 	if (value === undefined) return;
 	stats.push({ label, value });
@@ -527,6 +717,7 @@ export function buildFallowOverview(
 	addRootStats(root, stats);
 	addConfigStats(root, stats, title);
 	addOverviewSections(root, sections, title, includeAllRaw);
+	addSemanticEvidence(root, stats, sections, title, notes, includeAllRaw);
 	addFeatureFlags(root, sections, title, includeAllRaw);
 	addSecurity(root, sections, title, includeAllRaw);
 	addDecisionSurface(root, sections, title, includeAllRaw);
