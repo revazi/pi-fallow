@@ -4,6 +4,8 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-05
+
 ### Added
 - Exposed Fallow 3.14's stable type-aware symbol-impact and advisory type-coupling report flags through `fallow_run`, `/fallow`, and autocomplete, including project/completeness controls, syntactic opt-out, and health baseline identity mode.
 - Added focused semantic-evidence rendering that keeps incomplete symbol-impact results and type-coupling conclusions explicitly advisory.
@@ -65,7 +67,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/revazi/pi-fallow/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/revazi/pi-fallow/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/revazi/pi-fallow/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/revazi/pi-fallow/compare/v0.1.3...v0.2.0
