@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "expiresAt": "2026-08-19T00:00:00.000Z",
+  "upstreamFix": "https://github.com/earendil-works/pi/commit/221a842c136ab3af23aef9e70034af86061d27c1",
+  "vulnerabilityCounts": {
+    "info": 0,
+    "low": 0,
+    "moderate": 1,
+    "high": 2,
+    "critical": 0,
+    "total": 3
+  },
+  "findings": [
+    {
+      "name": "@earendil-works/pi-coding-agent",
+      "version": "0.83.0",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "undici"
+      ],
+      "advisories": [],
+      "effects": [],
+      "range": ">=0.75.4",
+      "nodes": [
+        "node_modules/@earendil-works/pi-coding-agent"
+      ],
+      "fixAvailable": {
+        "name": "@earendil-works/pi-coding-agent",
+        "version": "0.75.3",
+        "isSemVerMajor": true
+      }
+    },
+    {
+      "name": "brace-expansion",
+      "version": "5.0.7",
+      "severity": "high",
+      "isDirect": false,
+      "via": [],
+      "advisories": [
+        {
+          "source": 1130591,
+          "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+          "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+          "severity": "high",
+          "cwe": [
+            "CWE-400",
+            "CWE-770"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=4.0.0 <5.0.8"
+        },
+        {
+          "source": 1130734,
+          "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+          "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895",
+          "severity": "high",
+          "cwe": [
+            "CWE-400",
+            "CWE-770"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=4.0.0 <5.0.9"
+        }
+      ],
+      "effects": [],
+      "range": "4.0.0 - 5.0.8",
+      "nodes": [
+        "node_modules/@earendil-works/pi-coding-agent/node_modules/brace-expansion"
+      ],
+      "fixAvailable": true
+    },
+    {
+      "name": "undici",
+      "version": "8.5.0",
+      "severity": "high",
+      "isDirect": false,
+      "via": [],
+      "advisories": [
+        {
+          "source": 1130714,
+          "title": "undici vulnerable to downstream response desynchronization via retry interceptor",
+          "url": "https://github.com/advisories/GHSA-8xcm-r25x-g524",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-444"
+          ],
+          "cvss": {
+            "score": 4.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
+          },
+          "range": ">=8.0.0 <8.9.0"
+        },
+        {
+          "source": 1130717,
+          "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
+          "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272",
+          "severity": "high",
+          "cwe": [
+            "CWE-200",
+            "CWE-248",
+            "CWE-525"
+          ],
+          "cvss": {
+            "score": 7.4,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:H"
+          },
+          "range": ">=8.0.0 <8.9.0"
+        },
+        {
+          "source": 1130725,
+          "title": "undici vulnerable to CRLF Injection via blob-like body 'type' property",
+          "url": "https://github.com/advisories/GHSA-m8rv-5g2x-5cg5",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-93"
+          ],
+          "cvss": {
+            "score": 4.2,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N"
+          },
+          "range": ">=8.0.0 <8.9.0"
+        },
+        {
+          "source": 1130728,
+          "title": "undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives",
+          "url": "https://github.com/advisories/GHSA-jr45-8vmc-qm54",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-436",
+            "CWE-524"
+          ],
+          "cvss": {
+            "score": 5.9,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=8.0.0 <8.9.0"
+        },
+        {
+          "source": 1130730,
+          "title": "undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields",
+          "url": "https://github.com/advisories/GHSA-v3r7-h72x-cjcm",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-74"
+          ],
+          "cvss": {
+            "score": 4.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
+          },
+          "range": ">=8.0.0 <8.9.0"
+        }
+      ],
+      "effects": [
+        "@earendil-works/pi-coding-agent"
+      ],
+      "range": "8.0.0 - 8.8.0",
+      "nodes": [
+        "node_modules/@earendil-works/pi-coding-agent/node_modules/undici"
+      ],
+      "fixAvailable": {
+        "name": "@earendil-works/pi-coding-agent",
+        "version": "0.75.3",
+        "isSemVerMajor": true
+      }
+    }
+  ]
+}

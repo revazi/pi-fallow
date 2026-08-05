@@ -7,7 +7,9 @@ import { describe, it } from "node:test";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const workflowNames = ["ci.yml", "codeql.yml", "release.yml"];
-const workflows = await Promise.all(workflowNames.map((name) => readFile(join(root, ".github", "workflows", name), "utf8")));
+const workflows = Object.fromEntries(await Promise.all(
+	workflowNames.map(async (name) => [name, await readFile(join(root, ".github", "workflows", name), "utf8")]),
+));
 const dependabot = await readFile(join(root, ".github", "dependabot.yml"), "utf8");
 
 describe("package and automation metadata", () => {
@@ -27,11 +29,22 @@ describe("package and automation metadata", () => {
 	});
 
 	it("pins every workflow action to a full commit SHA", () => {
-		for (const workflow of workflows) {
+		for (const workflow of Object.values(workflows)) {
 			for (const reference of workflow.matchAll(/uses:\s+[^@\s]+@([^\s#]+)/g)) {
 				assert.match(reference[1], /^[a-f0-9]{40}$/);
 			}
 		}
+	});
+
+	it("limits the temporary audit baseline to normal CI", () => {
+		assert.equal(manifest.scripts["audit:production"], "npm audit --omit=dev --audit-level=high");
+		assert.equal(manifest.scripts["audit:all"], "npm audit --audit-level=high");
+		assert.equal(manifest.scripts["audit:ci"], "node scripts/audit-ci.mjs");
+		assert.match(workflows["ci.yml"], /Audit complete dependency tree against temporary baseline\n\s+run: npm run audit:ci/);
+		assert.doesNotMatch(workflows["release.yml"], /audit:ci/);
+		assert.match(workflows["release.yml"], /run: npm run check:publish/);
+		assert.match(manifest.scripts["check:publish"], /npm run audit:production && npm run audit:all/);
+		assert.doesNotMatch(manifest.scripts["check:publish"], /audit:ci/);
 	});
 
 	it("configures npm and GitHub Actions dependency updates", () => {
