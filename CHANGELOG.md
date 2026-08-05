@@ -10,6 +10,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Changed
 - Validated Pi Fallow against Fallow 3.14.0 using its signed executable, command help, capability schema, and real JSON outputs. Companion status, saved-report conversion, and browser/file-oriented `viz` remain direct Fallow CLI features rather than Pi Fallow report commands.
+- Refreshed the coordinated Pi development packages to 0.83.0, the direct TypeBox lock to 1.3.10, safe transitive dependency fixes, and the checkout and CodeQL workflow actions.
 
 ## [0.3.1] - 2026-07-22
 
