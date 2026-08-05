@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 
-import { validateAuditExecution } from "../scripts/audit-ci.mjs";
+import { validateAuditExecution } from "../scripts/audit-accepted-development.mjs";
 
-const baseline = JSON.parse(await readFile(new URL("../.github/npm-audit-ci-baseline.json", import.meta.url), "utf8"));
+const baseline = JSON.parse(await readFile(new URL("../.github/npm-audit-accepted-development.json", import.meta.url), "utf8"));
 const validNow = new Date("2026-08-05T12:00:00.000Z");
 
-describe("temporary CI development-audit baseline", () => {
+describe("temporary accepted-development audit baseline", () => {
 	it("accepts the exact known Pi development-tree audit result", () => {
 		const result = validate(auditReport());
 		assert.deepEqual(result, {
@@ -55,10 +55,26 @@ describe("temporary CI development-audit baseline", () => {
 		);
 	});
 
-	it("rejects lockfile version drift at an expected node", () => {
+	it("rejects lockfile digest and vulnerable-node drift", () => {
+		assert.throws(
+			() => validate(auditReport(), { lockfileSha256: "0".repeat(64) }),
+			/package-lock\.json changed outside the accepted development-audit boundary/,
+		);
+
 		const lockfile = lockfileForBaseline();
 		lockfile.packages["node_modules/@earendil-works/pi-coding-agent/node_modules/undici"].version = "8.9.0";
 		assert.throws(() => validate(auditReport(), { lockfile }), /Locked version or node changed for undici/);
+	});
+
+	it("rejects use outside the accepted v0.4.0 package scope", () => {
+		assert.throws(
+			() => validate(auditReport(), { manifest: { name: "pi-fallow", version: "0.4.1" } }),
+			/limited to pi-fallow@0\.4\.0/,
+		);
+		assert.throws(
+			() => validate(auditReport(), { manifest: { name: "another-package", version: "0.4.0" } }),
+			/limited to pi-fallow/,
+		);
 	});
 
 	it("rejects malformed audit JSON and malformed report shapes", () => {
@@ -124,6 +140,8 @@ function options(overrides = {}) {
 	return {
 		baseline: structuredClone(baseline),
 		lockfile: lockfileForBaseline(),
+		lockfileSha256: baseline.lockfileSha256,
+		manifest: { name: "pi-fallow", version: "0.4.0" },
 		now: validNow,
 		...overrides,
 	};

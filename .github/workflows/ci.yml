@@ -67,8 +67,8 @@ jobs:
       - name: Audit production dependency tree
         run: npm run audit:production
 
-      - name: Audit complete dependency tree against temporary baseline
-        run: npm run audit:ci
+      - name: Audit complete dependency tree against accepted-development baseline
+        run: npm run audit:accepted-development
 
   dependency-review:
     name: Dependency review
