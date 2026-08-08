@@ -38,32 +38,8 @@ Pi Fallow is a Pi extension that shells out to the Fallow CLI. Reports are espec
 
 For vulnerabilities in Pi or Fallow themselves, please report them to those upstream projects directly.
 
-## Temporary v0.4.0 development-audit risk acceptance
+## Dependency and package boundaries
 
-Normal repository CI and the `pi-fallow@0.4.0` release gate have a narrow, temporary exception for vulnerabilities pinned inside the development-only `@earendil-works/pi-coding-agent@0.83.0` tree. The exception expires at **2026-08-19 00:00 UTC**, is rejected for any other package version, and does not apply to extension-owned production dependencies or packed package contents.
+No vulnerability-specific baseline or exception is configured. CI and release validation audit the complete dependency tree with `npm run audit:all`, and CI separately audits the production dependency tree with `npm run audit:production`; both scripts use the repository's high-severity threshold. The current reviewed lockfile reports zero vulnerabilities at every severity.
 
-The accepted `npm audit --json` result is exactly:
-
-- the direct `@earendil-works/pi-coding-agent@0.83.0` moderate meta finding caused by nested `undici`;
-- `node_modules/@earendil-works/pi-coding-agent/node_modules/undici@8.5.0`, with only:
-  - <https://github.com/advisories/GHSA-8xcm-r25x-g524>
-  - <https://github.com/advisories/GHSA-4cwx-7wf7-3272>
-  - <https://github.com/advisories/GHSA-m8rv-5g2x-5cg5>
-  - <https://github.com/advisories/GHSA-jr45-8vmc-qm54>
-  - <https://github.com/advisories/GHSA-v3r7-h72x-cjcm>
-- `node_modules/@earendil-works/pi-coding-agent/node_modules/brace-expansion@5.0.7`, with only:
-  - <https://github.com/advisories/GHSA-mh99-v99m-4gvg>
-  - <https://github.com/advisories/GHSA-rgw5-rvv9-x895>
-
-`.github/npm-audit-accepted-development.json` records the accepted release version and exact packages, paths, versions, advisory identities/ranges/severities, finding severities, and aggregate counts. `npm run audit:accepted-development` runs a fresh complete-development audit and fails closed unless the nonzero result, lockfile, and package version match that boundary. It also fails on audit execution errors, malformed output, a fixed tree, expiry, or any finding drift; it is not a package/range ignore mechanism.
-
-`npm run audit:release` combines the unchanged strict production audit with that exact accepted-development validator. `npm run check:publish` additionally builds, tests, runs Fallow's checks, and packs and installs the release tarball. The package smoke check proves the tarball has no owned, optional, or bundled runtime dependencies or `node_modules`; the Pi packages remain host-provided peers. `npm run audit:all` remains available and is expected to report the accepted findings until upstream publishes its fix. This policy does not describe the complete development audit as clean.
-
-The nested versions come from the Pi package's published shrinkwrap and cannot be replaced by this repository's root dependency resolution. Upstream Pi commit [`221a842c`](https://github.com/earendil-works/pi/commit/221a842c136ab3af23aef9e70034af86061d27c1) updates them, but it is not present in a published Pi release as of this acceptance. GitHub Dependabot update job `1508340585` consequently reports `security_update_not_possible`: `undici@8.5.0` is the latest resolvable version because `@earendil-works/pi-coding-agent@0.83.0` requires it, while `8.9.0` is the lowest non-vulnerable version. Dependabot security updates remain enabled; this external failed update attempt is not suppressed.
-
-As soon as an upstream release containing the fix is published—or before changing the package version or reaching the deadline:
-
-1. upgrade the coordinated Pi development packages and regenerate `package-lock.json`;
-2. verify `npm run audit:all` and the strict production audit are clean;
-3. change CI and release validation back to `npm run audit:all`; and
-4. remove the accepted baseline, validator, tests, scripts, and this section.
+Package smoke validation also proves the tarball has no owned, optional, or bundled runtime dependencies or `node_modules`. Pi packages remain host-provided peer dependencies and are not included in the published package.

@@ -36,15 +36,18 @@ describe("package and automation metadata", () => {
 		}
 	});
 
-	it("keeps production auditing strict and bounds the accepted development audit to CI and v0.4.0 release validation", () => {
+	it("keeps production and complete dependency auditing strict in CI and release validation", () => {
 		assert.equal(manifest.scripts["audit:production"], "npm audit --omit=dev --audit-level=high");
 		assert.equal(manifest.scripts["audit:all"], "npm audit --audit-level=high");
-		assert.equal(manifest.scripts["audit:accepted-development"], "node scripts/audit-accepted-development.mjs");
-		assert.equal(manifest.scripts["audit:release"], "npm run audit:production && npm run audit:accepted-development");
-		assert.match(workflows["ci.yml"], /Audit complete dependency tree against accepted-development baseline\n\s+run: npm run audit:accepted-development/);
+		assert.deepEqual(
+			Object.keys(manifest.scripts).filter((name) => name.startsWith("audit:")).sort(),
+			["audit:all", "audit:production"],
+		);
+		assert.match(workflows["ci.yml"], /Audit production dependency tree\n\s+run: npm run audit:production/);
+		assert.match(workflows["ci.yml"], /Audit complete dependency tree\n\s+run: npm run audit:all/);
+		assert.ok(workflows["ci.yml"].indexOf("npm run audit:production") < workflows["ci.yml"].indexOf("npm run audit:all"));
 		assert.match(workflows["release.yml"], /run: npm run check:publish/);
-		assert.match(manifest.scripts["check:publish"], /npm run audit:release && npm run package:smoke/);
-		assert.doesNotMatch(manifest.scripts["check:publish"], /audit:all/);
+		assert.match(manifest.scripts["check:publish"], /npm run audit:all && npm run package:smoke/);
 	});
 
 	it("configures npm and GitHub Actions dependency updates", () => {

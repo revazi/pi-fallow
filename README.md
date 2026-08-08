@@ -182,6 +182,7 @@ npm run health
 npm run dupes
 npm run coverage
 npm run audit:production
+npm run audit:all
 npm run package:smoke
 npm run pack:check
 npm run bench:tokens -- --label candidate --output /tmp/pi-fallow-token-candidate.json
