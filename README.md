@@ -143,6 +143,18 @@ The navigator defaults to compact prompts. Compact mode includes every selected 
 
 Plain `fallow health` can return actionable findings alongside informational per-file scores and hotspots. Pi Fallow hides those informational records by default and reports their count separately. Explicit informational commands such as `health --file-scores` and `flags` show their records directly without finding-selection or agent-prompt controls. The overlay stays centered at 90% terminal width, can use up to 95% of terminal height, and expands large virtualized result sets to as many as 30 visible rows.
 
+## Tested compatibility
+
+The current `0.4.x` development line is certified with this host matrix:
+
+| Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
+|---|---|---|---|
+| 0.84.1 | 0.84.1 | 22.19 and 24 | 3.14.0 |
+
+Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version locked by this repository. It verifies offline extension loading, `/fallow` discovery, provider-free `/fallow health` execution over RPC, print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
+
+This matrix records tested compatibility; it is not an installation constraint or a claim about untested Pi versions. Pi packages intentionally remain host-provided wildcard peer dependencies, following Pi's package guidance. Other Pi versions may work, but are not certified until they pass the same package smoke checks.
+
 ## Requirements
 
 - Node.js 22.19+
@@ -156,7 +168,7 @@ Plain `fallow health` can return actionable findings alongside informational per
 
 Runner resolution is refreshed when `FALLOW_BIN` or `PATH` changes. The npx fallback locates the installed package once and invokes its executable directly for later commands. If an automatically resolved executable disappears, Pi Fallow invalidates it and retries the next route once. An invalid explicit `FALLOW_BIN`, cancellation, timeout, or a command that already started never falls through to another installation.
 
-The Pi package declares Pi libraries as peer dependencies, as recommended for Pi extensions.
+The Pi package declares Pi libraries as wildcard peer dependencies, as recommended for Pi extensions; see the tested matrix above for the currently certified host version.
 
 ## Package manifest
 

@@ -6,6 +6,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Added
 - Added an immediate pre-output-detail token benchmark baseline for reproducible before/after release evidence.
+- Documented the Pi 0.84.1 host certification matrix while retaining Pi's recommended wildcard peer dependencies.
 
 ### Changed
 - Upgraded the coordinated Pi development packages to 0.84.0, incorporating the upstream dependency security fix.
