@@ -6,6 +6,8 @@ import { describe, it } from "node:test";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+const lockfile = JSON.parse(await readFile(join(root, "package-lock.json"), "utf8"));
+const readme = await readFile(join(root, "README.md"), "utf8");
 const workflowNames = ["ci.yml", "codeql.yml", "release.yml"];
 const workflows = Object.fromEntries(await Promise.all(
 	workflowNames.map(async (name) => [name, await readFile(join(root, ".github", "workflows", name), "utf8")]),
@@ -16,6 +18,21 @@ describe("package and automation metadata", () => {
 	it("matches the minimum Node version required by current Pi peers", () => {
 		assert.equal(manifest.engines.node, ">=22.19");
 		assert.equal(manifest.packageManager, "npm@11.6.2");
+	});
+
+	it("documents the locked Pi host certification without narrowing wildcard peers", () => {
+		const piPackages = [
+			"@earendil-works/pi-ai",
+			"@earendil-works/pi-coding-agent",
+			"@earendil-works/pi-tui",
+		];
+		for (const name of piPackages) {
+			assert.equal(manifest.peerDependencies[name], "*");
+			assert.equal(lockfile.packages[`node_modules/${name}`].version, "0.84.1");
+		}
+		assert.match(readme, /\| 0\.84\.1 \| 0\.84\.1 \| 22\.19 and 24 \| 3\.14\.0 \|/);
+		assert.match(readme, /tested compatibility; it is not an installation constraint/);
+		assert.match(readme, /wildcard peer dependencies/);
 	});
 
 	it("pins analysis tooling and enables npm provenance", () => {
