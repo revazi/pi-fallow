@@ -143,6 +143,23 @@ describe("Fallow process execution", () => {
 		}
 	});
 
+	it("uses normalized findings by default for the real tool execution path", async () => {
+		const workspace = await mkdtemp(join(tmpdir(), "pi-fallow-tool-detail-"));
+		let fullOutputPath;
+		try {
+			await withFixture("success", async () => {
+				const result = await fallowCli.runFallow({}, { command: "dead-code" }, { cwd: workspace });
+				fullOutputPath = result.details.fullOutputPath;
+				assert.match(result.content[0].text, /Fallow findings:/);
+				assert.doesNotMatch(result.content[0].text, /Raw JSON:/);
+				assert.ok(fullOutputPath);
+			});
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+			if (fullOutputPath) await rm(dirname(fullOutputPath), { recursive: true, force: true });
+		}
+	});
+
 	it("uses the tool signal instead of an unrelated context signal", async () => {
 		const workspace = await mkdtemp(join(tmpdir(), "pi-fallow-tool-"));
 		try {

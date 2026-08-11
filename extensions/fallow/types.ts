@@ -1,3 +1,5 @@
+export type FallowOutputDetail = "summary" | "findings" | "raw";
+
 export interface FallowProjectState {
 	configPath?: string;
 	configSource: "file" | "flag" | "none";

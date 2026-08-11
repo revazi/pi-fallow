@@ -13,6 +13,7 @@ describe("fallow_run compact contract", () => {
 			"command", "args", "root", "timeoutSecs", "detail",
 		]);
 		assert.equal(tool.parameters.additionalProperties, false);
+		assert.equal(tool.parameters.properties.detail.default, "findings");
 		assert.equal(tool.promptSnippet, undefined);
 		assert.equal(tool.promptGuidelines, undefined);
 		assert.match(tool.description, /type-aware impact/);

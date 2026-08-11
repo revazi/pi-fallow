@@ -140,28 +140,31 @@ async function measureScenario(scenario, cwd, contract, promptDetail) {
 	const fixtureText = await readFile(fixturePath, "utf8");
 	const fixtureData = JSON.parse(fixtureText);
 	const findings = collectBenchmarkFindings(fixtureData);
-	const commandResult = await runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, preserveNavigatorDetails: true });
+	const [toolResult, commandResult] = await Promise.all([
+		runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, outputDetail: "findings" }),
+		runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, preserveNavigatorDetails: true }),
+	]);
 
-	const fullOutputPath = commandResult.formatted.fullOutputPath;
-	const normalize = (text) => normalizeFullOutputPath(text, fullOutputPath);
+	const toolOutputPath = toolResult.formatted.fullOutputPath;
+	const commandOutputPath = commandResult.formatted.fullOutputPath;
 	const rawReport = JSON.stringify(fixtureData, null, 2);
-	const toolContent = normalize(commandResult.content);
+	const toolContent = normalizeFullOutputPath(toolResult.content, toolOutputPath);
 	const resultPrefix = [
 		formatFallowPrSummaryText(commandResult.prSummary),
 		formatFallowProjectStateText(commandResult.projectState),
 	].filter(Boolean).join("\n");
 	const hasNavigator = !!commandResult.formatted.overview?.sections.some((section) => section.items.length > 0);
-	const slashContent = normalize(buildFallowTranscriptContent(
+	const slashContent = normalizeFullOutputPath(buildFallowTranscriptContent(
 		resultPrefix,
 		commandResult.formatted.summary,
 		commandResult.content,
 		hasNavigator,
-	));
+	), commandOutputPath);
 	const output = [
 		measureText("raw-report", scenario.id, rawReport, findings, { reportFindings: findings.length }),
 		withContextExposure(measureText("tool-result", scenario.id, toolContent, findings, {
 			reportFindings: findings.length,
-			truncated: !!commandResult.formatted.truncated,
+			truncated: !!toolResult.formatted.truncated,
 		}), contract),
 		withContextExposure(measureText("slash-transcript", scenario.id, slashContent, findings, {
 			reportFindings: findings.length,
@@ -175,13 +178,15 @@ async function measureScenario(scenario, cwd, contract, promptDetail) {
 		output.push(...await measurePrompts(
 			scenario,
 			promptOverview,
-			commandResult.formatted.fullOutputPath,
+			commandOutputPath,
 			contract,
 			promptDetail,
 		));
 	}
 
-	if (fullOutputPath) await rm(dirname(fullOutputPath), { recursive: true, force: true });
+	for (const fullOutputPath of new Set([toolOutputPath, commandOutputPath].filter(Boolean))) {
+		await rm(dirname(fullOutputPath), { recursive: true, force: true });
+	}
 	return output;
 }
 
