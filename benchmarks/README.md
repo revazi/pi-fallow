@@ -55,6 +55,33 @@ npm run bench:tokens:compare -- \
   /tmp/pi-fallow-token-candidate.json
 ```
 
+## Immediate baseline before `fallow_run.detail`
+
+[`baselines/v0.4.0-pre-output-detail.json`](./baselines/v0.4.0-pre-output-detail.json) freezes commit `2350b0a5f19abfa51d1fd53fa6abf7d7eb0938da`, immediately before `fallow_run.detail` became effective. Use this baseline for release evidence that isolates the output-detail change from earlier token optimizations:
+
+```bash
+npm run bench:tokens -- \
+  --label release-candidate \
+  --output /tmp/pi-fallow-token-release.json
+npm run bench:tokens:compare -- \
+  benchmarks/baselines/v0.4.0-pre-output-detail.json \
+  /tmp/pi-fallow-token-release.json
+```
+
+The post-change measurement at merge commit `c208eb88ef7d7a276ed56e0c150bc4383d43938a` produced:
+
+| Surface/scenario (`o200k_base`) | Before | After | Inline finding retention after |
+|---|---:|---:|---:|
+| All tool results | 45,104 | 8,046 | bounded per scenario |
+| No-findings tool result | 309 | 233 | not applicable |
+| 5-finding tool result | 1,064 | 738 | 5/5, 100% required raw-field retention |
+| 40-finding tool result | 6,403 | 1,315 | 11/40, 100% required raw-field retention |
+| 300-finding tool result | 12,416 | 1,311 | 11/300, 100% required raw-field retention |
+| Schema tool result | 11,497 | 173 | not applicable |
+| All slash transcripts | 12,645 | 12,645 | unchanged |
+
+This is an **82.16%** aggregate tool-result reduction, not a claim that omitted findings disappeared: bounded results report exact inclusion/omission counts and retain a complete-output reference. The small report remains complete inline, and contract tests separately verify normalized location, evidence, and preferred-action fields.
+
 ## `0.2.0` before findings
 
 Primary `o200k_base` measurements:
