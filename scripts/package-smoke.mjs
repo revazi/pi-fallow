@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { RpcClient } from "@earendil-works/pi-coding-agent";
 
 const root = resolve(import.meta.dirname, "..");
 const workspace = mkdtempSync(join(tmpdir(), "pi-fallow-package-"));
@@ -13,8 +14,9 @@ try {
 	const packResult = packPackage(packDir);
 	validateContents(packResult.files.map((file) => file.path));
 	installTarball(join(packDir, packResult.filename), installDir);
-	validateInstalledPackage(installDir);
-	console.log(`Package smoke check passed (${packResult.filename}, ${packResult.files.length} files).`);
+	const packageRoot = validateInstalledPackage(installDir);
+	const piVersion = await validateInstalledPackageWithPi(packageRoot, join(workspace, "agent-home"));
+	console.log(`Package smoke check passed (${packResult.filename}, ${packResult.files.length} files, Pi ${piVersion} RPC).`);
 } finally {
 	rmSync(workspace, { recursive: true, force: true });
 }
@@ -64,4 +66,55 @@ function validateInstalledPackage(cwd) {
 	});
 	assert.deepEqual(manifest.pi?.extensions, ["./extensions/index.ts"]);
 	assert.ok(readFileSync(join(packageRoot, "extensions", "index.ts"), "utf8").length > 0);
+	return packageRoot;
+}
+
+async function validateInstalledPackageWithPi(packageRoot, agentDir) {
+	mkdirSync(agentDir, { recursive: true });
+	const cliPath = join(root, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "cli.js");
+	const piVersion = execFileSync(process.execPath, [cliPath, "--version"], { cwd: root, encoding: "utf8" }).trim();
+	const expectedVersion = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"))
+		.packages["node_modules/@earendil-works/pi-coding-agent"].version;
+	assert.equal(piVersion, expectedVersion, "Package smoke must use the locked Pi CLI.");
+
+	const events = [];
+	const rpc = new RpcClient({
+		cliPath,
+		cwd: root,
+		env: { PI_CODING_AGENT_DIR: agentDir, PI_OFFLINE: "1" },
+		args: [
+			"--no-session",
+			"--offline",
+			"--no-extensions",
+			"--no-skills",
+			"--no-prompt-templates",
+			"--no-context-files",
+			"-e", packageRoot,
+		],
+	});
+	const unsubscribe = rpc.onEvent((event) => events.push(event));
+	try {
+		await rpc.start();
+		const commands = await rpc.getCommands();
+		const fallowCommands = commands.filter(
+			(command) => command.name === "fallow" && command.source === "extension",
+		);
+		assert.equal(fallowCommands.length, 1, "Packaged /fallow command was not discovered exactly once.");
+
+		await rpc.prompt("/fallow health");
+		const messages = await rpc.getMessages();
+		const results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 1, "Packaged /fallow health did not emit one Fallow result.");
+		assert.match(JSON.stringify(results[0].content), /health_score/, "Fallow health result is missing its health score.");
+
+		const forbiddenEvents = events.filter((event) =>
+			["extension_error", "agent_start", "turn_start"].includes(event.type),
+		);
+		assert.deepEqual(forbiddenEvents, [], "Provider-free extension command emitted an error or agent turn.");
+	} finally {
+		unsubscribe();
+		await rpc.stop();
+	}
+	assert.equal(rpc.getStderr(), "", `Pi RPC wrote to stderr:\n${rpc.getStderr()}`);
+	return piVersion;
 }
