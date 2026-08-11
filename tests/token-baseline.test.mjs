@@ -8,9 +8,11 @@ import { describe, it } from "node:test";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const corpusPath = join(root, "benchmarks", "corpus.json");
 const baselinePath = join(root, "benchmarks", "baselines", "v0.2.0.json");
+const preOutputDetailBaselinePath = join(root, "benchmarks", "baselines", "v0.4.0-pre-output-detail.json");
 const corpusText = await readFile(corpusPath, "utf8");
 const corpus = JSON.parse(corpusText);
 const baseline = JSON.parse(await readFile(baselinePath, "utf8"));
+const preOutputDetailBaseline = JSON.parse(await readFile(preOutputDetailBaselinePath, "utf8"));
 
 describe("token benchmark baseline", () => {
 	it("is tied to the frozen fixture corpus", async () => {
@@ -42,6 +44,16 @@ describe("token benchmark baseline", () => {
 		assert.equal(large.quality.includedFindings, 84);
 		assert.equal(large.quality.hasFullOutputReference, true);
 	});
+
+	it("preserves the immediate pre-output-detail release baseline", async () => {
+		assert.equal(preOutputDetailBaseline.label, "v0.4.0-pre-output-detail");
+		assert.equal(preOutputDetailBaseline.environment.gitSha, "2350b0a5f19abfa51d1fd53fa6abf7d7eb0938da");
+		assert.equal(preOutputDetailBaseline.corpusHash, await hashCorpus());
+		assert.equal(preOutputDetailSurfaceTokens("tool-result"), 45_104);
+		assert.equal(preOutputDetailSurfaceTokens("slash-transcript"), 12_645);
+		assert.equal(preOutputDetailMeasurement("tool-result/small-findings").quality.includedFindings, 5);
+		assert.equal(preOutputDetailMeasurement("tool-result/medium-findings").quality.requiredFieldRetentionPct, 100);
+	});
 });
 
 function measurement(key) {
@@ -52,6 +64,18 @@ function measurement(key) {
 
 function tokens(key) {
 	return measurement(key).tokens.o200k_base;
+}
+
+function preOutputDetailMeasurement(key) {
+	const value = preOutputDetailBaseline.measurements.find((entry) => entry.key === key);
+	assert.ok(value, `Missing pre-output-detail baseline measurement: ${key}`);
+	return value;
+}
+
+function preOutputDetailSurfaceTokens(surface) {
+	return preOutputDetailBaseline.measurements
+		.filter((entry) => entry.surface === surface)
+		.reduce((total, entry) => total + entry.tokens.o200k_base, 0);
 }
 
 async function hashCorpus() {

@@ -4,6 +4,9 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Added
+- Added an immediate pre-output-detail token benchmark baseline for reproducible before/after release evidence.
+
 ### Changed
 - Upgraded the coordinated Pi development packages to 0.84.0, incorporating the upstream dependency security fix.
 - Removed the temporary development-audit vulnerability acceptance after the upstream fix; CI and release validation now strictly audit the complete dependency tree.
