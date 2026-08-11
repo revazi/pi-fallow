@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -16,7 +16,7 @@ try {
 	installTarball(join(packDir, packResult.filename), installDir);
 	const packageRoot = validateInstalledPackage(installDir);
 	const piVersion = await validateInstalledPackageWithPi(packageRoot, join(workspace, "agent-home"));
-	console.log(`Package smoke check passed (${packResult.filename}, ${packResult.files.length} files, Pi ${piVersion} RPC).`);
+	console.log(`Package smoke check passed (${packResult.filename}, ${packResult.files.length} files, Pi ${piVersion} RPC/print/JSON).`);
 } finally {
 	rmSync(workspace, { recursive: true, force: true });
 }
@@ -82,15 +82,7 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		cliPath,
 		cwd: root,
 		env: { PI_CODING_AGENT_DIR: agentDir, PI_OFFLINE: "1" },
-		args: [
-			"--no-session",
-			"--offline",
-			"--no-extensions",
-			"--no-skills",
-			"--no-prompt-templates",
-			"--no-context-files",
-			"-e", packageRoot,
-		],
+		args: isolatedPiArgs(packageRoot),
 	});
 	const unsubscribe = rpc.onEvent((event) => events.push(event));
 	try {
@@ -116,5 +108,81 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		await rpc.stop();
 	}
 	assert.equal(rpc.getStderr(), "", `Pi RPC wrote to stderr:\n${rpc.getStderr()}`);
+	validateNonInteractiveModes(cliPath, packageRoot, agentDir);
 	return piVersion;
+}
+
+function validateNonInteractiveModes(cliPath, packageRoot, agentRoot) {
+	const commonArgs = isolatedPiArgs(packageRoot);
+	const printResult = runIsolatedPi(cliPath, ["--print", ...commonArgs, "/fallow health"], join(agentRoot, "print"));
+	assert.equal(printResult.status, 0, `Pi print-mode /fallow health failed:\n${printResult.stderr}`);
+	assert.equal(printResult.stderr, "", `Pi print mode wrote to stderr:\n${printResult.stderr}`);
+
+	const jsonResult = runIsolatedPi(cliPath, ["--mode", "json", ...commonArgs, "/fallow health"], join(agentRoot, "json"));
+	assert.equal(jsonResult.status, 0, `Pi JSON-mode /fallow health failed:\n${jsonResult.stderr}`);
+	assert.equal(jsonResult.stderr, "", `Pi JSON mode wrote to stderr:\n${jsonResult.stderr}`);
+	const events = jsonResult.stdout.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+	const results = events.filter(
+		(event) => event.type === "message_end" && event.message?.customType === "fallow-result",
+	);
+	assert.equal(results.length, 1, "Pi JSON mode did not emit one Fallow result.");
+	assert.match(JSON.stringify(results[0].message.content), /health_score/, "Pi JSON Fallow result is missing its health score.");
+	const providerEvents = events.filter((event) => ["agent_start", "turn_start"].includes(event.type));
+	assert.deepEqual(providerEvents, [], "Pi JSON-mode extension command started an agent/provider turn.");
+
+	const controlResult = runIsolatedPi(
+		cliPath,
+		["--print", ...commonArgs, "/pi-fallow-unknown-command"],
+		join(agentRoot, "control"),
+	);
+	assert.equal(controlResult.status, 1, "Unknown print-mode slash command unexpectedly succeeded without credentials.");
+	assert.match(controlResult.stderr, /API key|Authentication failed|No model selected/,
+		"Unknown slash-command control did not reach provider authentication preflight.");
+}
+
+function isolatedPiArgs(packageRoot) {
+	return [
+		"--no-session",
+		"--offline",
+		"--no-extensions",
+		"--no-skills",
+		"--no-prompt-templates",
+		"--no-context-files",
+		"-e", packageRoot,
+	];
+}
+
+function runIsolatedPi(cliPath, args, agentDir) {
+	const homeDir = join(agentDir, "home");
+	const tempDir = join(agentDir, "tmp");
+	mkdirSync(homeDir, { recursive: true });
+	mkdirSync(tempDir, { recursive: true });
+	const result = spawnSync(process.execPath, [cliPath, ...args], {
+		cwd: root,
+		env: isolatedProcessEnvironment(agentDir, homeDir, tempDir),
+		encoding: "utf8",
+		timeout: 120_000,
+		maxBuffer: 10 * 1024 * 1024,
+	});
+	assert.equal(result.error, undefined, `Pi non-interactive process failed: ${result.error}`);
+	assert.equal(result.signal, null, `Pi non-interactive process exited from ${result.signal}.`);
+	return result;
+}
+
+function isolatedProcessEnvironment(agentDir, homeDir, tempDir) {
+	const env = {
+		PATH: process.env.PATH ?? "",
+		HOME: homeDir,
+		TMPDIR: tempDir,
+		TMP: tempDir,
+		TEMP: tempDir,
+		PI_CODING_AGENT_DIR: agentDir,
+		PI_OFFLINE: "1",
+		CI: "1",
+		NO_COLOR: "1",
+	};
+	for (const name of ["SystemRoot", "WINDIR", "ComSpec", "PATHEXT", "LANG", "LC_ALL"]) {
+		if (process.env[name] !== undefined) env[name] = process.env[name];
+	}
+	return env;
 }
