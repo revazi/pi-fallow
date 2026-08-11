@@ -110,6 +110,8 @@ The agent-facing `fallow_run` tool passes command-specific flags as separate `ar
 
 `fallow_run.detail` controls model-facing output and defaults to `findings`. Use `summary` for bounded status and counts, `findings` for bounded normalized findings with locations, evidence, and suggested actions, or `raw` for bounded raw Fallow JSON/output. Summary and findings responses always link to a complete report in the operating system's temporary directory; raw responses do so when truncation omits content. This setting does not change `/fallow` slash-command or navigator rendering.
 
+When `fallow_run` is active, its compact Pi prompt guidance tells the model to inspect or trace before deletion, treat incomplete type-aware evidence as advisory, preview fixes before applying them, avoid unrequested changes, and reserve raw detail for necessary diagnostics.
+
 `--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow 3.14 also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
 
 Some Fallow surfaces deliberately remain direct CLI features rather than Pi Fallow report commands:
