@@ -17,6 +17,7 @@ function runFixture(cwd, data, options = {}) {
 		signal: undefined,
 		timeoutSecs: 10,
 		throwOnExecutionError: options.throwOnExecutionError ?? false,
+		outputDetail: options.outputDetail,
 		executor: async (_pi, args) => ({
 			binary: "fixture-fallow",
 			args,
@@ -71,6 +72,22 @@ describe("Fallow engine result retention", () => {
 			assert.match(result.content, /Raw JSON:/);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	it("applies requested detail without retaining the raw presentation", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "pi-fallow-engine-detail-"));
+		let fullOutputPath;
+		try {
+			const result = await runFixture(cwd, largeReport(), { outputDetail: "findings", code: 1 });
+			fullOutputPath = result.formatted.fullOutputPath;
+			assert.match(result.content, /Fallow findings:/);
+			assert.doesNotMatch(result.content, /Raw JSON:/);
+			assert.ok(fullOutputPath);
+			assert.equal("errorText" in result.formatted, false);
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+			if (fullOutputPath) await rm(dirname(fullOutputPath), { recursive: true, force: true });
 		}
 	});
 

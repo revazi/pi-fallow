@@ -5,6 +5,7 @@ import { stripAtPrefix } from "./path";
 import { execFallowProcess } from "./process";
 import { createFallowRunner } from "./runner";
 import type { FallowRunParams as CompactFallowRunParams } from "./schema";
+import type { FallowOutputDetail } from "./types";
 
 // Compatibility shape for tool calls stored by Pi before the compact contract.
 type FallowRunParams = CompactFallowRunParams & Record<string, any>;
@@ -506,6 +507,10 @@ function resolveFallowTimeout(params: CompactFallowRunParams): number {
 	return Number(process.env.FALLOW_TIMEOUT_SECS || 120);
 }
 
+function resolveFallowOutputDetail(detail: CompactFallowRunParams["detail"]): FallowOutputDetail {
+	return detail ?? "findings";
+}
+
 async function runFallow(pi: ExtensionAPI, params: CompactFallowRunParams, ctx: ExtensionContext, signal?: AbortSignal) {
 	const { details, content } = await fallowEngine.runFallowWithExecutor({
 		pi,
@@ -514,6 +519,7 @@ async function runFallow(pi: ExtensionAPI, params: CompactFallowRunParams, ctx: 
 		signal: signal ?? ctx.signal,
 		timeoutSecs: resolveFallowTimeout(params),
 		executor: execFallow,
+		outputDetail: resolveFallowOutputDetail(params.detail),
 	});
 	return { content: [{ type: "text" as const, text: content }], details };
 }
@@ -614,5 +620,6 @@ export const fallowCli = {
 	splitArgs,
 	buildFallowArgs,
 	prepareFallowRunParams,
+	resolveFallowOutputDetail,
 };
 

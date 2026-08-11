@@ -4,8 +4,9 @@ import { join } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "./data";
 import type { ParsedFallowOutput } from "./json";
+import { fallowOutputDetail } from "./output-detail";
 import { buildFallowOverview } from "./overview";
-import type { FallowOverview } from "./types";
+import type { FallowOutputDetail, FallowOverview } from "./types";
 
 function stringifyCompact(value: unknown): string {
 	try {
@@ -106,8 +107,10 @@ export async function formatToolOutput(
 	cwd: string,
 	exitCode = 0,
 	preserveNavigatorDetails = false,
+	outputDetail: FallowOutputDetail = "raw",
 ): Promise<{
 	text: string;
+	errorText: string;
 	summary: string;
 	overview?: FallowOverview;
 	fullOutputPath?: string;
@@ -115,15 +118,51 @@ export async function formatToolOutput(
 }> {
 	const { overview, summary } = buildToolOutputSummary(parsed, exitCode);
 	const rawText = getFormattedRawText(parsed);
-	const truncation = truncateHead(rawText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
-	const fullOutputPath = await writeOutputPathIfNeeded(
-		truncation,
-		rawText,
-		preserveNavigatorDetails && overviewHasFindings(overview),
-	);
-	const text = buildToolOutputText(parsed, summary, truncation, fullOutputPath);
+	const rawTruncation = truncateHead(rawText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
+	const preserveFullOutput = shouldPreserveFullOutput(outputDetail, rawTruncation.truncated, preserveNavigatorDetails, overview);
+	const fullOutputPath = await writeOutputPathIfNeeded(preserveFullOutput, rawText);
+	const errorText = buildToolOutputText(parsed, summary, rawTruncation, fullOutputPath);
+	const presentation = selectOutputPresentation(outputDetail, parsed, exitCode, summary, overview, fullOutputPath, errorText, rawTruncation.truncated);
+	return { text: presentation.text, errorText, summary, overview, fullOutputPath, truncated: presentation.truncated };
+}
 
-	return { text, summary, overview, fullOutputPath, truncated: truncation.truncated };
+function shouldPreserveFullOutput(
+	outputDetail: FallowOutputDetail,
+	rawTruncated: boolean,
+	preserveNavigatorDetails: boolean,
+	overview: FallowOverview | undefined,
+): boolean {
+	if (rawTruncated || outputDetail !== "raw") return true;
+	return preserveNavigatorDetails && overviewHasFindings(overview);
+}
+
+function selectOutputPresentation(
+	outputDetail: FallowOutputDetail,
+	parsed: ParsedFallowOutput,
+	exitCode: number,
+	summary: string,
+	overview: FallowOverview | undefined,
+	fullOutputPath: string | undefined,
+	rawText: string,
+	rawTruncated: boolean,
+): { text: string; truncated: boolean } {
+	if (outputDetail === "raw") return { text: rawText, truncated: rawTruncated };
+	return formatNonRawOutputDetail(outputDetail, parsed, exitCode, summary, overview, fullOutputPath!);
+}
+
+function formatNonRawOutputDetail(
+	outputDetail: Exclude<FallowOutputDetail, "raw">,
+	parsed: ParsedFallowOutput,
+	exitCode: number,
+	summary: string,
+	overview: FallowOverview | undefined,
+	fullOutputPath: string,
+): ReturnType<typeof fallowOutputDetail.format> {
+	if (outputDetail === "summary" || !parsed.parsed) {
+		return fallowOutputDetail.format(outputDetail, summary, overview, fullOutputPath);
+	}
+	const detailedOverview = buildFallowOverview(parsed.data, exitCode, { includeAllRaw: true });
+	return fallowOutputDetail.format(outputDetail, summary, detailedOverview, fullOutputPath);
 }
 
 function buildToolOutputSummary(
@@ -146,11 +185,10 @@ function overviewHasFindings(overview: FallowOverview | undefined): boolean {
 }
 
 async function writeOutputPathIfNeeded(
-	truncation: ReturnType<typeof truncateHead>,
-	rawText: string,
 	preserveFullOutput: boolean,
+	rawText: string,
 ): Promise<string | undefined> {
-	if (!truncation.truncated && !preserveFullOutput) return undefined;
+	if (!preserveFullOutput) return undefined;
 	const tempDir = await mkdtemp(join(tmpdir(), "pi-fallow-"));
 	const fullOutputPath = join(tempDir, "fallow-output.json");
 	await withFileMutationQueue(fullOutputPath, async () => writeFile(fullOutputPath, rawText, "utf8"));

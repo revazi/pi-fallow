@@ -5,6 +5,8 @@ import { createFallowBenchmarkProject, runFixtureEngine } from "./benchmark-util
 
 const fixtureArg = process.argv[2];
 if (!fixtureArg) throw new Error("A fixture path is required.");
+const outputDetail = process.argv[3];
+if (outputDetail && !["summary", "findings", "raw"].includes(outputDetail)) throw new Error(`Unsupported output detail: ${outputDetail}`);
 const fixturePath = resolve(fixtureArg);
 if (typeof global.gc !== "function") throw new Error("Run the memory worker with --expose-gc.");
 
@@ -35,7 +37,7 @@ process.stdout.write(JSON.stringify({
 
 function runFixture(fixtureText, cwd) {
 	const scenario = { args: ["dead-code", "--format", "json", "--quiet"], exitCode: 0 };
-	return runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd });
+	return runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, outputDetail });
 }
 
 function forceGc() {

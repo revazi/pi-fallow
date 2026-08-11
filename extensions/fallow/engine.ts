@@ -5,7 +5,7 @@ import { detectFallowProjectState } from "./project/state";
 import { formatFallowProjectStateText } from "./project/text";
 import { parseJson } from "./json";
 import { formatToolOutput } from "./output";
-import type { FallowDetails, FallowOverview, FallowPrSummary, FallowProjectState } from "./types";
+import type { FallowDetails, FallowOutputDetail, FallowOverview, FallowPrSummary, FallowProjectState } from "./types";
 
 interface FallowExecutor {
 	(pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<{
@@ -24,6 +24,7 @@ interface FallowCommandInput {
 	executor: FallowExecutor;
 	throwOnExecutionError?: boolean;
 	preserveNavigatorDetails?: boolean;
+	outputDetail?: FallowOutputDetail;
 }
 
 interface ExecutedFallowCommand {
@@ -64,11 +65,11 @@ async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowC
 	const execution = await executeCommand(input);
 	const projectStatePromise = detectFallowProjectState(input.cwd, execution.args);
 	const parsed = parseJson(execution.stdout, execution.stderr);
-	const formattedPromise = formatToolOutput(parsed, input.cwd, execution.code, input.preserveNavigatorDetails);
+	const formattedPromise = formatToolOutput(parsed, input.cwd, execution.code, input.preserveNavigatorDetails, input.outputDetail);
 	const prSummary = buildFallowPrSummary(parsed.data, execution.args, execution.code);
 	const [projectState, formattedOutput] = await Promise.all([projectStatePromise, formattedPromise]);
 	if (shouldThrowExecutionError(execution, input.throwOnExecutionError ?? true)) {
-		throwExecutionError(execution, formattedOutput.text);
+		throwExecutionError(execution, formattedOutput.errorText);
 	}
 	const formatted = retainFormattedMetadata(formattedOutput);
 	return {

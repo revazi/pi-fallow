@@ -38,7 +38,7 @@ export async function populateFallowProject(cwd) {
 	await writeFile(join(cwd, ".fallow", "cache.bin"), "benchmark", "utf8");
 }
 
-export function runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, preserveNavigatorDetails = false }) {
+export function runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, preserveNavigatorDetails = false, outputDetail }) {
 	return fallowEngine.runFallowWithExecutor({
 		pi: {},
 		cwd,
@@ -47,6 +47,7 @@ export function runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, pre
 		timeoutSecs: 120,
 		throwOnExecutionError: false,
 		preserveNavigatorDetails,
+		outputDetail,
 		executor: async (_pi, args) => ({
 			binary: "fallow",
 			args,

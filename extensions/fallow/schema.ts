@@ -29,7 +29,7 @@ const FallowCommand = StringEnum([
 	"coverage-analyze",
 ] as const);
 
-const OutputDetail = StringEnum(["summary", "findings", "raw"] as const);
+const OutputDetail = StringEnum(["summary", "findings", "raw"] as const, { default: "findings" });
 
 export const fallowRunParams = Type.Object({
 	command: FallowCommand,

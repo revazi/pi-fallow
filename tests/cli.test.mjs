@@ -13,6 +13,10 @@ function prepare(params) {
 	return fallowCli.prepareFallowRunParams(params);
 }
 
+function outputDetail(detail) {
+	return fallowCli.resolveFallowOutputDetail(detail);
+}
+
 describe("fallowCli.buildFallowArgs", () => {
 	it("maps compact check-changed args to root --changed-since analysis", () => {
 		assert.deepEqual(build({ command: "check-changed", args: ["--changed-since", "main"] }), [
@@ -93,6 +97,15 @@ describe("fallowCli.buildFallowArgs", () => {
 		assert.throws(() => build({ command: "health", args: ["-f", "human"] }), /must not include --format/);
 		assert.throws(() => build({ command: "fix-preview", args: ["--yes"] }), /must not include --yes/);
 		assert.throws(() => build({ command: "fix-apply", args: ["--dry-run"] }), /must not include --dry-run/);
+	});
+});
+
+describe("fallowCli output detail", () => {
+	it("defaults tool calls to normalized findings", () => {
+		assert.equal(outputDetail(undefined), "findings");
+		assert.equal(outputDetail("summary"), "summary");
+		assert.equal(outputDetail("findings"), "findings");
+		assert.equal(outputDetail("raw"), "raw");
 	});
 });
 

@@ -8,6 +8,9 @@ All notable changes to Pi Fallow are documented here.
 - Upgraded the coordinated Pi development packages to 0.84.0, incorporating the upstream dependency security fix.
 - Removed the temporary development-audit vulnerability acceptance after the upstream fix; CI and release validation now strictly audit the complete dependency tree.
 
+### Fixed
+- Made `fallow_run.detail` effective: tool calls now default to bounded normalized findings, while `summary` returns bounded status/counts and `raw` preserves the bounded raw-output behavior. Any omitted complete report is retained through a temporary-file reference.
+
 ## [0.4.0] - 2026-08-05
 
 ### Added
