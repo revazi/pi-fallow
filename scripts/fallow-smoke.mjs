@@ -65,6 +65,10 @@ function assertModeledArgs() {
 		["security", "--format", "json", "--quiet", "--changed-since", "HEAD~1", "--gate", "new", "--surface"],
 	);
 	assertArgs(
+		{ command: "architecture", args: ["@extensions/fallow/cli.ts", "@extensions/fallow/registry.ts", "--no-cache"] },
+		["guard", "extensions/fallow/cli.ts", "--format", "json", "--quiet", "extensions/fallow/registry.ts", "--no-cache"],
+	);
+	assertArgs(
 		{ command: "decision-surface", args: ["--changed-since", "HEAD~1", "--max-decisions", "4"] },
 		["decision-surface", "--format", "json", "--quiet", "--changed-since", "HEAD~1", "--max-decisions", "4"],
 	);
@@ -91,7 +95,7 @@ function assertCurrentFallowSchema(data) {
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
 	for (const command of [
-		"dead-code", "type-aware", "inspect", "trace", "fix", "config", "list", "workspaces", "dupes", "health",
+		"dead-code", "type-aware", "inspect", "trace", "guard", "fix", "config", "list", "workspaces", "dupes", "health",
 		"flags", "explain", "audit", "decision-surface", "impact", "security", "report", "schema", "coverage", "viz",
 	]) {
 		assert.ok(commands.has(command), `Fallow schema is missing ${command}`);
@@ -102,6 +106,13 @@ function assertCurrentFallowSchema(data) {
 	}
 	assert.ok(commands.get("dead-code").flags.some((flag) => flag.name === "--symbol-impact"));
 	assert.ok(commands.get("health").flags.some((flag) => flag.name === "--type-coupling"));
+	assert.match(commands.get("guard").description, /architecture rules apply to files/);
+	assert.deepEqual(commands.get("guard").flags, [{
+		name: "files",
+		type: "string",
+		required: true,
+		description: "Files to report on (root-relative or absolute; may not exist yet)",
+	}]);
 	assert.deepEqual(commands.get("type-aware").flags, []);
 	assert.match(commands.get("report").description, /codeclimate.*sarif/);
 	assert.deepEqual(commands.get("viz").flags.map((flag) => flag.name), ["--out", "--no-open", "--viz-format"]);
@@ -119,6 +130,10 @@ function assertCliSurfaces() {
 	assertFallowJson(["security"], (data) => {
 		assert.equal(data.kind, "security");
 		assert.ok(Array.isArray(data.security_findings));
+	});
+	assertFallowJson(["guard", "extensions/fallow/cli.ts"], (data) => {
+		assert.equal(data.kind, "guard");
+		assert.equal(data.files?.[0]?.path, "extensions/fallow/cli.ts");
 	});
 	assertFallowJson(["workspaces"], (data) => {
 		assert.equal(data.kind, "list-workspaces");

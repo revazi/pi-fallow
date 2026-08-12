@@ -3,6 +3,7 @@ import { fallowCompletions } from "./fallow/autocomplete";
 import { fallowCli } from "./fallow/cli";
 import { fallowToolContract } from "./fallow/contract";
 import { runFallowCommandHandler } from "./fallow/command/handler";
+import { fallowArgumentHint } from "./fallow/registry";
 import type { FallowCommandState } from "./fallow/command/types";
 import { registerFallowSessionStart } from "./fallow/session";
 import { renderFallowMessageRenderer, renderFallowToolCall, renderFallowToolResult } from "./fallow/tool-render";
@@ -37,7 +38,7 @@ function registerFallowTool(pi: ExtensionAPI): void {
 function registerFallowCommand(pi: ExtensionAPI, commandState: FallowCommandState): void {
 	pi.registerCommand("fallow", {
 		description: "Run fallow with raw CLI args. JSON/quiet are added if no --format is supplied.",
-		argumentHint: "[about|all|pr|rerun|dead-code|dupes|health|audit|inspect|trace|security|decision-surface|workspaces|config|schema|impact|fix|project-info|list|flags|coverage analyze|explain] [options]",
+		argumentHint: fallowArgumentHint,
 		getArgumentCompletions: fallowCompletions.getFallowArgumentCompletions,
 		handler: (rawArgs, ctx) => runFallowCommandHandler(pi, ctx, commandState, rawArgs),
 	});

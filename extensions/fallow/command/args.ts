@@ -1,3 +1,6 @@
+import { isPositionalCliArg, stripAtPrefix } from "../path";
+import { getFallowSlashAliasSpec, type FallowSlashAliasSpec } from "../registry";
+
 type Notify = (message: string, level: "info" | "warning") => void;
 
 const FALLBACK_DEFAULT_COMMAND = ["health"];
@@ -83,11 +86,8 @@ function hasFlag(args: string[], flag: string): boolean {
 function resolveFallbackArgs(rawArgs: string[]): string[] {
 	const normalized = [...rawArgs];
 	validateRequiredCommandArgs(normalized);
-	const command = normalized[0] ?? "";
-	const alias = commandAliasMap[command];
-	if (alias) return alias(normalized);
-	const translator = traceCommandMap[command];
-	return translator ? translator(normalized) : normalized;
+	const alias = getFallowSlashAliasSpec(normalized[0] ?? "");
+	return alias ? buildFallowSlashAliasArgs(normalized, alias) : normalized;
 }
 
 function validateRequiredCommandArgs(args: string[]): void {
@@ -97,15 +97,14 @@ function validateRequiredCommandArgs(args: string[]): void {
 	throw new Error("explain requires at least one issue type, for example: /fallow explain unused-export");
 }
 
-const commandAliasMap: Record<string, (args: string[]) => string[]> = {
-	all: (args) => args.slice(1),
-	"check-changed": buildCheckChangedFallowArgs,
-	"project-info": (args) => ["list", ...args.slice(1)],
-	"list-boundaries": (args) => ["list", "--boundaries", ...args.slice(1)],
-	"fix-preview": (args) => ["fix", "--dry-run", ...args.slice(1)],
-	"fix-apply": (args) => ["fix", "--yes", ...args.slice(1)],
-	"coverage-analyze": (args) => ["coverage", "analyze", ...args.slice(1)],
-};
+function buildFallowSlashAliasArgs(args: string[], alias: FallowSlashAliasSpec): string[] {
+	if (alias.name === "check-changed") return [...alias.cliPrefix, ...buildCheckChangedFallowArgs(args)];
+	if (alias.name === "trace-export") return buildTraceExportArgs(args, alias.cliPrefix);
+	if (alias.name === "trace-clone") return parseTraceCloneArgs(args, alias.cliPrefix);
+	const aliasArgs = normalizeSlashAliasPathTargets(alias, args.slice(1));
+	validateSlashAliasTarget(alias, aliasArgs);
+	return [...alias.cliPrefix, ...aliasArgs];
+}
 
 function buildCheckChangedFallowArgs(args: string[]): string[] {
 	const changedArgs = args.slice(1);
@@ -116,27 +115,46 @@ function buildCheckChangedFallowArgs(args: string[]): string[] {
 	return changedArgs;
 }
 
-const traceCommandMap: Record<string, (args: string[]) => string[]> = {
-	"trace-file": (args) => {
-		if (!args[1]) throw new Error("trace-file requires file.");
-		return ["dead-code", "--trace-file", ...args.slice(1)];
-	},
-	"trace-export": (args) => {
-		if (!args[1] || !args[2]) throw new Error("trace-export requires file and exportName.");
-		return ["dead-code", "--trace", `${args[1]}:${args[2]}`, ...args.slice(3)];
-	},
-	"trace-dependency": (args) => {
-		if (!args[1]) throw new Error("trace-dependency requires packageName.");
-		return ["dead-code", "--trace-dependency", ...args.slice(1)];
-	},
-	"trace-clone": (args) => parseTraceCloneArgs(args),
-};
+function buildTraceExportArgs(args: string[], prefix: readonly string[]): string[] {
+	if (!args[1] || !args[2]) throw new Error("trace-export requires file and exportName.");
+	return [...prefix, `${args[1]}:${args[2]}`, ...args.slice(3)];
+}
 
-function parseTraceCloneArgs(args: string[]): string[] {
+const SLASH_TARGET_ERRORS = new Map<string, string>([
+	["trace-file", "trace-file requires file."],
+	["trace-dependency", "trace-dependency requires packageName."],
+]);
+
+function validateSlashAliasTarget(alias: FallowSlashAliasSpec, args: string[]): void {
+	const message = slashAliasTargetError(alias, args[0]);
+	if (message) throw new Error(message);
+}
+
+function slashAliasTargetError(alias: FallowSlashAliasSpec, target: string | undefined): string | undefined {
+	if (!alias.positionalTarget) return undefined;
+	if (isSlashTarget(target)) return undefined;
+	return SLASH_TARGET_ERRORS.get(alias.name) ?? `${alias.alias} requires its target as the first argument.`;
+}
+
+function isSlashTarget(target: string | undefined): boolean {
+	return !!target && !target.startsWith("-");
+}
+
+function normalizeSlashAliasPathTargets(alias: FallowSlashAliasSpec, args: string[]): string[] {
+	if (!alias.slashPathTargets) return args;
+	return args.map((arg, index) => isSlashPathTarget(alias, args, index) ? stripAtPrefix(arg) : arg);
+}
+
+function isSlashPathTarget(alias: FallowSlashAliasSpec, args: string[], index: number): boolean {
+	if (alias.slashPathTargets === "first") return index === 0;
+	return isPositionalCliArg(args, index, alias.positionalFlags ?? []);
+}
+
+function parseTraceCloneArgs(args: string[], prefix: readonly string[]): string[] {
 	const { fileOrPath, line } = getTraceCloneInput(args);
-	if (line) return buildTraceCloneFromLine(fileOrPath, line, args);
+	if (line) return buildTraceCloneFromLine(fileOrPath, line, args, prefix);
 	const parsed = parseTraceCloneFromPath(fileOrPath);
-	return buildTraceCloneFromParsed(parsed, args);
+	return buildTraceCloneFromParsed(parsed, args, prefix);
 }
 
 function getTraceCloneInput(args: string[]): { fileOrPath: string; line?: string } {
@@ -150,11 +168,20 @@ function parseTraceCloneFromPath(fileOrPath: string): RegExpMatchArray {
 	return match;
 }
 
-function buildTraceCloneFromLine(fileOrPath: string, line: string, args: string[]): string[] {
+function buildTraceCloneFromLine(
+	fileOrPath: string,
+	line: string,
+	args: string[],
+	prefix: readonly string[],
+): string[] {
 	if (!/^\d+$/.test(line)) throw new Error("trace-clone requires file and numeric line.");
-	return ["dupes", "--trace", `${fileOrPath}:${line}`, ...args.slice(3)];
+	return [...prefix, `${fileOrPath}:${line}`, ...args.slice(3)];
 }
 
-function buildTraceCloneFromParsed(match: RegExpMatchArray, args: string[]): string[] {
-	return ["dupes", "--trace", `${match[1]}:${match[2]}`, ...args.slice(2)];
+function buildTraceCloneFromParsed(
+	match: RegExpMatchArray,
+	args: string[],
+	prefix: readonly string[],
+): string[] {
+	return [...prefix, `${match[1]}:${match[2]}`, ...args.slice(2)];
 }

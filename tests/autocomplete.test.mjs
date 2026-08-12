@@ -37,8 +37,11 @@ function git(cwd, args) {
 
 describe("Fallow autocomplete", () => {
 	it("returns command, flag, and fixed-value completions", () => {
-		assert.ok(labels(fallowCompletions.getFallowRootCommandCompletions()).includes("health"));
-		assert.ok(labels(fallowCompletions.getFallowRootCommandCompletions()).includes("run"));
+		const rootCompletions = fallowCompletions.getFallowRootCommandCompletions();
+		assert.ok(labels(rootCompletions).includes("health"));
+		assert.ok(labels(rootCompletions).includes("run"));
+		const architecture = rootCompletions.find((item) => item.label === "architecture");
+		assert.match(architecture?.description ?? "", /architecture rules apply to files before changing them/);
 		assert.ok(completionLabels("").includes("audit PR (main)"));
 		assert.ok(completionLabels("").includes("symbol impact"));
 		assert.ok(completionLabels("").includes("health type coupling"));
@@ -48,6 +51,7 @@ describe("Fallow autocomplete", () => {
 		assert.ok(completionLabels("health --").includes("--type-aware-project"));
 		assert.ok(completionLabels("health --").includes("--type-coupling"));
 		assert.ok(completionLabels("dead-code --").includes("--symbol-impact"));
+		assert.ok(completionLabels("architecture --").includes("--no-cache"));
 		assert.ok(completionLabels("run --").includes("--file-scores"));
 		assert.deepEqual(completionLabels("health --type-aware-require c"), ["complete"]);
 		assert.deepEqual(completionLabels("health --baseline-mode i"), ["identity"]);

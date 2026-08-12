@@ -5,11 +5,13 @@ All notable changes to Pi Fallow are documented here.
 ## [Unreleased]
 
 ### Added
+- Added `architecture` support to `fallow_run` and `/fallow`, backed by Fallow 3.14's stable `guard <file>...` command with required, `@`-normalized path targets.
 - Added an immediate pre-output-detail token benchmark baseline for reproducible before/after release evidence.
 - Documented the Pi 0.84.1 host certification matrix while retaining Pi's recommended wildcard peer dependencies.
 - Added measured `fallow_run` prompt guidance for deletion evidence, fix previews, and routine bounded output detail.
 
 ### Changed
+- Centralized tool commands, compact CLI prefixes, target behavior, overlapping slash metadata, autocomplete, and the `/fallow` argument hint in one typed registry.
 - Upgraded the coordinated Pi development packages to 0.84.0, incorporating the upstream dependency security fix.
 - Removed the temporary development-audit vulnerability acceptance after the upstream fix; CI and release validation now strictly audit the complete dependency tree.
 

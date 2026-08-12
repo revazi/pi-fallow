@@ -61,6 +61,23 @@ describe("normalizeFallowArgs", () => {
 		assert.deepEqual(normalize(["coverage-analyze"]).result, ["coverage", "analyze"]);
 	});
 
+	it("maps architecture to guard with required normalized path targets", () => {
+		assert.deepEqual(normalize([
+			"architecture", "@src/api.ts", "@src/domain.ts", "--changed-since", "main", "--no-cache",
+		]).result, [
+			"guard", "src/api.ts", "src/domain.ts", "--changed-since", "main", "--no-cache",
+		]);
+		assert.deepEqual(normalize(["architecture", "@src/api.ts", "--config", "@config/fallow.json"]).result, [
+			"guard", "src/api.ts", "--config", "@config/fallow.json",
+		]);
+		assert.deepEqual(normalize(["architecture", "@src/api.ts", "--workspace", "@scope/pkg"]).result, [
+			"guard", "src/api.ts", "--workspace", "@scope/pkg",
+		]);
+		assert.throws(() => normalize(["architecture"]), /architecture requires its target as the first argument/);
+		assert.throws(() => normalize(["architecture", "--no-cache"]), /architecture requires its target/);
+		assert.deepEqual(normalize(["guard", "@src/api.ts"]).result, ["guard", "@src/api.ts"]);
+	});
+
 	it("preserves type-aware report flags for direct Fallow commands", () => {
 		assert.deepEqual(normalize(["dead-code", "--type-aware", "--symbol-impact", "src/api.ts:Client"]).result, [
 			"dead-code", "--type-aware", "--symbol-impact", "src/api.ts:Client",
@@ -83,6 +100,15 @@ describe("normalizeFallowArgs", () => {
 	});
 
 	it("maps trace aliases", () => {
+		assert.deepEqual(normalize(["trace-file", "@extensions/fallow/cli.ts"]).result, [
+			"dead-code", "--trace-file", "@extensions/fallow/cli.ts",
+		]);
+		assert.deepEqual(normalize(["trace-export", "@extensions/fallow/cli.ts", "fallowCli"]).result, [
+			"dead-code", "--trace", "@extensions/fallow/cli.ts:fallowCli",
+		]);
+		assert.deepEqual(normalize(["trace-clone", "@extensions/fallow/cli.ts", "10"]).result, [
+			"dupes", "--trace", "@extensions/fallow/cli.ts:10",
+		]);
 		assert.deepEqual(normalize(["trace-file", "extensions/fallow/cli.ts"]).result, [
 			"dead-code", "--trace-file", "extensions/fallow/cli.ts",
 		]);
