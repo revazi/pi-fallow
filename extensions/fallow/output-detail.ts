@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
-import { asRecord } from "./data";
-import type { FallowIssueLine, FallowOutputDetail, FallowOverview } from "./types";
+import { entriesForFallowRole, getNormalizedFallowReport, type NormalizedFallowEntry, type NormalizedFallowReport } from "./normalized-report";
+import type { FallowOutputDetail, FallowOverview } from "./types";
 
 const FALLOW_DETAIL_BUDGETS = {
 	summary: { characters: 4_096, tokens: { o200k_base: 4_000, cl100k_base: 4_000 } },
@@ -86,16 +86,17 @@ function formatSelectedOutputDetail(
 	overview: FallowOverview | undefined,
 	fullOutputPath: string,
 ): DetailFormatResult {
-	if (detail === "summary") return formatSummaryDetail(summary, overview, fullOutputPath);
-	return formatFindingsDetail(summary, overview, fullOutputPath);
+	const report = overview ? getNormalizedFallowReport(overview) : undefined;
+	if (detail === "summary") return formatSummaryDetail(summary, report, fullOutputPath);
+	return formatFindingsDetail(summary, report, fullOutputPath);
 }
 
 function formatSummaryDetail(
 	summary: string,
-	overview: FallowOverview | undefined,
+	report: NormalizedFallowReport | undefined,
 	fullOutputPath: string,
 ): DetailFormatResult {
-	const payload = createSummaryPayload(summary, overview, fullOutputPath);
+	const payload = createSummaryPayload(summary, report, fullOutputPath);
 	const initiallyTruncated = isSummaryPayloadTruncated(payload);
 	fitSummaryPayload(payload, summary);
 	return { text: renderSummary(payload), truncated: initiallyTruncated || isSummaryPayloadTruncated(payload) };
@@ -103,31 +104,44 @@ function formatSummaryDetail(
 
 function createSummaryPayload(
 	summary: string,
-	overview: FallowOverview | undefined,
+	report: NormalizedFallowReport | undefined,
 	fullOutputPath: string,
 ): SummaryPayload {
-	const stats = normalizeStats(overview);
-	const notes = normalizeNotes(overview);
-	const statCount = overview ? overview.stats.length : 0;
-	const noteCount = overview ? overview.notes.length : 0;
+	const metadata = buildSummaryMetadata(report);
 	const compactSummary = compactText(summary, MAX_FINDINGS_SUMMARY_CHARS);
 	return {
 		detail: "summary",
-		title: normalizeTitle(overview),
-		status: normalizeStatus(overview),
+		title: metadata.title,
+		status: metadata.status,
 		summary: compactSummary,
 		summary_truncated: compactSummary !== summary,
-		finding_count: countEntries(overview, false),
-		context_count: countEntries(overview, true),
-		stat_count: statCount,
-		included_stats: stats.length,
-		omitted_stats: statCount - stats.length,
-		stats,
-		note_count: noteCount,
-		included_notes: notes.length,
-		omitted_notes: noteCount - notes.length,
-		notes,
+		finding_count: metadata.findingCount,
+		context_count: metadata.contextCount,
+		stat_count: metadata.statCount,
+		included_stats: metadata.stats.length,
+		omitted_stats: metadata.statCount - metadata.stats.length,
+		stats: metadata.stats,
+		note_count: metadata.noteCount,
+		included_notes: metadata.notes.length,
+		omitted_notes: metadata.noteCount - metadata.notes.length,
+		notes: metadata.notes,
 		complete_output_path: fullOutputPath,
+	};
+}
+
+function buildSummaryMetadata(report: NormalizedFallowReport | undefined) {
+	if (!report) {
+		return { title: "Fallow", status: "warning" as const, findingCount: 0, contextCount: 0, statCount: 0, stats: [], noteCount: 0, notes: [] };
+	}
+	return {
+		title: normalizeTitle(report),
+		status: report.status,
+		findingCount: report.findingCount,
+		contextCount: report.contextCount,
+		statCount: report.stats.length,
+		stats: normalizeStats(report),
+		noteCount: report.notes.length,
+		notes: normalizeNotes(report),
 	};
 }
 
@@ -181,12 +195,12 @@ function renderSummary(payload: SummaryPayload): string {
 
 function formatFindingsDetail(
 	summary: string,
-	overview: FallowOverview | undefined,
+	report: NormalizedFallowReport | undefined,
 	fullOutputPath: string,
 ): DetailFormatResult {
-	const findingEntries = collectEntries(overview, false);
-	const contextEntries = collectContextEntries(overview, findingEntries);
-	const payload = createFindingsPayload(summary, overview, fullOutputPath, findingEntries.length);
+	const findingEntries = collectEntries(report, "finding");
+	const contextEntries = collectContextEntries(report, findingEntries);
+	const payload = createFindingsPayload(summary, report, fullOutputPath, findingEntries.length);
 	fitFindingsMetadata(payload);
 	fitEntries(payload, "findings", findingEntries);
 	fitEntries(payload, "context", contextEntries);
@@ -194,26 +208,26 @@ function formatFindingsDetail(
 }
 
 function collectContextEntries(
-	overview: FallowOverview | undefined,
+	report: NormalizedFallowReport | undefined,
 	findingEntries: NormalizedFinding[],
 ): NormalizedFinding[] {
 	if (findingEntries.length) return [];
-	return collectEntries(overview, true);
+	return collectEntries(report, "context");
 }
 
 function createFindingsPayload(
 	summary: string,
-	overview: FallowOverview | undefined,
+	report: NormalizedFallowReport | undefined,
 	fullOutputPath: string,
 	findingCount: number,
 ): FindingsPayload {
-	const contextCount = countEntries(overview, true);
+	const contextCount = report?.contextCount ?? 0;
 	return {
 		detail: "findings",
-		title: normalizeTitle(overview),
-		status: normalizeStatus(overview),
+		title: normalizeTitle(report),
+		status: normalizeStatus(report),
 		summary: compactText(summary, MAX_FINDINGS_SUMMARY_CHARS),
-		stats: normalizeStats(overview),
+		stats: normalizeStats(report),
 		finding_count: findingCount,
 		included_findings: 0,
 		omitted_findings: findingCount,
@@ -222,21 +236,21 @@ function createFindingsPayload(
 		included_context: 0,
 		omitted_context: contextCount,
 		context: [],
-		notes: normalizeNotes(overview),
+		notes: normalizeNotes(report),
 		complete_output_path: fullOutputPath,
 	};
 }
 
-function normalizeTitle(overview: FallowOverview | undefined): string {
-	return compactText(overview ? overview.title : "Fallow", MAX_SUBJECT_CHARS);
+function normalizeTitle(report: NormalizedFallowReport | undefined): string {
+	return compactText(report ? report.title : "Fallow", MAX_SUBJECT_CHARS);
 }
 
-function normalizeStatus(overview: FallowOverview | undefined): SummaryPayload["status"] {
-	return overview ? overview.status : "warning";
+function normalizeStatus(report: NormalizedFallowReport | undefined): SummaryPayload["status"] {
+	return report ? report.status : "warning";
 }
 
-function normalizeNotes(overview: FallowOverview | undefined): string[] {
-	const notes = overview ? overview.notes : [];
+function normalizeNotes(report: NormalizedFallowReport | undefined): string[] {
+	const notes = report ? report.notes : [];
 	return notes.slice(0, MAX_NOTES).map((note) => compactText(note, MAX_NOTE_CHARS));
 }
 
@@ -265,49 +279,37 @@ function hasOmittedEntries(payload: FindingsPayload): boolean {
 	return payload.omitted_findings > 0 || payload.omitted_context > 0;
 }
 
-function collectEntries(overview: FallowOverview | undefined, context: boolean): NormalizedFinding[] {
-	if (!overview) return [];
-	return overview.sections
-		.filter((section) => (section.role === "context") === context)
-		.flatMap((section) => section.items.map((item) => normalizeFinding(section.title, item)));
+function collectEntries(
+	report: NormalizedFallowReport | undefined,
+	role: NormalizedFallowEntry["role"],
+): NormalizedFinding[] {
+	if (!report) return [];
+	return entriesForFallowRole(report, role).map(normalizeFinding);
 }
 
-function countEntries(overview: FallowOverview | undefined, context: boolean): number {
-	if (!overview) return 0;
-	return overview.sections
-		.filter((section) => (section.role === "context") === context)
-		.reduce((total, section) => total + section.items.length, 0);
-}
-
-function normalizeFinding(section: string, item: FallowIssueLine): NormalizedFinding {
-	const raw = asRecord(item.raw);
+function normalizeFinding(entry: NormalizedFallowEntry): NormalizedFinding {
 	return {
-		section: compactText(section, MAX_SECTION_CHARS),
-		type: compactText(firstString(raw, ["kind", "type", "issue_type", "rule_id"]) || section, MAX_TYPE_CHARS),
-		id: compactOptional(firstString(raw, ["benchmark_id", "id", "finding_id"]), MAX_ID_CHARS),
-		severity: compactOptional(item.severity || firstString(raw, ["severity"]), MAX_TYPE_CHARS),
-		location: normalizeLocation(item),
-		subject: compactText(item.label, MAX_SUBJECT_CHARS),
-		details: compactOptional(item.meta, MAX_DETAILS_CHARS),
-		evidence: compactOptional(firstText(raw, ["evidence", "reason", "rationale", "message", "description"]), MAX_EVIDENCE_CHARS),
-		action: normalizeAction(item, raw),
+		section: compactText(entry.section, MAX_SECTION_CHARS),
+		type: compactText(entry.type, MAX_TYPE_CHARS),
+		id: compactOptional(entry.id, MAX_ID_CHARS),
+		severity: compactOptional(entry.severity, MAX_TYPE_CHARS),
+		location: normalizeLocation(entry),
+		subject: compactText(entry.subject, MAX_SUBJECT_CHARS),
+		details: compactOptional(entry.details, MAX_DETAILS_CHARS),
+		evidence: compactOptional(entry.evidence, MAX_EVIDENCE_CHARS),
+		action: compactOptional(entry.action, MAX_ACTION_CHARS),
 	};
 }
 
-function normalizeLocation(item: FallowIssueLine): NormalizedFinding["location"] {
-	const path = compactOptional(item.path, MAX_PATH_CHARS);
+function normalizeLocation(entry: NormalizedFallowEntry): NormalizedFinding["location"] {
+	const path = compactOptional(entry.path, MAX_PATH_CHARS);
 	if (!path) return undefined;
-	if (item.line === undefined) return { path };
-	return { path, line: item.line };
+	if (entry.line === undefined) return { path };
+	return { path, line: entry.line };
 }
 
-function normalizeAction(item: FallowIssueLine, raw: Record<string, any> | undefined): string | undefined {
-	const value = item.action || firstAction(raw) || firstText(raw, ["recommendation", "suggested_action"]);
-	return compactOptional(value, MAX_ACTION_CHARS);
-}
-
-function normalizeStats(overview: FallowOverview | undefined): NormalizedStat[] {
-	return (overview?.stats ?? []).slice(0, MAX_STATS).map((stat) => ({
+function normalizeStats(report: NormalizedFallowReport | undefined): NormalizedStat[] {
+	return (report?.stats ?? []).slice(0, MAX_STATS).map((stat) => ({
 		label: compactText(stat.label, MAX_SECTION_CHARS),
 		value: typeof stat.value === "number" ? stat.value : compactText(stat.value, MAX_STAT_VALUE_CHARS),
 	}));
@@ -364,55 +366,6 @@ function fitStringToBudget(
 		}
 	}
 	return best;
-}
-
-function firstString(record: Record<string, any> | undefined, keys: string[]): string | undefined {
-	if (!record) return undefined;
-	return keys.map((key) => record[key]).find(isNonEmptyString);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-	return typeof value === "string" && value.trim().length > 0;
-}
-
-function firstText(record: Record<string, any> | undefined, keys: string[]): string | undefined {
-	const value = firstPresentValue(record, keys);
-	return valueAsText(value);
-}
-
-function firstPresentValue(record: Record<string, any> | undefined, keys: string[]): unknown {
-	if (!record) return undefined;
-	return keys.map((key) => record[key]).find(isPresentValue);
-}
-
-function isPresentValue(value: unknown): boolean {
-	return value !== undefined && value !== null && value !== "";
-}
-
-function valueAsText(value: unknown): string | undefined {
-	if (!isPresentValue(value)) return undefined;
-	if (typeof value === "string") return value;
-	return stringifyValue(value);
-}
-
-function stringifyValue(value: unknown): string {
-	try {
-		return JSON.stringify(value);
-	} catch {
-		return String(value);
-	}
-}
-
-function firstAction(record: Record<string, any> | undefined): string | undefined {
-	return actionValues(record).map(actionText).find(isNonEmptyString);
-}
-
-function actionValues(record: Record<string, any> | undefined): unknown[] {
-	return Array.isArray(record?.actions) ? record.actions : [];
-}
-
-function actionText(value: unknown): string | undefined {
-	return firstText(asRecord(value), ["description", "type"]);
 }
 
 function compactOptional(value: string | undefined, maxChars: number): string | undefined {

@@ -1,3 +1,4 @@
+import { getNormalizedFallowReport } from "../normalized-report";
 import type { FallowOverview } from "../types";
 
 const NAVIGATOR_STATIC_ROWS = 17;
@@ -22,7 +23,8 @@ export function resolveFallowNavigatorVisibleRows(terminalRows: number, informat
 }
 
 export function resolveFallowNavigatorMode(overview: FallowOverview | undefined): FallowNavigatorMode {
-	const populatedSections = overview?.sections.filter((section) => section.items.length > 0) ?? [];
-	if (!populatedSections.length) return "none";
-	return populatedSections.some((section) => section.role !== "context") ? "actionable" : "informational";
+	if (!overview) return "none";
+	const report = getNormalizedFallowReport(overview);
+	if (!report.entryCount) return "none";
+	return report.findingCount ? "actionable" : "informational";
 }

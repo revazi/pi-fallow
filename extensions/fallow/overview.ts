@@ -1,4 +1,5 @@
 import { asRecord } from "./data";
+import { getNormalizedFallowReport, retainNormalizedFallowEntry } from "./normalized-report";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
 
 // Preserve the existing inline raw-detail footprint while normalized rows remain unbounded.
@@ -96,6 +97,7 @@ function makeIssue(kind: string, issue: Record<string, any>, includeRaw = true):
 }
 
 function withOptionalRaw(item: FallowIssueLine, raw: unknown, includeRaw: boolean): FallowIssueLine {
+	retainNormalizedFallowEntry(item, raw);
 	if (includeRaw) item.raw = raw;
 	return item;
 }
@@ -728,13 +730,15 @@ export function buildFallowOverview(
 	applyErrorTitle(root, title);
 	addExitCodeNote(notes, exitCode);
 
-	return {
+	const overview: FallowOverview = {
 		title: title.value,
 		status: buildFallowStatus(root, sections, exitCode),
 		stats,
 		sections,
 		notes,
 	};
+	getNormalizedFallowReport(overview);
+	return overview;
 }
 
 function applyErrorTitle(root: Record<string, any>, title: { value: string }): void {
