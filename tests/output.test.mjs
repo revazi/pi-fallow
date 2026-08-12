@@ -299,6 +299,16 @@ describe("formatToolOutput", () => {
 				evidence: "No reachable consumer was found for unusedExport0.",
 				action: "Remove unusedExport0.",
 			});
+			assert.deepEqual(payload.findings[5], {
+				section: "Unused exports",
+				type: "unused-export",
+				id: "finding-5",
+				severity: "medium",
+				location: { path: "src/generated/file-5.ts", line: 6 },
+				subject: "unusedExport5",
+				evidence: "No reachable consumer was found for unusedExport5.",
+				action: "Remove unusedExport5.",
+			});
 			assert.equal(payload.complete_output_path, result.fullOutputPath);
 			assert.doesNotMatch(result.text, /long_detail/);
 			assert.equal(result.truncated, true);

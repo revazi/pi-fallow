@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "./data";
 import type { ParsedFallowOutput } from "./json";
+import { getNormalizedFallowReport } from "./normalized-report";
 import { fallowOutputDetail } from "./output-detail";
 import { buildFallowOverview } from "./overview";
 import type { FallowOutputDetail, FallowOverview } from "./types";
@@ -122,7 +123,7 @@ export async function formatToolOutput(
 	const preserveFullOutput = shouldPreserveFullOutput(outputDetail, rawTruncation.truncated, preserveNavigatorDetails, overview);
 	const fullOutputPath = await writeOutputPathIfNeeded(preserveFullOutput, rawText);
 	const errorText = buildToolOutputText(parsed, summary, rawTruncation, fullOutputPath);
-	const presentation = selectOutputPresentation(outputDetail, parsed, exitCode, summary, overview, fullOutputPath, errorText, rawTruncation.truncated);
+	const presentation = selectOutputPresentation(outputDetail, summary, overview, fullOutputPath, errorText, rawTruncation.truncated);
 	return { text: presentation.text, errorText, summary, overview, fullOutputPath, truncated: presentation.truncated };
 }
 
@@ -138,8 +139,6 @@ function shouldPreserveFullOutput(
 
 function selectOutputPresentation(
 	outputDetail: FallowOutputDetail,
-	parsed: ParsedFallowOutput,
-	exitCode: number,
 	summary: string,
 	overview: FallowOverview | undefined,
 	fullOutputPath: string | undefined,
@@ -147,22 +146,16 @@ function selectOutputPresentation(
 	rawTruncated: boolean,
 ): { text: string; truncated: boolean } {
 	if (outputDetail === "raw") return { text: rawText, truncated: rawTruncated };
-	return formatNonRawOutputDetail(outputDetail, parsed, exitCode, summary, overview, fullOutputPath!);
+	return formatNonRawOutputDetail(outputDetail, summary, overview, fullOutputPath!);
 }
 
 function formatNonRawOutputDetail(
 	outputDetail: Exclude<FallowOutputDetail, "raw">,
-	parsed: ParsedFallowOutput,
-	exitCode: number,
 	summary: string,
 	overview: FallowOverview | undefined,
 	fullOutputPath: string,
 ): ReturnType<typeof fallowOutputDetail.format> {
-	if (outputDetail === "summary" || !parsed.parsed) {
-		return fallowOutputDetail.format(outputDetail, summary, overview, fullOutputPath);
-	}
-	const detailedOverview = buildFallowOverview(parsed.data, exitCode, { includeAllRaw: true });
-	return fallowOutputDetail.format(outputDetail, summary, detailedOverview, fullOutputPath);
+	return fallowOutputDetail.format(outputDetail, summary, overview, fullOutputPath);
 }
 
 function buildToolOutputSummary(
@@ -180,8 +173,7 @@ function getFormattedRawText(parsed: ParsedFallowOutput): string {
 }
 
 function overviewHasFindings(overview: FallowOverview | undefined): boolean {
-	if (!overview) return false;
-	return overview.sections.some((section) => section.items.length > 0);
+	return overview ? getNormalizedFallowReport(overview).entryCount > 0 : false;
 }
 
 async function writeOutputPathIfNeeded(

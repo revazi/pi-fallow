@@ -1,3 +1,4 @@
+import { normalizeFallowIssue, type NormalizedFallowEntry } from "./normalized-report";
 import type { FallowIssueLine } from "./types";
 
 export type FallowPromptDetail = "compact" | "full";
@@ -5,6 +6,7 @@ export type FallowPromptDetail = "compact" | "full";
 export interface FallowPromptFinding {
 	sectionTitle: string;
 	item: FallowIssueLine;
+	normalized?: NormalizedFallowEntry;
 }
 
 interface FallowPromptOptions {
@@ -21,9 +23,14 @@ const MAX_COMPACT_DETAILS_CHARS = 160;
 
 export function buildFallowPrompt(options: FallowPromptOptions): string {
 	const header = buildPromptHeader(options);
-	const compactFindings = buildCompactFindings(options.findings);
-	const fullDetails = options.detail === "full" ? buildFullFindingDetails(options.findings) : undefined;
+	const findings = options.findings.map(resolvePromptFinding);
+	const compactFindings = buildCompactFindings(findings);
+	const fullDetails = options.detail === "full" ? buildFullFindingDetails(findings) : undefined;
 	return [header, compactFindings, fullDetails].filter(Boolean).join("\n\n");
+}
+
+function resolvePromptFinding(finding: FallowPromptFinding): NormalizedFallowEntry {
+	return finding.normalized ?? normalizeFallowIssue(finding.sectionTitle, finding.item);
 }
 
 function buildPromptHeader(options: FallowPromptOptions): string {
@@ -41,15 +48,15 @@ function buildPromptHeader(options: FallowPromptOptions): string {
 	].filter((part) => part !== undefined).join("\n");
 }
 
-function buildCompactFindings(findings: FallowPromptFinding[]): string {
+function buildCompactFindings(findings: NormalizedFallowEntry[]): string {
 	const lines = [
 		`Selected findings: ${findings.length}`,
 		"Columns: # | type | severity | location | subject | evidence/details | suggested action",
 	];
 	let currentSection: string | undefined;
 	for (const [index, finding] of findings.entries()) {
-		if (finding.sectionTitle !== currentSection) {
-			currentSection = finding.sectionTitle;
+		if (finding.section !== currentSection) {
+			currentSection = finding.section;
 			lines.push(`## ${escapeCompactCell(currentSection)}`);
 		}
 		lines.push(buildCompactFindingLine(finding, index));
@@ -57,133 +64,59 @@ function buildCompactFindings(findings: FallowPromptFinding[]): string {
 	return lines.join("\n");
 }
 
-function buildCompactFindingLine(finding: FallowPromptFinding, index: number): string {
-	const { item } = finding;
-	const raw = asRecord(item.raw);
-	const evidence = compactText(findingEvidence(raw), MAX_COMPACT_EVIDENCE_CHARS);
-	const action = compactText(findingAction(item, raw), MAX_COMPACT_ACTION_CHARS);
+function buildCompactFindingLine(finding: NormalizedFallowEntry, index: number): string {
+	const evidence = compactText(finding.evidence, MAX_COMPACT_EVIDENCE_CHARS);
+	const action = compactText(finding.action, MAX_COMPACT_ACTION_CHARS);
 	const details = joinDistinct([
-		compactIdentifier(findingIdentifier(raw), evidence, action),
-		compactText(item.meta, MAX_COMPACT_DETAILS_CHARS),
+		compactIdentifier(finding.id, evidence, action),
+		compactText(finding.details, MAX_COMPACT_DETAILS_CHARS),
 		evidence,
 	]);
 	const cells = [
 		String(index + 1),
-		findingType(raw, finding.sectionTitle),
-		findingSeverity(item, raw),
-		findingLocation(item),
-		item.label,
+		finding.type,
+		finding.severity ?? "unknown",
+		findingLocation(finding),
+		finding.subject,
 		textOrDash(details),
 		textOrDash(action),
 	];
 	return cells.map(escapeCompactCell).join(" | ");
 }
 
-function findingLocation(item: FallowIssueLine): string {
-	if (!item.path) return "unknown";
-	return item.line ? `${item.path}:${item.line}` : item.path;
-}
-
-function findingSeverity(item: FallowIssueLine, raw: Record<string, any> | undefined): string {
-	return item.severity ?? stringValue(recordValue(raw, "severity")) ?? "unknown";
+function findingLocation(finding: NormalizedFallowEntry): string {
+	if (!finding.path) return "unknown";
+	return finding.line ? `${finding.path}:${finding.line}` : finding.path;
 }
 
 function textOrDash(value: string | undefined): string {
 	return value || "-";
 }
 
-function buildFullFindingDetails(findings: FallowPromptFinding[]): string {
+function buildFullFindingDetails(findings: NormalizedFallowEntry[]): string {
 	const blocks = findings.map((finding, index) => {
-		const raw = finding.item.raw ?? normalizedFindingFallback(finding);
-		return [`### ${index + 1}. ${finding.sectionTitle}: ${finding.item.label}`, "```json", safeJson(raw), "```"].join("\n");
+		const raw = finding.raw ?? normalizedFindingFallback(finding);
+		return [`### ${index + 1}. ${finding.section}: ${finding.subject}`, "```json", safeJson(raw), "```"].join("\n");
 	});
 	return ["## Full raw finding JSON", ...blocks].join("\n\n");
 }
 
-function normalizedFindingFallback(finding: FallowPromptFinding): Record<string, unknown> {
+function normalizedFindingFallback(finding: NormalizedFallowEntry): Record<string, unknown> {
 	return {
-		section: finding.sectionTitle,
-		label: finding.item.label,
-		path: finding.item.path,
-		line: finding.item.line,
-		severity: finding.item.severity,
-		details: finding.item.meta,
-		action: finding.item.action,
+		section: finding.section,
+		label: finding.subject,
+		path: finding.path,
+		line: finding.line,
+		severity: finding.severity,
+		details: finding.details,
+		action: finding.action,
 	};
-}
-
-function findingType(raw: Record<string, any> | undefined, fallback: string): string {
-	return firstString(recordValues(raw, ["kind", "type", "issue_type", "rule_id"])) ?? fallback;
-}
-
-function findingIdentifier(raw: Record<string, any> | undefined): string | undefined {
-	return firstString(recordValues(raw, ["benchmark_id", "id", "finding_id"]));
 }
 
 function compactIdentifier(identifier: string | undefined, evidence: string | undefined, action: string | undefined): string | undefined {
 	if (!identifier) return undefined;
 	if (evidence?.includes(identifier) || action?.includes(identifier)) return undefined;
 	return `id ${identifier}`;
-}
-
-function findingEvidence(raw: Record<string, any> | undefined): string | undefined {
-	return firstText(recordValues(raw, ["evidence", "reason", "rationale", "message", "description"]));
-}
-
-function findingAction(item: FallowIssueLine, raw: Record<string, any> | undefined): string | undefined {
-	if (item.action) return item.action;
-	const action = firstRawAction(raw);
-	if (action) return action;
-	return firstText(recordValues(raw, ["recommendation", "suggested_action"]));
-}
-
-function firstRawAction(raw: Record<string, any> | undefined): string | undefined {
-	for (const action of arrayValue(raw, "actions")) {
-		const text = firstText(recordValues(asRecord(action), ["description", "type"]));
-		if (text) return text;
-	}
-	return undefined;
-}
-
-function firstString(values: unknown[]): string | undefined {
-	for (const value of values) {
-		if (typeof value === "string" && value.trim()) return value;
-	}
-	return undefined;
-}
-
-function firstText(values: unknown[]): string | undefined {
-	for (const value of values) {
-		const text = valueAsText(value);
-		if (text) return text;
-	}
-	return undefined;
-}
-
-function valueAsText(value: unknown): string | undefined {
-	if (!isPresentValue(value)) return undefined;
-	return typeof value === "string" ? value : safeJson(value);
-}
-
-function stringValue(value: unknown): string | undefined {
-	return isPresentValue(value) ? String(value) : undefined;
-}
-
-function isPresentValue(value: unknown): boolean {
-	return value !== undefined && value !== null && value !== "";
-}
-
-function recordValues(raw: Record<string, any> | undefined, keys: string[]): unknown[] {
-	return keys.map((key) => recordValue(raw, key));
-}
-
-function recordValue(raw: Record<string, any> | undefined, key: string): unknown {
-	return raw ? raw[key] : undefined;
-}
-
-function arrayValue(raw: Record<string, any> | undefined, key: string): unknown[] {
-	const value = recordValue(raw, key);
-	return Array.isArray(value) ? value : [];
 }
 
 function compactText(value: string | undefined, maxChars: number): string | undefined {
@@ -197,10 +130,6 @@ function joinDistinct(values: Array<string | undefined>): string {
 
 function escapeCompactCell(value: string): string {
 	return value.replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll("\r", "\\r").replaceAll("\n", "\\n");
-}
-
-function asRecord(value: unknown): Record<string, any> | undefined {
-	return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : undefined;
 }
 
 function safeJson(value: unknown): string {

@@ -308,7 +308,7 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.match(result.prompt, /Full raw finding JSON/);
 	});
 
-	it("hydrates compact and full prompts from the complete report", async () => {
+	it("keeps compact late-finding prompts independent while full prompts hydrate or warn", async () => {
 		const directory = await mkdtemp(join(tmpdir(), "pi-fallow-prompt-"));
 		const fullOutputPath = join(directory, "fallow-output.json");
 		const report = {
@@ -330,15 +330,68 @@ describe("FallowIssueNavigator prompt generation", () => {
 		try {
 			const overview = buildFallowOverview(report);
 			assert.equal(overview.sections[0].items[11].raw, undefined);
+			await rm(fullOutputPath, { force: true });
 			const compactResult = await loadEndFindingPrompt(overview, fullOutputPath, false);
 			assert.equal(compactResult.detail, "compact");
+			assert.match(compactResult.prompt, /unused-export/);
 			assert.match(compactResult.prompt, /finding-12/);
 			assert.match(compactResult.prompt, /No callers for finding 12\./);
+			assert.match(compactResult.prompt, /Review finding 12\./);
+			assert.doesNotMatch(compactResult.prompt, /Report detail warning/);
 
+			await writeFile(fullOutputPath, JSON.stringify(report, null, 2));
 			const fullResult = await loadEndFindingPrompt(overview, fullOutputPath, true);
 			assert.equal(fullResult.detail, "full");
 			assert.match(fullResult.prompt, /"benchmark_id": "finding-12"/);
 			assert.match(fullResult.prompt, /"evidence": "No callers for finding 12\."/);
+
+			await rm(fullOutputPath, { force: true });
+			const unavailable = await loadEndFindingPrompt(overview, fullOutputPath, true);
+			assert.match(unavailable.prompt, /Report detail warning: Complete report could not be loaded/);
+			assert.match(unavailable.prompt, /finding-12/);
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+
+	it("hydrates stable coordinates across sections and rejects a drifted complete report", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "pi-fallow-coordinates-"));
+		const fullOutputPath = join(directory, "fallow-output.json");
+		const report = {
+			kind: "dead-code",
+			unused_files: [{ benchmark_id: "file-1", kind: "unused-file", path: "src/dead.ts" }],
+			unused_exports: Array.from({ length: 12 }, (_, index) => ({
+				benchmark_id: `export-${index + 1}`,
+				kind: "unused-export",
+				export_name: `unused_${index + 1}`,
+				path: `src/export-${index + 1}.ts`,
+				evidence: `Evidence ${index + 1}`,
+			})),
+		};
+		const overview = buildFallowOverview(report);
+		assert.equal(overview.sections[1].items[11].raw, undefined);
+
+		try {
+			await writeFile(fullOutputPath, JSON.stringify(report, null, 2));
+			const hydrated = await loadEndFindingPrompt(overview, fullOutputPath, true);
+			assert.match(hydrated.prompt, /"benchmark_id": "export-12"/);
+			assert.doesNotMatch(hydrated.prompt, /Report detail warning/);
+
+			const drifted = {
+				...report,
+				unused_files: [],
+				unused_exports: [...report.unused_exports, {
+					benchmark_id: "export-13",
+					kind: "unused-export",
+					export_name: "wrong-entry",
+					path: "src/wrong.ts",
+				}],
+			};
+			await writeFile(fullOutputPath, JSON.stringify(drifted, null, 2));
+			const rejected = await loadEndFindingPrompt(overview, fullOutputPath, true);
+			assert.match(rejected.prompt, /Report detail warning: Complete report could not be loaded/);
+			assert.match(rejected.prompt, /export-12/);
+			assert.doesNotMatch(rejected.prompt, /"benchmark_id": "export-13"/);
 		} finally {
 			await rm(directory, { recursive: true, force: true });
 		}

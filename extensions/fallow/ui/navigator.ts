@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { CURSOR_MARKER, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component, type Focusable } from "@earendil-works/pi-tui";
+import { allNormalizedFallowEntries, getNormalizedFallowReport, hydrateNormalizedFallowEntry, type NormalizedFallowEntry } from "../normalized-report";
 import { buildFallowOverview } from "../overview";
 import { buildFallowPrompt, type FallowPromptDetail, type FallowPromptFinding } from "../prompt";
 import { renderFallowProjectState } from "../project/render";
@@ -63,6 +64,7 @@ interface FlatIssue {
 	id: number;
 	section: FallowOverviewSection;
 	item: FallowIssueLine;
+	normalized: NormalizedFallowEntry;
 	sectionIndex: number;
 	itemIndex: number;
 }
@@ -92,9 +94,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		private options: FallowNavigatorOptions = {},
 	) {
 		this.showInformational = options.informationalMode === true;
-		this.issues = overview.sections
-			.flatMap((section, sectionIndex) => section.items.map((item, itemIndex) => ({ section, item, sectionIndex, itemIndex })))
-			.map((entry, id) => ({ ...entry, id }));
+		this.issues = flattenNormalizedIssues(overview);
 	}
 
 	handleInput(data: string): void {
@@ -555,7 +555,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private preparePrompt(issues: FlatIssue[]): void {
-		if (!issues.some((entry) => entry.item.raw === undefined)) {
+		if (!this.includeFullDetails || !issues.some((entry) => entry.normalized.raw === undefined)) {
 			this.emitPrompt(issues);
 			return;
 		}
@@ -581,15 +581,20 @@ export class FallowIssueNavigator implements Component, Focusable {
 		const reportText = await readFile(this.options.fullOutputPath!, "utf8");
 		const hydratedOverview = buildFallowOverview(JSON.parse(reportText), 0, { includeAllRaw: true });
 		if (!hydratedOverview) throw new Error("Complete report has no structured overview.");
+		const hydratedReport = getNormalizedFallowReport(hydratedOverview);
 		return issues.map((entry) => ({
 			...entry,
-			item: hydratedOverview.sections[entry.sectionIndex]?.items[entry.itemIndex] ?? entry.item,
+			normalized: hydrateNormalizedFallowEntry(hydratedReport, entry.normalized),
 		}));
 	}
 
 	private emitPrompt(issues: FlatIssue[], hydrationWarning?: string): void {
 		const detail = this.promptDetail();
-		const findings: FallowPromptFinding[] = issues.map((entry) => ({ sectionTitle: entry.section.title, item: entry.item }));
+		const findings: FallowPromptFinding[] = issues.map((entry) => ({
+			sectionTitle: entry.normalized.section,
+			item: entry.item,
+			normalized: entry.normalized,
+		}));
 		this.onDone({
 			type: "prompt",
 			issueCount: issues.length,
@@ -748,12 +753,25 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 }
 
+function flattenNormalizedIssues(overview: FallowOverview): FlatIssue[] {
+	const report = getNormalizedFallowReport(overview);
+	return allNormalizedFallowEntries(report).map((normalized) => {
+		const { reportIndex, sectionIndex, itemIndex, sectionTitle } = normalized.source;
+		const section = overview.sections[sectionIndex];
+		const item = section?.items[itemIndex];
+		if (!section || !item || section.title !== sectionTitle) {
+			throw new Error("Normalized Fallow source coordinates do not match the overview.");
+		}
+		return { id: reportIndex, section, item, normalized, sectionIndex, itemIndex };
+	});
+}
+
 function isInformational(entry: FlatIssue): boolean {
-	return entry.section.role === "context";
+	return entry.normalized.role === "context";
 }
 
 function issueSeverity(entry: FlatIssue): string {
-	const severity = entry.item.severity?.trim().toLocaleLowerCase();
+	const severity = entry.normalized.severity?.trim().toLocaleLowerCase();
 	return severity || "unspecified";
 }
 

@@ -14,6 +14,7 @@ const jiti = createJiti(import.meta.url);
 const { fallowEngine } = await jiti.import("../extensions/fallow/engine.ts");
 const fixtureText = await readFile(fixturePath, "utf8");
 const projectDir = await createFallowBenchmarkProject("pi-fallow-memory-");
+await warmProcessingPath(projectDir);
 forceGc();
 const before = memorySnapshot();
 let result = await runFixture(fixtureText, projectDir);
@@ -38,6 +39,15 @@ process.stdout.write(JSON.stringify({
 function runFixture(fixtureText, cwd) {
 	const scenario = { args: ["dead-code", "--format", "json", "--quiet"], exitCode: 0 };
 	return runFixtureEngine(fallowEngine, { scenario, fixtureText, cwd, outputDetail });
+}
+
+async function warmProcessingPath(cwd) {
+	// Keep one-time JIT/module costs out of the retained-report amplification measurement.
+	const fixture = '{"kind":"dead-code","unused_exports":[{"benchmark_id":"warmup","kind":"unused-export","export_name":"warmup","path":"warmup.ts","severity":"low","evidence":"warmup","actions":[{"description":"warmup"}]}]}';
+	let warmup = await runFixture(fixture, cwd);
+	const fullOutputPath = warmup.formatted.fullOutputPath;
+	warmup = undefined;
+	if (fullOutputPath) await rm(dirname(fullOutputPath), { recursive: true, force: true });
 }
 
 function forceGc() {
