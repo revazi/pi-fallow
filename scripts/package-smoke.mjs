@@ -2,23 +2,31 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { RpcClient } from "@earendil-works/pi-coding-agent";
 
 const root = resolve(import.meta.dirname, "..");
-const workspace = mkdtempSync(join(tmpdir(), "pi-fallow-package-"));
-const packDir = join(workspace, "pack");
-const installDir = join(workspace, "install");
 
-try {
-	const packResult = packPackage(packDir);
-	validateContents(packResult.files.map((file) => file.path));
-	installTarball(join(packDir, packResult.filename), installDir);
-	const packageRoot = validateInstalledPackage(installDir);
-	const piVersion = await validateInstalledPackageWithPi(packageRoot, join(workspace, "agent-home"));
-	console.log(`Package smoke check passed (${packResult.filename}, ${packResult.files.length} files, Pi ${piVersion} RPC/print/JSON).`);
-} finally {
-	rmSync(workspace, { recursive: true, force: true });
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+	await runPackageSmoke();
+}
+
+async function runPackageSmoke() {
+	const workspace = mkdtempSync(join(tmpdir(), "pi-fallow-package-"));
+	const packDir = join(workspace, "pack");
+	const installDir = join(workspace, "install");
+
+	try {
+		const packResult = packPackage(packDir);
+		validateContents(packResult.files.map((file) => file.path));
+		installTarball(join(packDir, packResult.filename), installDir);
+		const packageRoot = validateInstalledPackage(installDir);
+		const piVersion = await validateInstalledPackageWithPi(packageRoot, join(workspace, "agent-home"));
+		console.log(`Package smoke check passed (${packResult.filename}, ${packResult.files.length} files, Pi ${piVersion} RPC/print/JSON).`);
+	} finally {
+		rmSync(workspace, { recursive: true, force: true });
+	}
 }
 
 function packPackage(destination) {
@@ -135,9 +143,30 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot) {
 		["--print", ...commonArgs, "/pi-fallow-unknown-command"],
 		join(agentRoot, "control"),
 	);
-	assert.equal(controlResult.status, 1, "Unknown print-mode slash command unexpectedly succeeded without credentials.");
-	assert.match(controlResult.stderr, /API key|Authentication failed|No model selected/,
-		"Unknown slash-command control did not reach provider authentication preflight.");
+	assertCredentialFreeControl(controlResult, cliPath);
+}
+
+export function assertCredentialFreeControl(result, cliPath) {
+	const errorLine = "No API key found for the selected model.";
+	const piPackageRoot = dirname(dirname(resolve(cliPath)));
+	const stderrLines = result.stderr.split("\n");
+
+	assert.equal(result.status, 1, "Unknown print-mode slash command did not exit with status 1.");
+	assert.equal(result.stdout, "", "Unknown print-mode slash command unexpectedly wrote to stdout.");
+	assert.equal(stderrLines[0], errorLine, "Unknown print-mode slash command emitted the wrong auth error.");
+	assert.equal(
+		stderrLines.filter((line) => line === errorLine).length,
+		1,
+		"Unknown print-mode slash command did not emit the auth error exactly once.",
+	);
+	assert.deepEqual(stderrLines, [
+		errorLine,
+		"",
+		"Use /login to log into a provider via OAuth or API key. See:",
+		`  ${join(piPackageRoot, "docs", "providers.md")}`,
+		`  ${join(piPackageRoot, "docs", "models.md")}`,
+		"",
+	], "Unknown print-mode slash command emitted unexpected auth guidance.");
 }
 
 function isolatedPiArgs(packageRoot) {
