@@ -1,8 +1,9 @@
 import { resolve } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { fallowEngine } from "./engine";
-import { stripAtPrefix } from "./path";
+import { isPositionalCliArg, stripAtPrefix } from "./path";
 import { execFallowProcess } from "./process";
+import { getFallowToolCommandSpec, type FallowToolCommandSpec } from "./registry";
 import { createFallowRunner } from "./runner";
 import type { FallowRunParams as CompactFallowRunParams } from "./schema";
 import type { FallowOutputDetail } from "./types";
@@ -281,39 +282,6 @@ const commandBuilders: Record<string, CommandArgsBuilder> = {
 };
 
 const MANAGED_OUTPUT_ARGS = ["--format", "json", "--quiet"];
-const COMMAND_PREFIXES: Record<CompactFallowRunParams["command"], readonly string[]> = {
-	all: [],
-	"dead-code": ["dead-code"],
-	"check-changed": [],
-	dupes: ["dupes"],
-	health: ["health"],
-	audit: ["audit"],
-	"fix-preview": ["fix", "--dry-run"],
-	"fix-apply": ["fix", "--yes"],
-	flags: ["flags"],
-	inspect: ["inspect"],
-	"trace-symbol": ["trace"],
-	security: ["security"],
-	workspaces: ["workspaces"],
-	config: ["config"],
-	schema: ["schema"],
-	"decision-surface": ["decision-surface"],
-	impact: ["impact"],
-	"project-info": ["list"],
-	"list-boundaries": ["list", "--boundaries"],
-	explain: ["explain"],
-	"trace-export": ["dead-code", "--trace"],
-	"trace-file": ["dead-code", "--trace-file"],
-	"trace-dependency": ["dead-code", "--trace-dependency"],
-	"trace-clone": ["dupes", "--trace"],
-	"coverage-analyze": ["coverage", "analyze"],
-};
-const POSITIONAL_TARGET_COMMANDS = new Set<CompactFallowRunParams["command"]>([
-	"trace-symbol", "explain", "trace-export", "trace-file", "trace-dependency", "trace-clone",
-]);
-const PATH_TARGET_COMMANDS = new Set<CompactFallowRunParams["command"]>([
-	"trace-symbol", "trace-export", "trace-file", "trace-clone",
-]);
 const PATH_OPTION_FLAGS = new Set(["--file", "--symbol"]);
 const FORBIDDEN_FIXED_ARGS: Partial<Record<CompactFallowRunParams["command"], Set<string>>> = {
 	"fix-preview": new Set(["--yes"]),
@@ -342,12 +310,10 @@ function buildLegacyFallowArgs(params: FallowRunParams): string[] {
 function buildFallowArgs(params: CompactFallowRunParams): string[] {
 	rejectFormatOverride(params.args);
 	rejectConflictingFixedArgs(params.command, params.args ?? []);
-	const commandArgs = normalizeCompactArgs(params.command, params.args ?? []);
-	const prefix = commandPrefix(params.command);
-	if (POSITIONAL_TARGET_COMMANDS.has(params.command)) {
-		return buildPositionalCommandArgs(params.command, prefix, commandArgs);
-	}
-	return [...prefix, ...MANAGED_OUTPUT_ARGS, ...commandArgs];
+	const spec = commandSpec(params.command);
+	const commandArgs = normalizeCompactArgs(spec, params.args ?? []);
+	if (spec.positionalTarget) return buildPositionalCommandArgs(spec.name, spec.cliPrefix, commandArgs);
+	return [...spec.cliPrefix, ...MANAGED_OUTPUT_ARGS, ...commandArgs];
 }
 
 function rejectConflictingFixedArgs(command: CompactFallowRunParams["command"], args: string[]): void {
@@ -356,15 +322,19 @@ function rejectConflictingFixedArgs(command: CompactFallowRunParams["command"], 
 	if (conflict) throw new Error(`${command} args must not include ${conflict}.`);
 }
 
-function commandPrefix(command: CompactFallowRunParams["command"]): readonly string[] {
-	const prefix = (COMMAND_PREFIXES as Record<string, readonly string[]>)[command];
-	if (!prefix) throw new Error(`Unsupported fallow command: ${command}`);
-	return prefix;
+function commandSpec(command: string): FallowToolCommandSpec {
+	const spec = getFallowToolCommandSpec(command);
+	if (!spec) throw new Error(`Unsupported fallow command: ${command}`);
+	return spec;
 }
 
-function normalizeCompactArgs(command: CompactFallowRunParams["command"], args: string[]): string[] {
-	const normalized = command === "check-changed" ? normalizeCheckChangedArgs(args) : [...args];
-	return normalizeAtPrefixedTargets(command, normalized);
+function commandPrefix(command: CompactFallowRunParams["command"]): readonly string[] {
+	return commandSpec(command).cliPrefix;
+}
+
+function normalizeCompactArgs(spec: FallowToolCommandSpec, args: string[]): string[] {
+	const normalized = spec.name === "check-changed" ? normalizeCheckChangedArgs(args) : [...args];
+	return normalizeAtPrefixedTargets(spec, normalized);
 }
 
 function normalizeCheckChangedArgs(args: string[]): string[] {
@@ -385,19 +355,24 @@ function hasFlagValue(args: string[], flag: string): boolean {
 	return args.some((arg) => arg.startsWith(`${flag}=`) && arg.length > flag.length + 1);
 }
 
-function normalizeAtPrefixedTargets(command: CompactFallowRunParams["command"], args: string[]): string[] {
-	return args.map((arg, index) => normalizeAtPrefixedTarget(command, args, arg, index));
+function normalizeAtPrefixedTargets(spec: FallowToolCommandSpec, args: string[]): string[] {
+	return args.map((arg, index) => normalizeAtPrefixedTarget(spec, args, arg, index));
 }
 
 function normalizeAtPrefixedTarget(
-	command: CompactFallowRunParams["command"],
+	spec: FallowToolCommandSpec,
 	args: string[],
 	arg: string,
 	index: number,
 ): string {
-	if (index === 0 && PATH_TARGET_COMMANDS.has(command)) return stripAtPrefix(arg);
+	if (isPositionalPathTarget(spec, args, index)) return stripAtPrefix(arg);
 	if (isPathOptionValue(args, index)) return stripAtPrefix(arg);
 	return normalizeInlinePathOption(arg);
+}
+
+function isPositionalPathTarget(spec: FallowToolCommandSpec, args: string[], index: number): boolean {
+	if (spec.pathTargets === "first") return index === 0;
+	return spec.pathTargets === "positionals" && isPositionalCliArg(args, index, spec.positionalFlags ?? []);
 }
 
 function isPathOptionValue(args: string[], index: number): boolean {

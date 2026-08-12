@@ -54,6 +54,24 @@ describe("fallowCli.buildFallowArgs", () => {
 		assert.throws(() => build({ command: "trace-symbol", args: ["--callers"] }), /requires its target/);
 	});
 
+	it("builds architecture guard queries with required normalized path targets", () => {
+		assert.deepEqual(build({
+			command: "architecture",
+			args: ["@src/api.ts", "@src/domain.ts", "--changed-since", "main", "--no-cache"],
+		}), [
+			"guard", "src/api.ts", "--format", "json", "--quiet",
+			"src/domain.ts", "--changed-since", "main", "--no-cache",
+		]);
+		assert.deepEqual(build({ command: "architecture", args: ["@src/api.ts", "--config", "@config/fallow.json"] }), [
+			"guard", "src/api.ts", "--format", "json", "--quiet", "--config", "@config/fallow.json",
+		]);
+		assert.deepEqual(build({ command: "architecture", args: ["@src/api.ts", "--workspace", "@scope/pkg"] }), [
+			"guard", "src/api.ts", "--format", "json", "--quiet", "--workspace", "@scope/pkg",
+		]);
+		assert.throws(() => build({ command: "architecture" }), /architecture requires its target as the first args entry/);
+		assert.throws(() => build({ command: "architecture", args: ["--no-cache"] }), /architecture requires its target/);
+	});
+
 	it("builds command aliases and raw options", () => {
 		assert.deepEqual(build({ command: "security", args: ["--changed-since", "HEAD~1", "--gate", "new", "--surface"] }), [
 			"security", "--format", "json", "--quiet", "--changed-since", "HEAD~1", "--gate", "new", "--surface",

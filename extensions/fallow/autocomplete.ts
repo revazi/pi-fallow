@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
+import { fallowSlashRootCommands } from "./registry";
 
 type CompletionSpec = {
 	value: string;
@@ -16,42 +17,22 @@ type FlagSpec = {
 	values?: string[] | FlagValueProvider;
 };
 
-const COMMANDS: CompletionSpec[] = [
-	{ value: "pr", label: "pr", description: "Run audit with detected PR base (new-only)" },
-	{ value: "run", label: "run", description: "Run the configured default command (health unless overridden)" },
-	{ value: "rerun", label: "rerun", description: "Rerun the last /fallow command" },
-	{ value: "about", label: "about", description: "Show Pi Fallow version, update, and project links" },
-	{ value: "all", description: "Run full repository checks and checks summary" },
+const COMMAND_TEMPLATES: CompletionSpec[] = [
 	{ value: "audit --base main --gate new-only", label: "audit PR (main)", description: "Report only issues introduced by the PR diff vs main" },
 	{ value: "audit --base origin/main --gate new-only", label: "audit PR (origin/main)", description: "Report only issues introduced by the PR diff vs origin/main" },
 	{ value: "check-changed --changed-since main", label: "check-changed (main)", description: "Run combined changed-file checks since main" },
-	{ value: "dead-code", description: "Find unused exports, files, dependencies, and types" },
 	{ value: "dead-code --type-aware --symbol-impact ", label: "symbol impact", description: "Find exact TypeScript consumers, affected files, and targeted tests" },
-	{ value: "check-changed", description: "Run combined changed-file checks; add --changed-since main/origin/main" },
-	{ value: "project-info", description: "Show project info (entry points/files/plugins/boundaries)" },
-	{ value: "dupes", description: "Find duplicated code and clone groups" },
-	{ value: "health", description: "Show maintainability, complexity, churn, and health metrics" },
 	{ value: "health --type-aware --type-coupling", label: "health type coupling", description: "Show advisory public-signature type coupling" },
-	{ value: "audit", description: "Run a PR/change gate; use --base main --gate new-only for PRs" },
 	{ value: "inspect --file ", label: "inspect file", description: "Inspect one file as a bundled evidence query" },
 	{ value: "inspect --symbol ", label: "inspect symbol", description: "Inspect an exported symbol as file.ts:exportName" },
-	{ value: "trace", description: "Trace a symbol call chain: trace path/to/file.ts:exportName" },
-	{ value: "trace-file", description: "Investigate one file: trace-file path/to/file.ts" },
-	{ value: "trace-export", description: "Trace a specific export: trace-export path/to/file.ts exportName" },
-	{ value: "trace-dependency", description: "Trace a package dependency" },
-	{ value: "trace-clone", description: "Trace a duplication clone at path/to/file.ts:line" },
-	{ value: "security", description: "Surface local security candidates for agent verification" },
 	{ value: "decision-surface --changed-since main", label: "decision-surface (main)", description: "Surface structural decisions embedded in the current change" },
-	{ value: "workspaces", description: "Show monorepo workspace discovery diagnostics" },
-	{ value: "config", description: "Show resolved Fallow config" },
-	{ value: "schema", description: "Dump Fallow's machine-readable CLI capability schema" },
-	{ value: "impact", description: "Show local Fallow impact metrics" },
-	{ value: "fix", description: "Preview/apply safe cleanup fixes; usually add --dry-run first" },
-	{ value: "flags", description: "Analyze feature flags" },
-	{ value: "list", description: "List project info, files, plugins, entry points, boundaries, or workspaces" },
-	{ value: "explain", description: "Explain a Fallow issue type/rule id" },
-	{ value: "coverage analyze", description: "Analyze runtime coverage and cold paths" },
-	{ value: "--help", description: "Show Fallow CLI help" },
+];
+
+const COMMANDS: CompletionSpec[] = [
+	...fallowSlashRootCommands
+		.filter((command) => command.autocomplete !== false)
+		.map(({ value, label, description }) => ({ value, label, description })),
+	...COMMAND_TEMPLATES,
 ];
 
 const STATIC_REF_VALUES = ["main", "master", "HEAD~1", "origin/main", "origin/master"];

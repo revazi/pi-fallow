@@ -17,6 +17,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 ## Highlights
 
 - **Compact agent tool:** `fallow_run` uses a small command-plus-args contract while preserving internal validation and older-session compatibility.
+- **Synchronized command contract:** one typed registry drives tool commands, compact CLI prefixes, slash aliases, autocomplete, and the `/fallow` argument hint.
 - **Slash command:** `/fallow ...` runs the Fallow CLI from inside Pi; `/fallow` and `/fallow run` use a configurable default command.
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
@@ -63,6 +64,7 @@ Ask Pi things like:
 - “Run a Fallow audit for this PR and fix introduced dead code.”
 - “Find duplicate code, trace the largest clone group, then suggest a refactor.”
 - “Inspect this file with Fallow before editing it.”
+- “Show which architecture rules apply to these files before changing them.”
 - “Run Fallow security candidates for the changed files and explain what needs verification.”
 - “Run Fallow health and tell me the safest maintainability improvement.”
 - “Preview Fallow auto-fixes before applying anything.”
@@ -90,6 +92,7 @@ Manual slash command examples:
 /fallow trace-file extensions/fallow/ui.ts
 /fallow trace-export extensions/fallow/ui.ts FallowIssueNavigator
 /fallow security --changed-since main --gate new
+/fallow architecture extensions/fallow/cli.ts extensions/fallow/registry.ts
 /fallow decision-surface --changed-since main
 /fallow workspaces
 /fallow schema
@@ -106,7 +109,9 @@ Arguments after `/fallow run` are appended to the configured default. Explicit c
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
-The agent-facing `fallow_run` tool passes command-specific flags as separate `args` tokens. For example, a PR audit uses `{ "command": "audit", "args": ["--base", "main", "--gate", "new-only"] }`. Type-aware reports use the existing structured commands, for example `{ "command": "dead-code", "args": ["--type-aware", "--symbol-impact", "src/api.ts:Client"] }` or `{ "command": "health", "args": ["--type-aware", "--type-coupling"] }`. Manual `/fallow` command syntax is unchanged.
+`/fallow architecture <file>...` maps to Fallow 3.14's stable `guard <file>...` command. The first file is required, multiple files and flags are preserved, and Pi's optional leading `@` is removed only from positional path targets (not flag values). Direct raw `/fallow guard ...` access remains available.
+
+The agent-facing `fallow_run` tool passes command-specific flags as separate `args` tokens. For example, a PR audit uses `{ "command": "audit", "args": ["--base", "main", "--gate", "new-only"] }`, while an architecture query uses `{ "command": "architecture", "args": ["src/api.ts", "src/domain.ts"] }`. Type-aware reports use the existing structured commands, for example `{ "command": "dead-code", "args": ["--type-aware", "--symbol-impact", "src/api.ts:Client"] }` or `{ "command": "health", "args": ["--type-aware", "--type-coupling"] }`. Other manual `/fallow` command syntax is unchanged.
 
 `fallow_run.detail` controls model-facing output and defaults to `findings`. Use `summary` for bounded status and counts, `findings` for bounded normalized findings with locations, evidence, and suggested actions, or `raw` for bounded raw Fallow JSON/output. Summary and findings responses always link to a complete report in the operating system's temporary directory; raw responses do so when truncation omits content. This setting does not change `/fallow` slash-command or navigator rendering.
 
