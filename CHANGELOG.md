@@ -4,6 +4,9 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Changed
+- Updated the pinned build and analysis tooling to esbuild 0.28.2 and Fallow 3.16.0, including current capability-schema and packaged host compatibility coverage.
+
 ## [0.5.0] - 2026-08-19
 
 ### Added

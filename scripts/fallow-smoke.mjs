@@ -91,7 +91,7 @@ function assertModeledArgs() {
 
 function assertCurrentFallowSchema(data) {
 	assert.equal(data.name, "fallow");
-	assert.equal(data.version, "3.14.0");
+	assert.equal(data.version, "3.16.0");
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
 	for (const command of [
@@ -142,7 +142,7 @@ function assertCliSurfaces() {
 	assertFallowJson(["schema"], assertCurrentFallowSchema);
 	assertFallowJson(["type-aware", "status"], (data) => {
 		assert.equal(data.kind, "type-aware-status");
-		assert.equal(data.schema_version, 7);
+		assert.equal(data.schema_version, 8);
 		assert.equal(typeof data.available, "boolean");
 	});
 	assertFallowJson(["dead-code", "--type-aware", "--symbol-impact", "extensions/fallow/cli.ts:fallowCli"], (data) => {
