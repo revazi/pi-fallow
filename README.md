@@ -28,7 +28,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Robust output parsing:** direct or noisy embedded JSON is scanned once with nesting, strings, and escapes handled correctly.
 - **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
 - **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
-- **Stable type-aware reports:** Fallow 3.14 semantic symbol impact and advisory public-signature coupling can be requested through both Pi surfaces, with completeness and advisory status kept visible.
+- **Stable type-aware reports:** Fallow semantic symbol impact and advisory public-signature coupling can be requested through both Pi surfaces, with completeness and advisory status kept visible.
 
 ## Installation
 
@@ -115,7 +115,7 @@ Arguments after `/fallow run` are appended to the configured default. Explicit c
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
-`/fallow architecture <file>...` maps to Fallow 3.14's stable `guard <file>...` command. The first file is required, multiple files and flags are preserved, and Pi's optional leading `@` is removed only from positional path targets (not flag values). Direct raw `/fallow guard ...` access remains available.
+`/fallow architecture <file>...` maps to Fallow's stable `guard <file>...` command. The first file is required, multiple files and flags are preserved, and Pi's optional leading `@` is removed only from positional path targets (not flag values). Direct raw `/fallow guard ...` access remains available.
 
 The agent-facing `fallow_run` tool passes command-specific flags as separate `args` tokens. For example, a PR audit uses `{ "command": "audit", "args": ["--base", "main", "--gate", "new-only"] }`, while an architecture query uses `{ "command": "architecture", "args": ["src/api.ts", "src/domain.ts"] }`. Type-aware reports use the existing structured commands, for example `{ "command": "dead-code", "args": ["--type-aware", "--symbol-impact", "src/api.ts:Client"] }` or `{ "command": "health", "args": ["--type-aware", "--type-coupling"] }`. Other manual `/fallow` command syntax is unchanged.
 
@@ -123,7 +123,7 @@ The agent-facing `fallow_run` tool passes command-specific flags as separate `ar
 
 When `fallow_run` is active, its compact Pi prompt guidance tells the model to inspect or trace before deletion, treat incomplete type-aware evidence as advisory, preview fixes before applying them, avoid unrequested changes, and reserve raw detail for necessary diagnostics.
 
-`--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow 3.14 also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
+`--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
 
 Some Fallow surfaces deliberately remain direct CLI features rather than Pi Fallow report commands:
 
@@ -162,7 +162,7 @@ The current `0.5.x` development line is certified with this host matrix:
 
 | Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
 |---|---|---|---|
-| 0.84.1 | 0.84.1 | 22.19 and 24 | 3.14.0 |
+| 0.84.1 | 0.84.1 | 22.19 and 24 | 3.16.0 |
 
 Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 
@@ -172,7 +172,7 @@ This matrix records tested compatibility; it is not an installation constraint o
 
 - Node.js 22.19+
 - Pi coding agent
-- Fallow 3.14.0 is the validated development/compatibility target; runtime resolution remains tolerant of separately installed versions.
+- Fallow 3.16.0 is the validated development/compatibility target; runtime resolution remains tolerant of separately installed versions.
 - Fallow available through one of:
   - `FALLOW_BIN=/path/to/fallow`
   - `fallow` on `PATH`
