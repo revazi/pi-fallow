@@ -158,7 +158,7 @@ Plain `fallow health` can return actionable findings alongside informational per
 
 ## Tested compatibility
 
-The current `0.4.x` development line is certified with this host matrix:
+The current `0.5.x` development line is certified with this host matrix:
 
 | Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
 |---|---|---|---|

@@ -4,16 +4,10 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-19
+
 ### Added
 - Added `/fallow issues`, an issue-focused aggregate that combines project-wide dead-code, duplication, health, and security candidates in one navigator while omitting informational per-file health rows.
-
-### Changed
-- Made `/fallow` and `/fallow run` default to the aggregate project-issues report instead of plain health; explicit Fallow subcommands and `PI_FALLOW_DEFAULT_COMMAND` overrides remain available.
-- Expanded dead-code navigator coverage to every current Fallow issue array, with a summary-backed fallback for future issue categories.
-
-## [0.4.1] - 2026-08-13
-
-### Added
 - Added isolated installed-tarball, provider-free certification against the lockfile-resolved Pi 0.84.1 host for extension loading and `/fallow health` behavior over RPC, print, and JSON modes.
 - Froze the immediate pre-output-detail benchmark and measured aggregate `o200k_base` tool results at 8,046 versus 45,104 tokens (an 82.16% reduction). Benchmarked slash transcripts remained unchanged, `detail` does not change slash/TUI rendering, and omitted inline findings remain counted with complete-output references.
 - Documented tested Pi 0.84.1 compatibility while retaining host-provided wildcard Pi peer dependencies.
@@ -21,6 +15,8 @@ All notable changes to Pi Fallow are documented here.
 - Added `architecture` support to `fallow_run` and `/fallow`, backed by Fallow 3.14's stable `guard <file>...` command with required, `@`-normalized path targets.
 
 ### Changed
+- Made `/fallow` and `/fallow run` default to the aggregate project-issues report instead of plain health; explicit Fallow subcommands and `PI_FALLOW_DEFAULT_COMMAND` overrides remain available.
+- Expanded dead-code navigator coverage to every current Fallow issue array, with a summary-backed fallback for future issue categories.
 - Centralized tool commands, compact CLI prefixes, target behavior, overlapping slash metadata, autocomplete, and the `/fallow` argument hint in one typed registry.
 - Made normalized-report handling authoritative across bounded output, compact prompts, and navigator filtering/hydration; compact late-finding prompts no longer depend on complete-report hydration, while full prompts hydrate stable entries or warn on report drift.
 - Updated the coordinated Pi development lock to resolved 0.84.1 packages and the direct TypeBox development lock to 1.3.11.
@@ -93,8 +89,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.4.1...HEAD
-[0.4.1]: https://github.com/revazi/pi-fallow/compare/v0.4.0...v0.4.1
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/revazi/pi-fallow/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/revazi/pi-fallow/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/revazi/pi-fallow/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/revazi/pi-fallow/compare/v0.2.0...v0.3.0
