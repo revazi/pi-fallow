@@ -4,6 +4,7 @@ import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
 import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
+import { fallowProjectIssues } from "./issues";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import { hasFallowNavigator, isFallowTuiMode } from "./mode";
 import { FALLOW_NAVIGATOR_OVERLAY_OPTIONS, resolveFallowNavigatorMode, resolveFallowNavigatorVisibleRows } from "./navigator";
@@ -17,9 +18,23 @@ export async function executeFallowResult(
 	rememberLast: boolean,
 	setLastFallowArgs: (args: string[] | null) => void,
 ): Promise<FallowNavigatorResult | null | undefined> {
+	if (rawCommandArgs[0] === "issues") {
+		return executeFallowProjectIssuesResult(pi, ctx, rawCommandArgs, rememberLast, setLastFallowArgs);
+	}
 	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
 	if (rememberLast) setLastFallowArgs([...finalArgs]);
 	return runFallowResultFlow(pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs));
+}
+
+function executeFallowProjectIssuesResult(
+	pi: ExtensionAPI,
+	ctx: FallowCommandContext,
+	commandArgs: string[],
+	rememberLast: boolean,
+	setLastFallowArgs: (args: string[] | null) => void,
+): Promise<FallowNavigatorResult | null | undefined> {
+	if (rememberLast) setLastFallowArgs([...commandArgs]);
+	return runFallowResultFlow(pi, ctx, commandArgs, fallowProjectIssues.buildExecutor(pi, ctx, commandArgs));
 }
 
 async function runFallowResultFlow(

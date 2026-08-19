@@ -42,7 +42,7 @@ const fallowCommandRegistry = [
 	},
 	{
 		name: "run",
-		slash: { root: { value: "run", description: "Run the configured default command (health unless overridden)" } },
+		slash: { root: { value: "run", description: "Run the configured default command (project issues unless overridden)" } },
 	},
 	{
 		name: "rerun",
@@ -51,6 +51,12 @@ const fallowCommandRegistry = [
 	{
 		name: "about",
 		slash: { root: { value: "about", description: "Show Pi Fallow version, update, and project links", hintOrder: 0 } },
+	},
+	{
+		name: "issues",
+		slash: {
+			root: { value: "issues", description: "Aggregate project code-quality and security findings in one report", hintOrder: 1 },
+		},
 	},
 	{
 		name: "all",

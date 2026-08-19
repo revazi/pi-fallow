@@ -121,17 +121,84 @@ function buildDeadCodeSections(data: Record<string, any>, includeAllRaw = false)
 	const specs: Array<[string, string, string]> = [
 		["Unused files", "unused_files", "unused-file"],
 		["Unused exports", "unused_exports", "unused-export"],
-		["Unused dependencies", "unused_dependencies", "unused-dependency"],
-		["Unlisted dependencies", "unlisted_dependencies", "unlisted-dependency"],
 		["Unused types", "unused_types", "unused-type"],
+		["Private type leaks", "private_type_leaks", "private-type-leak"],
+		["Unused dependencies", "unused_dependencies", "unused-dependency"],
+		["Unused dev dependencies", "unused_dev_dependencies", "unused-dev-dependency"],
+		["Unused optional dependencies", "unused_optional_dependencies", "unused-optional-dependency"],
+		["Unused enum members", "unused_enum_members", "unused-enum-member"],
 		["Unused class members", "unused_class_members", "unused-class-member"],
+		["Unused store members", "unused_store_members", "unused-store-member"],
+		["Unprovided injects", "unprovided_injects", "unprovided-inject"],
+		["Unrendered components", "unrendered_components", "unrendered-component"],
+		["Unused component props", "unused_component_props", "unused-component-prop"],
+		["Unused component emits", "unused_component_emits", "unused-component-emit"],
+		["Unused component inputs", "unused_component_inputs", "unused-component-input"],
+		["Unused component outputs", "unused_component_outputs", "unused-component-output"],
+		["Unused Svelte events", "unused_svelte_events", "unused-svelte-event"],
+		["Unused server actions", "unused_server_actions", "unused-server-action"],
+		["Unused load data keys", "unused_load_data_keys", "unused-load-data-key"],
 		["Unresolved imports", "unresolved_imports", "unresolved-import"],
+		["Unlisted dependencies", "unlisted_dependencies", "unlisted-dependency"],
 		["Duplicate exports", "duplicate_exports", "duplicate-export"],
+		["Type-only dependencies", "type_only_dependencies", "type-only-dependency"],
+		["Test-only dependencies", "test_only_dependencies", "test-only-dependency"],
+		["Dev dependencies in production", "dev_dependencies_in_production", "dev-dependency-in-production"],
 		["Circular dependencies", "circular_dependencies", "circular-dependency"],
+		["Re-export cycles", "re_export_cycles", "re-export-cycle"],
 		["Boundary violations", "boundary_violations", "boundary-violation"],
+		["Boundary coverage violations", "boundary_coverage_violations", "boundary-coverage-violation"],
+		["Boundary call violations", "boundary_call_violations", "boundary-call-violation"],
+		["Policy violations", "policy_violations", "policy-violation"],
 		["Stale suppressions", "stale_suppressions", "stale-suppression"],
+		["Unused catalog entries", "unused_catalog_entries", "unused-catalog-entry"],
+		["Empty catalog groups", "empty_catalog_groups", "empty-catalog-group"],
+		["Unresolved catalog references", "unresolved_catalog_references", "unresolved-catalog-reference"],
+		["Unused dependency overrides", "unused_dependency_overrides", "unused-dependency-override"],
+		["Misconfigured dependency overrides", "misconfigured_dependency_overrides", "misconfigured-dependency-override"],
+		["Invalid client exports", "invalid_client_exports", "invalid-client-export"],
+		["Mixed client/server barrels", "mixed_client_server_barrels", "mixed-client-server-barrel"],
+		["Misplaced directives", "misplaced_directives", "misplaced-directive"],
+		["Route collisions", "route_collisions", "route-collision"],
+		["Dynamic segment name conflicts", "dynamic_segment_name_conflicts", "dynamic-segment-name-conflict"],
+		["Prop drilling", "prop_drilling_chains", "prop-drilling"],
+		["Thin wrappers", "thin_wrappers", "thin-wrapper"],
+		["Duplicate prop shapes", "duplicate_prop_shapes", "duplicate-prop-shape"],
 	];
-	return specs.map(([title, key, kind]) => sectionFromArray(title, data[key], kind, includeAllRaw)).filter(Boolean) as FallowOverviewSection[];
+	const sections = specs.map(([title, key, kind]) => sectionFromArray(title, data[key], kind, includeAllRaw)).filter(Boolean) as FallowOverviewSection[];
+	appendUnknownDeadCodeSections(data, specs, sections, includeAllRaw);
+	return sections;
+}
+
+function appendUnknownDeadCodeSections(
+	data: Record<string, any>,
+	specs: Array<[string, string, string]>,
+	sections: FallowOverviewSection[],
+	includeAllRaw: boolean,
+): void {
+	const summary = asRecord(data.summary);
+	if (!summary) return;
+	const knownKeys = new Set(specs.map(([, key]) => key));
+	for (const [key, count] of Object.entries(summary)) {
+		if (!isUnknownIssueCategory(key, count, knownKeys)) continue;
+		appendOptionalSection(sections, sectionFromArray(humanizeIssueKey(key), data[key], key.replaceAll("_", "-"), includeAllRaw));
+	}
+}
+
+function isUnknownIssueCategory(key: string, count: unknown, knownKeys: Set<string>): boolean {
+	if (knownKeys.has(key)) return false;
+	if (key === "total_issues") return false;
+	if (typeof count !== "number") return false;
+	return count > 0;
+}
+
+function appendOptionalSection(sections: FallowOverviewSection[], section: FallowOverviewSection | undefined): void {
+	if (section) sections.push(section);
+}
+
+function humanizeIssueKey(key: string): string {
+	const text = key.replaceAll("_", " ");
+	return text ? `${text[0]!.toUpperCase()}${text.slice(1)}` : key;
 }
 
 function buildHealthSections(data: Record<string, any>, includeAllRaw = false): FallowOverviewSection[] {
@@ -251,6 +318,37 @@ function addRootStats(root: Record<string, any>, stats: Array<{ label: string; v
 	addIfDefinedStat(stats, "elapsed", root.elapsed_ms !== undefined ? `${root.elapsed_ms}ms` : undefined);
 	addIfDefinedHealthScore(stats, root.health_score);
 	addSummaryStats(stats, rootSummary, ["total_issues", "files_analyzed", "functions_above_threshold", "severity_critical_count", "clone_groups", "duplicated_lines", "average_maintainability"]);
+}
+
+function addProjectIssuesMetadata(
+	root: Record<string, any>,
+	stats: Array<{ label: string; value: string | number }>,
+	title: { value: string },
+	notes: string[],
+): void {
+	if (root.kind !== "project-issues") return;
+	title.value = "Fallow project issues";
+	const summary = asRecord(root.summary);
+	addProjectIssueStats(stats, summary);
+	addSecurityCandidateNote(notes, summary);
+}
+
+function addProjectIssueStats(
+	stats: Array<{ label: string; value: string | number }>,
+	summary: Record<string, any> | undefined,
+): void {
+	addIfDefinedStat(stats, "code issues", projectIssueSummaryValue(summary, "code_issues"));
+	addIfDefinedStat(stats, "security candidates", projectIssueSummaryValue(summary, "security_candidates"));
+}
+
+function addSecurityCandidateNote(notes: string[], summary: Record<string, any> | undefined): void {
+	if (projectIssueSummaryValue(summary, "security_candidates") === 0) return;
+	notes.push("Security candidates require agent verification and are not confirmed vulnerabilities.");
+}
+
+function projectIssueSummaryValue(summary: Record<string, any> | undefined, key: string): number {
+	const value = summary ? summary[key] : undefined;
+	return typeof value === "number" ? value : 0;
 }
 
 function addSemanticEvidence(
@@ -562,7 +660,7 @@ function addFeatureFlags(root: Record<string, any>, sections: FallowOverviewSect
 
 function addSecurity(root: Record<string, any>, sections: FallowOverviewSection[], title: { value: string }, includeAllRaw: boolean): void {
 	if (!root.security_findings) return;
-	title.value = "Fallow security";
+	if (title.value === "Fallow") title.value = "Fallow security";
 	const findings = asArray(root.security_findings);
 	if (!findings.length) return;
 	sections.push({
@@ -717,6 +815,7 @@ export function buildFallowOverview(
 	const includeAllRaw = options.includeAllRaw === true;
 
 	addRootStats(root, stats);
+	addProjectIssuesMetadata(root, stats, title, notes);
 	addConfigStats(root, stats, title);
 	addOverviewSections(root, sections, title, includeAllRaw);
 	addSemanticEvidence(root, stats, sections, title, notes, includeAllRaw);

@@ -101,11 +101,17 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		);
 		assert.equal(fallowCommands.length, 1, "Packaged /fallow command was not discovered exactly once.");
 
+		await rpc.prompt("/fallow");
+		let messages = await rpc.getMessages();
+		let results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 1, "Packaged default /fallow did not emit one Fallow result.");
+		assert.equal(results[0].details?.overview?.title, "Fallow project issues", "Default /fallow did not run project issue aggregation.");
+
 		await rpc.prompt("/fallow health");
-		const messages = await rpc.getMessages();
-		const results = messages.filter((message) => message.customType === "fallow-result");
-		assert.equal(results.length, 1, "Packaged /fallow health did not emit one Fallow result.");
-		assert.match(JSON.stringify(results[0].content), /health_score/, "Fallow health result is missing its health score.");
+		messages = await rpc.getMessages();
+		results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 2, "Packaged /fallow health did not emit a second Fallow result.");
+		assert.match(JSON.stringify(results[1].content), /health_score/, "Fallow health result is missing its health score.");
 
 		const forbiddenEvents = events.filter((event) =>
 			["extension_error", "agent_start", "turn_start"].includes(event.type),
@@ -122,19 +128,19 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 
 function validateNonInteractiveModes(cliPath, packageRoot, agentRoot) {
 	const commonArgs = isolatedPiArgs(packageRoot);
-	const printResult = runIsolatedPi(cliPath, ["--print", ...commonArgs, "/fallow health"], join(agentRoot, "print"));
-	assert.equal(printResult.status, 0, `Pi print-mode /fallow health failed:\n${printResult.stderr}`);
+	const printResult = runIsolatedPi(cliPath, ["--print", ...commonArgs, "/fallow"], join(agentRoot, "print"));
+	assert.equal(printResult.status, 0, `Pi print-mode default /fallow failed:\n${printResult.stderr}`);
 	assert.equal(printResult.stderr, "", `Pi print mode wrote to stderr:\n${printResult.stderr}`);
 
-	const jsonResult = runIsolatedPi(cliPath, ["--mode", "json", ...commonArgs, "/fallow health"], join(agentRoot, "json"));
-	assert.equal(jsonResult.status, 0, `Pi JSON-mode /fallow health failed:\n${jsonResult.stderr}`);
+	const jsonResult = runIsolatedPi(cliPath, ["--mode", "json", ...commonArgs, "/fallow"], join(agentRoot, "json"));
+	assert.equal(jsonResult.status, 0, `Pi JSON-mode default /fallow failed:\n${jsonResult.stderr}`);
 	assert.equal(jsonResult.stderr, "", `Pi JSON mode wrote to stderr:\n${jsonResult.stderr}`);
 	const events = jsonResult.stdout.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
 	const results = events.filter(
 		(event) => event.type === "message_end" && event.message?.customType === "fallow-result",
 	);
 	assert.equal(results.length, 1, "Pi JSON mode did not emit one Fallow result.");
-	assert.match(JSON.stringify(results[0].message.content), /health_score/, "Pi JSON Fallow result is missing its health score.");
+	assert.equal(results[0].message.details?.overview?.title, "Fallow project issues", "Pi JSON default /fallow did not aggregate project issues.");
 	const providerEvents = events.filter((event) => ["agent_start", "turn_start"].includes(event.type));
 	assert.deepEqual(providerEvents, [], "Pi JSON-mode extension command started an agent/provider turn.");
 

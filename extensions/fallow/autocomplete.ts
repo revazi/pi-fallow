@@ -145,6 +145,27 @@ const CHANGED_FILE_FLAGS: FlagSpec[] = [
 	{ flag: "--include-entry-exports", description: "Also report unused exports in entry files" },
 ];
 
+const PROJECT_ISSUES_FLAGS: FlagSpec[] = [
+	{ flag: "--changed-since", description: "Scope code-quality and security findings to files changed since a git ref", values: getRefValues },
+	{ flag: "--base", description: "Alias for --changed-since", values: getRefValues },
+	{ flag: "--changed-workspaces", description: "Scope findings to workspaces touched since a git ref", values: getRefValues },
+	{ flag: "--config", description: "Path to .fallowrc.json/.jsonc or fallow.toml" },
+	{ flag: "--workspace", description: "Workspace name/glob" },
+	{ flag: "--production", description: "Use production analysis mode" },
+	{ flag: "--no-production", description: "Override configured production mode" },
+	{ flag: "--no-cache", description: "Disable Fallow cache" },
+	{ flag: "--threads", description: "Worker thread count", values: ["1", "2", "4", "8"] },
+	{ flag: "--max-file-size", description: "Skip source files larger than this many MB" },
+	{ flag: "--runtime-coverage", description: "V8/Istanbul runtime coverage input" },
+	{ flag: "--min-invocations-hot", description: "Runtime coverage hot-path threshold", values: ["100", "500", "1000"] },
+	{ flag: "--score", description: "Include the project health score" },
+	{ flag: "--type-aware", description: "Use bounded TypeScript semantic evidence for code-quality checks" },
+	{ flag: "--no-type-aware", description: "Force code-quality checks to remain syntactic" },
+	{ flag: "--type-aware-project", description: "TypeScript project config for semantic analysis" },
+	{ flag: "--type-aware-require", description: "Required semantic completeness", values: ["best-effort", "complete"] },
+	{ flag: "--surface", description: "Include the security attack-surface inventory" },
+];
+
 const PROJECT_INFO_FLAGS: FlagSpec[] = [
 	{ flag: "--entry-points", description: "Include entry points" },
 	{ flag: "--files", description: "Include discovered files" },
@@ -189,6 +210,7 @@ const IMPACT_FLAGS: FlagSpec[] = [
 ];
 
 const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
+	issues: PROJECT_ISSUES_FLAGS,
 	all: ROOT_FLAGS,
 	"dead-code": [
 		{ flag: "--changed-since", description: "Compare only changed files since a git ref", values: getRefValues },
@@ -362,7 +384,7 @@ function configuredDefaultCommandKey(): string {
 
 function defaultCommandKeyFromTokens(tokens: string[]): string {
 	if (isCoverageAnalyze(tokens[0] ?? "", tokens[1])) return "coverage analyze";
-	return tokens[0] ?? "health";
+	return tokens[0] ?? "issues";
 }
 
 function isCoverageAnalyze(first: string, second: string | undefined): boolean {
@@ -373,6 +395,7 @@ const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update"]);
 
 function allFlags(command: string | undefined): FlagSpec[] {
 	if (isCommandWithoutFlags(command)) return [];
+	if (command === "issues") return PROJECT_ISSUES_FLAGS;
 	return uniqueFlags([...commandSpecificFlags(command), ...COMMON_FLAGS]);
 }
 
