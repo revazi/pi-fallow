@@ -37,7 +37,7 @@ function registerFallowTool(pi: ExtensionAPI): void {
 
 function registerFallowCommand(pi: ExtensionAPI, commandState: FallowCommandState): void {
 	pi.registerCommand("fallow", {
-		description: "Run fallow with raw CLI args. JSON/quiet are added if no --format is supplied.",
+		description: "Aggregate project issues by default, or run a Fallow subcommand with raw CLI args.",
 		argumentHint: fallowArgumentHint,
 		getArgumentCompletions: fallowCompletions.getFallowArgumentCompletions,
 		handler: (rawArgs, ctx) => runFallowCommandHandler(pi, ctx, commandState, rawArgs),

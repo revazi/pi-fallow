@@ -17,13 +17,14 @@ function normalize(rawArgs, options = {}) {
 }
 
 describe("resolveFallowRunArgs", () => {
-	it("defaults empty and run commands to health", () => {
-		assert.deepEqual(resolveFallowRunArgs([], []), ["health"]);
-		assert.deepEqual(resolveFallowRunArgs(["run"], []), ["health"]);
-		assert.deepEqual(resolveFallowRunArgs(["run", "--score"], []), ["health", "--score"]);
+	it("defaults empty and run commands to aggregated project issues", () => {
+		assert.deepEqual(resolveFallowRunArgs([], []), ["issues"]);
+		assert.deepEqual(resolveFallowRunArgs(["run"], []), ["issues"]);
+		assert.deepEqual(resolveFallowRunArgs(["run", "--score"], []), ["issues", "--score"]);
 	});
 
 	it("uses configured shell-free command tokens without changing explicit commands", () => {
+		assert.deepEqual(resolveFallowRunArgs(["run"], ["issues"]), ["issues"]);
 		assert.deepEqual(resolveFallowRunArgs(["run"], ["health", "--complexity", "--targets"]), ["health", "--complexity", "--targets"]);
 		assert.deepEqual(resolveFallowRunArgs(["run", "--score"], ["dead-code", "--production"]), ["dead-code", "--production", "--score"]);
 		assert.deepEqual(resolveFallowRunArgs(["dupes"], ["health"]), ["dupes"]);
@@ -47,12 +48,16 @@ describe("normalizeFallowArgs", () => {
 
 	it("reruns the last command and warns when missing", () => {
 		assert.deepEqual(normalize(["rerun"], { lastArgs: ["health", "--score"] }).result, ["health", "--score"]);
+		assert.deepEqual(normalize(["rerun"], { lastArgs: ["issues", "--surface"] }).result, ["issues", "--surface"]);
 		const missing = normalize(["rerun"]);
 		assert.equal(missing.result, null);
 		assert.deepEqual(missing.notifications, [{ message: "No previous /fallow command to rerun.", level: "warning" }]);
 	});
 
 	it("maps convenience aliases to current Fallow commands", () => {
+		assert.deepEqual(normalize(["issues"]).result, ["issues"]);
+		assert.deepEqual(normalize(["issues", "--score", "--surface"]).result, ["issues", "--score", "--surface"]);
+		assert.throws(() => normalize(["issues", "--file-scores"]), /issues does not support --file-scores/);
 		assert.deepEqual(normalize(["all"]).result, []);
 		assert.deepEqual(normalize(["project-info", "--files"]).result, ["list", "--files"]);
 		assert.deepEqual(normalize(["list-boundaries"]).result, ["list", "--boundaries"]);

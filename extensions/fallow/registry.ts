@@ -53,6 +53,12 @@ const fallowCommandRegistry = [
 		slash: { root: { value: "about", description: "Show Pi Fallow version, update, and project links", hintOrder: 0 } },
 	},
 	{
+		name: "issues",
+		slash: {
+			root: { value: "issues", description: "Aggregate project code-quality and security findings in one report", hintOrder: 1 },
+		},
+	},
+	{
 		name: "all",
 		tool: { cliPrefix: [] },
 		slash: {

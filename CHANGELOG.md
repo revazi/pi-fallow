@@ -4,6 +4,13 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Added
+- Added `/fallow issues`, an issue-focused aggregate that combines project-wide dead-code, duplication, health, and security candidates in one navigator while omitting informational per-file health rows.
+
+### Changed
+- Made `/fallow` and `/fallow run` default to the aggregate project-issues report instead of plain health; explicit Fallow subcommands and `PI_FALLOW_DEFAULT_COMMAND` overrides remain available.
+- Expanded dead-code navigator coverage to every current Fallow issue array, with a summary-backed fallback for future issue categories.
+
 ## [0.4.1] - 2026-08-13
 
 ### Added

@@ -39,6 +39,7 @@ describe("Fallow autocomplete", () => {
 	it("returns command, flag, and fixed-value completions", () => {
 		const rootCompletions = fallowCompletions.getFallowRootCommandCompletions();
 		assert.ok(labels(rootCompletions).includes("health"));
+		assert.ok(labels(rootCompletions).includes("issues"));
 		assert.ok(labels(rootCompletions).includes("run"));
 		const architecture = rootCompletions.find((item) => item.label === "architecture");
 		assert.match(architecture?.description ?? "", /architecture rules apply to files before changing them/);
@@ -52,7 +53,10 @@ describe("Fallow autocomplete", () => {
 		assert.ok(completionLabels("health --").includes("--type-coupling"));
 		assert.ok(completionLabels("dead-code --").includes("--symbol-impact"));
 		assert.ok(completionLabels("architecture --").includes("--no-cache"));
-		assert.ok(completionLabels("run --").includes("--file-scores"));
+		assert.ok(completionLabels("issues --").includes("--surface"));
+		assert.ok(completionLabels("issues --").includes("--score"));
+		assert.ok(completionLabels("run --").includes("--surface"));
+		assert.equal(completionLabels("run --").includes("--file-scores"), false);
 		assert.deepEqual(completionLabels("health --type-aware-require c"), ["complete"]);
 		assert.deepEqual(completionLabels("health --baseline-mode i"), ["identity"]);
 		assert.deepEqual(completionLabels("health --group-by o"), ["owner"]);

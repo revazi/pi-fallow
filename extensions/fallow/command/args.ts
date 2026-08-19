@@ -1,9 +1,10 @@
 import { isPositionalCliArg, stripAtPrefix } from "../path";
 import { getFallowSlashAliasSpec, type FallowSlashAliasSpec } from "../registry";
+import { fallowProjectIssues } from "./issues";
 
 type Notify = (message: string, level: "info" | "warning") => void;
 
-const FALLBACK_DEFAULT_COMMAND = ["health"];
+const FALLBACK_DEFAULT_COMMAND = ["issues"];
 const INVALID_DEFAULT_COMMANDS = new Set(["run", "rerun", "about", "version", "update"]);
 
 export function resolveFallowRunArgs(rawArgs: string[], configuredDefaultArgs: string[]): string[] {
@@ -27,7 +28,7 @@ function runOverrides(args: string[]): string[] {
 
 function validateDefaultCommand(args: string[]): void {
 	if (!args[0] || INVALID_DEFAULT_COMMANDS.has(args[0])) {
-		throw new Error("PI_FALLOW_DEFAULT_COMMAND must start with an executable Fallow command such as health or dead-code.");
+		throw new Error("PI_FALLOW_DEFAULT_COMMAND must start with an executable command such as issues, health, or dead-code.");
 	}
 }
 
@@ -86,8 +87,13 @@ function hasFlag(args: string[], flag: string): boolean {
 function resolveFallbackArgs(rawArgs: string[]): string[] {
 	const normalized = [...rawArgs];
 	validateRequiredCommandArgs(normalized);
+	validateProjectIssueArgs(normalized);
 	const alias = getFallowSlashAliasSpec(normalized[0] ?? "");
 	return alias ? buildFallowSlashAliasArgs(normalized, alias) : normalized;
+}
+
+function validateProjectIssueArgs(args: string[]): void {
+	if (args[0] === "issues") fallowProjectIssues.partitionArgs(args.slice(1));
 }
 
 function validateRequiredCommandArgs(args: string[]): void {

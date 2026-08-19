@@ -18,7 +18,8 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 
 - **Compact agent tool:** `fallow_run` uses a small command-plus-args contract while preserving internal validation and older-session compatibility.
 - **Synchronized command contract:** one typed registry drives tool commands, compact CLI prefixes, slash aliases, autocomplete, and the `/fallow` argument hint.
-- **Slash command:** `/fallow ...` runs the Fallow CLI from inside Pi; `/fallow` and `/fallow run` use a configurable default command.
+- **Useful default:** `/fallow`, `/fallow run`, and `/fallow issues` aggregate project-wide dead-code, duplication, health, and security findings into one issue-focused report; per-file health context is omitted.
+- **Slash command:** `/fallow ...` runs Fallow from inside Pi, with direct subcommands retained and a configurable default command.
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
 - **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
@@ -73,6 +74,7 @@ Manual slash command examples:
 
 ```text
 /fallow
+/fallow issues
 /fallow run
 /fallow run --score
 /fallow pr
@@ -99,13 +101,17 @@ Manual slash command examples:
 /fallow coverage analyze
 ```
 
-`/fallow` and `/fallow run` execute `health` by default. Set `PI_FALLOW_DEFAULT_COMMAND` to a shell-free Fallow command string to change it, for example:
+`/fallow`, `/fallow run`, and `/fallow issues` run Pi Fallow's project-issue aggregation by default. It executes Fallow's combined dead-code, duplication, and health analysis followed by the opt-in security-candidate analysis, then opens one navigator containing only actionable findings. Informational health file scores and hotspots are intentionally omitted so a clean project does not produce a browser full of files. Security entries remain candidates that require agent verification, not confirmed vulnerabilities.
+
+The aggregate accepts curated options that can be applied safely to one or both analyses, including `--changed-since`, `--workspace`, `--production`, `--score`, type-aware controls, runtime coverage, and `--surface`. Use an explicit command such as `/fallow health --file-scores` for command-specific informational output. `/fallow all` remains direct access to Fallow's native combined root report and does not add the separate security scan.
+
+Set `PI_FALLOW_DEFAULT_COMMAND` to a shell-free command string to replace the aggregate default, for example:
 
 ```bash
 export PI_FALLOW_DEFAULT_COMMAND='health --complexity --targets --score'
 ```
 
-Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive/extension-only defaults such as `run`, `rerun`, or `about` are rejected.
+Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive defaults such as `run`, `rerun`, or `about` are rejected.
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
@@ -158,7 +164,7 @@ The current `0.4.x` development line is certified with this host matrix:
 |---|---|---|---|
 | 0.84.1 | 0.84.1 | 22.19 and 24 | 3.14.0 |
 
-Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version locked by this repository. It verifies offline extension loading, `/fallow` discovery, provider-free `/fallow health` execution over RPC, print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
+Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 
 This matrix records tested compatibility; it is not an installation constraint or a claim about untested Pi versions. Pi packages intentionally remain host-provided wildcard peer dependencies, following Pi's package guidance. Other Pi versions may work, but are not certified until they pass the same package smoke checks.
 
