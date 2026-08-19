@@ -40,7 +40,9 @@ describe("Fallow autocomplete", () => {
 		const rootCompletions = fallowCompletions.getFallowRootCommandCompletions();
 		assert.ok(labels(rootCompletions).includes("health"));
 		assert.ok(labels(rootCompletions).includes("issues"));
-		assert.ok(labels(rootCompletions).includes("run"));
+		const runIndex = labels(rootCompletions).indexOf("run");
+		assert.notEqual(runIndex, -1);
+		assert.equal(rootCompletions[runIndex].description, "Run the configured default command (project issues unless overridden)");
 		const architecture = rootCompletions.find((item) => item.label === "architecture");
 		assert.match(architecture?.description ?? "", /architecture rules apply to files before changing them/);
 		assert.ok(completionLabels("").includes("audit PR (main)"));

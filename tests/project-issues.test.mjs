@@ -101,9 +101,12 @@ describe("project issue aggregation", () => {
 	it("partitions curated options across combined and security analyses", () => {
 		assert.deepEqual(partitionFallowProjectIssueArgs([
 			"--changed-since", "main", "--score", "--surface", "--type-aware-project=tsconfig.json",
+			"--runtime-coverage", "coverage.json", "--min-invocations-hot=500",
 		]), {
 			combined: ["--changed-since", "main", "--score", "--type-aware-project=tsconfig.json"],
-			security: ["--changed-since", "main", "--surface"],
+			security: [
+				"--changed-since", "main", "--surface", "--runtime-coverage", "coverage.json", "--min-invocations-hot=500",
+			],
 		});
 		assert.throws(() => partitionFallowProjectIssueArgs(["--file-scores"]), /does not support/);
 		assert.throws(() => partitionFallowProjectIssueArgs(["--workspace"]), /requires a value/);
@@ -121,15 +124,41 @@ describe("project issue aggregation", () => {
 			};
 		};
 
-		const aggregate = await runFallowProjectIssueCommands({}, ["--score", "--surface"], "/project", undefined, 10, executeChild);
+		const commandArgs = [
+			"--score", "--surface", "--runtime-coverage", "coverage.json", "--min-invocations-hot", "500",
+		];
+		const aggregate = await runFallowProjectIssueCommands({}, commandArgs, "/project", undefined, 10, executeChild);
 		assert.deepEqual(calls, [
 			["--format", "json", "--quiet", "--score"],
-			["security", "--format", "json", "--quiet", "--surface"],
+			[
+				"security", "--format", "json", "--quiet", "--surface",
+				"--runtime-coverage", "coverage.json", "--min-invocations-hot", "500",
+			],
 		]);
 		assert.equal(aggregate.binary, "/fallow");
-		assert.deepEqual(aggregate.args, ["issues", "--score", "--surface"]);
+		assert.deepEqual(aggregate.args, ["issues", ...commandArgs]);
 		assert.equal(aggregate.result.code, 1);
 		assert.equal(JSON.parse(aggregate.result.stdout).total_issues, 4);
+	});
+
+	it("marks a post-combined cancellation as an incomplete aggregate", async () => {
+		const controller = new AbortController();
+		let calls = 0;
+		const executeChild = async (_pi, args) => {
+			calls++;
+			controller.abort();
+			return { binary: "/fixture/fallow", args, result: execution(cleanCombinedReport()) };
+		};
+
+		const aggregate = await runFallowProjectIssueCommands(
+			{}, [], "/project", controller.signal, 10, executeChild,
+		);
+		const report = JSON.parse(aggregate.result.stdout);
+		assert.equal(calls, 1);
+		assert.equal(aggregate.result.code, 130);
+		assert.equal(aggregate.result.killed, true);
+		assert.equal(report.error, true);
+		assert.match(report.message, /security analysis was cancelled/);
 	});
 
 	it("marks an unstructured child report as an incomplete aggregate", async () => {

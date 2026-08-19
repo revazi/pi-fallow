@@ -79,9 +79,22 @@ async function runSecurityReport(
 	combined: ParsedChildReport,
 	executeChild: FallowChildExecutor,
 ): Promise<ParsedChildReport | undefined> {
-	if (combined.execution.result.killed || signal?.aborted) return undefined;
+	if (combined.execution.result.killed) return undefined;
+	if (signal?.aborted) return cancelledSecurityReport(combined.execution.binary, securityArgs);
 	const execution = await executeChild(pi, ["security", ...MANAGED_OUTPUT_ARGS, ...securityArgs], cwd, signal, timeoutSecs);
 	return parseChildReport("security", execution);
+}
+
+function cancelledSecurityReport(binary: string, securityArgs: string[]): ParsedChildReport {
+	return {
+		label: "security",
+		execution: {
+			binary,
+			args: ["security", ...MANAGED_OUTPUT_ARGS, ...securityArgs],
+			result: { stdout: "", stderr: "", code: 130, killed: true },
+		},
+		parseFailed: false,
+	};
 }
 
 function parseChildReport(label: ParsedChildReport["label"], execution: FallowChildExecution): ParsedChildReport {

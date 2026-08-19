@@ -42,7 +42,7 @@ const fallowCommandRegistry = [
 	},
 	{
 		name: "run",
-		slash: { root: { value: "run", description: "Run the configured default command (health unless overridden)" } },
+		slash: { root: { value: "run", description: "Run the configured default command (project issues unless overridden)" } },
 	},
 	{
 		name: "rerun",
