@@ -4,7 +4,7 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 ## Release status and boundaries
 
-- **Current boundary:** `0.5.0` consolidates the post-`0.4.0` output-detail, Pi compatibility, model-guidance, command-registry, architecture/guard, normalized-report, and project-issues work recorded in the [`0.5.0` changelog](./CHANGELOG.md#050---2026-08-19).
+- **Current boundary:** `0.5.1` refreshes the certified Pi, Fallow, TypeBox, and CodeQL tooling on top of the issue-focused `0.5.0` release, as recorded in the [`0.5.1` changelog](./CHANGELOG.md#051---2026-08-29).
 - **Release records:** the npm registry and GitHub releases are authoritative for whether a version has completed publication; a version in source remains a candidate until the protected tag workflow succeeds.
 - **Publication gate:** every boundary remains blocked until all release gates pass, an independent release-readiness review is recorded, and a maintainer gives explicit authorization.
 - **Later work:** the priorities below are directional and carry no date or version commitment.
