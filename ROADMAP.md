@@ -13,8 +13,8 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 Unless noted otherwise, these are repository-specific measurements from the `0.5.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
-- **Tests and coverage:** 169 tests. All-extension coverage is **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**.
-- **Fallow quality:** Fallow 3.16 reports health **85.3 (A)**, average maintainability **91.9**, and zero threshold findings, dead-code issues, or clone groups.
+- **Tests and coverage:** 169 tests. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; current subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
+- **Fallow quality:** Fallow 3.16 reports health **85.4 (A)**, average maintainability **91.9**, and zero threshold findings, dead-code issues, or clone groups.
 - **Dependency audits:** strict production and complete-tree npm audits report zero vulnerabilities. These audit results are separate from Fallow's modeled security-candidate analysis.
 - **Host compatibility:** packaged, provider-free Pi **0.84.3** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
 - **Token baseline:** the current `fallow_run` tool contract is **439 tokens under both pinned tokenizers**. Across the frozen corpus, bounded tool results total **8,046 `o200k_base` / 7,935 `cl100k_base` tokens**. The output-detail work leaves the benchmarked slash-command and editor-prompt surfaces unchanged and reduces aggregate `o200k_base` tool-result tokens by **82.16%** from the immediate pre-output-detail baseline. These are deterministic corpus measurements, not provider billing claims; see [`benchmarks/README.md`](./benchmarks/README.md).
