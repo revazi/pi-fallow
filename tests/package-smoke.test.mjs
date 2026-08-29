@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { describe, it } from "node:test";
-import { assertCredentialFreeControl } from "../scripts/package-smoke.mjs";
+import { assertCredentialFreeControl, resolveLockedPiHost } from "../scripts/package-smoke.mjs";
 
-const cliPath = resolve(import.meta.dirname, "..", "node_modules", "@earendil-works", "pi-coding-agent", "dist", "cli.js");
-const piPackageRoot = dirname(dirname(cliPath));
+const { packageRoot: piPackageRoot } = resolveLockedPiHost();
 const errorLine = "No API key found for the selected model.";
 const validStderr = [
 	errorLine,
@@ -16,11 +15,11 @@ const validStderr = [
 ].join("\n");
 
 function assertControl(stderr = validStderr, overrides = {}) {
-	assertCredentialFreeControl({ status: 1, stdout: "", stderr, ...overrides }, cliPath);
+	assertCredentialFreeControl({ status: 1, stdout: "", stderr, ...overrides }, piPackageRoot);
 }
 
 describe("package-smoke credential-free negative control", () => {
-	it("accepts only the locked Pi 0.84.1 auth-guidance structure", () => {
+	it("accepts only the locked Pi 0.84.3 auth-guidance structure", () => {
 		assert.doesNotThrow(() => assertControl());
 	});
 

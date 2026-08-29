@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { RpcClient } from "@earendil-works/pi-coding-agent";
 
@@ -77,9 +77,19 @@ function validateInstalledPackage(cwd) {
 	return packageRoot;
 }
 
+export function resolveLockedPiHost() {
+	const packageRoot = join(root, "node_modules", "@earendil-works", "pi-coding-agent");
+	const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+	const cliEntry = typeof manifest.bin === "string" ? manifest.bin : manifest.bin?.pi;
+	assert.equal(cliEntry, "dist/bundle/cli.js", "Package smoke must follow the certified Pi CLI entrypoint.");
+	const cliPath = resolve(packageRoot, cliEntry);
+	assert.ok(existsSync(cliPath), `Locked Pi CLI entrypoint is missing: ${cliEntry}`);
+	return { cliPath, packageRoot };
+}
+
 async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 	mkdirSync(agentDir, { recursive: true });
-	const cliPath = join(root, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "cli.js");
+	const { cliPath, packageRoot: piPackageRoot } = resolveLockedPiHost();
 	const piVersion = execFileSync(process.execPath, [cliPath, "--version"], { cwd: root, encoding: "utf8" }).trim();
 	const expectedVersion = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"))
 		.packages["node_modules/@earendil-works/pi-coding-agent"].version;
@@ -122,11 +132,11 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		await rpc.stop();
 	}
 	assert.equal(rpc.getStderr(), "", `Pi RPC wrote to stderr:\n${rpc.getStderr()}`);
-	validateNonInteractiveModes(cliPath, packageRoot, agentDir);
+	validateNonInteractiveModes(cliPath, packageRoot, agentDir, piPackageRoot);
 	return piVersion;
 }
 
-function validateNonInteractiveModes(cliPath, packageRoot, agentRoot) {
+function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageRoot) {
 	const commonArgs = isolatedPiArgs(packageRoot);
 	const printResult = runIsolatedPi(cliPath, ["--print", ...commonArgs, "/fallow"], join(agentRoot, "print"));
 	assert.equal(printResult.status, 0, `Pi print-mode default /fallow failed:\n${printResult.stderr}`);
@@ -149,12 +159,11 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot) {
 		["--print", ...commonArgs, "/pi-fallow-unknown-command"],
 		join(agentRoot, "control"),
 	);
-	assertCredentialFreeControl(controlResult, cliPath);
+	assertCredentialFreeControl(controlResult, piPackageRoot);
 }
 
-export function assertCredentialFreeControl(result, cliPath) {
+export function assertCredentialFreeControl(result, piPackageRoot) {
 	const errorLine = "No API key found for the selected model.";
-	const piPackageRoot = dirname(dirname(resolve(cliPath)));
 	const stderrLines = result.stderr.split("\n");
 
 	assert.equal(result.status, 1, "Unknown print-mode slash command did not exit with status 1.");
