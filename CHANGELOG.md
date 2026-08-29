@@ -4,9 +4,12 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-29
+
 ### Changed
 - Updated the coordinated Pi development lock and package-boundary certification to 0.84.3, including the manifest-declared bundled CLI entrypoint, while retaining host-provided wildcard Pi peer dependencies.
 - Updated the pinned build and analysis tooling to esbuild 0.28.2 and Fallow 3.18.0, including CLI-derived capability and issue-registry coverage, type-aware wire protocol 7 and semantic schema 3 checks, unchanged 3.17 versioned output roots, and packaged host compatibility coverage.
+- Updated the direct TypeBox development lock to 1.3.16 and the fully SHA-pinned CodeQL Action to 4.37.8.
 
 ## [0.5.0] - 2026-08-19
 
@@ -93,7 +96,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/revazi/pi-fallow/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/revazi/pi-fallow/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/revazi/pi-fallow/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/revazi/pi-fallow/compare/v0.3.0...v0.3.1
