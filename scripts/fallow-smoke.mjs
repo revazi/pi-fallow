@@ -91,7 +91,8 @@ function assertModeledArgs() {
 
 function assertCurrentFallowSchema(data) {
 	assert.equal(data.name, "fallow");
-	assert.equal(data.version, "3.16.0");
+	assert.equal(data.version, "3.18.0");
+	assert.equal(data.manifest_version, "1");
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
 	for (const command of [
@@ -114,11 +115,28 @@ function assertCurrentFallowSchema(data) {
 		description: "Files to report on (root-relative or absolute; may not exist yet)",
 	}]);
 	assert.deepEqual(commands.get("type-aware").flags, []);
-	assert.match(commands.get("report").description, /codeclimate.*sarif/);
+	assert.match(commands.get("report").description, /codeclimate.*sarif/i);
 	assert.deepEqual(commands.get("viz").flags.map((flag) => flag.name), ["--out", "--no-open", "--viz-format"]);
+	assert.deepEqual(data.output_formats, [
+		"human", "json", "sarif", "compact", "markdown", "md", "codeclimate", "gitlab-codequality",
+		"gitlab-code-quality", "pr-comment-github", "pr-comment-gitlab", "review-github", "review-gitlab", "badge",
+		"github-annotations", "github-summary",
+	]);
+	assert.deepEqual(Object.keys(data.exit_codes), ["0", "1", "2", "3", "4", "5", "6", "7", "8", "10", "11", "12", "13"]);
+	assert.ok(Array.isArray(data.issue_types));
+	const issueTypes = new Map(data.issue_types.map((issue) => [issue.id, issue]));
+	assert.equal(data.issue_types.length, 117);
+	assert.equal(issueTypes.size, data.issue_types.length);
+	assert.match(issueTypes.get("unused-dependency-override").description, /package-manager/i);
+	assert.match(issueTypes.get("misconfigured-dependency-override").description, /package-manager/i);
 }
 
 function assertCliSurfaces() {
+	assertFallowJson([], (data) => {
+		assert.equal(data.kind, "combined");
+		assert.equal(data.schema_version, 11);
+		assert.equal(data.check?.schema_version, 9);
+	});
 	assertFallowJson(["inspect", "--file", "extensions/fallow/cli.ts"], (data) => {
 		assert.equal(data.kind, "inspect_target");
 		assert.equal(data.target?.type, "file");
@@ -129,6 +147,7 @@ function assertCliSurfaces() {
 	});
 	assertFallowJson(["security"], (data) => {
 		assert.equal(data.kind, "security");
+		assert.equal(data.schema_version, "8");
 		assert.ok(Array.isArray(data.security_findings));
 	});
 	assertFallowJson(["guard", "extensions/fallow/cli.ts"], (data) => {
@@ -143,17 +162,22 @@ function assertCliSurfaces() {
 	assertFallowJson(["type-aware", "status"], (data) => {
 		assert.equal(data.kind, "type-aware-status");
 		assert.equal(data.schema_version, 8);
+		assert.equal(data.protocol_version, 7);
 		assert.equal(typeof data.available, "boolean");
 	});
 	assertFallowJson(["dead-code", "--type-aware", "--symbol-impact", "extensions/fallow/cli.ts:fallowCli"], (data) => {
 		assert.equal(data.kind, "impact");
+		assert.equal(data.identity?.semantic_schema_version, 3);
 		assert.ok(Array.isArray(data.direct_consumers));
 		assert.ok(Array.isArray(data.affected_files));
 		assert.ok(Array.isArray(data.targeted_tests));
 	});
 	assertFallowJson(["health", "--type-aware", "--type-coupling"], (data) => {
 		assert.equal(data.kind, "health");
+		assert.equal(data.schema_version, 11);
 		assert.equal(data._meta?.type_aware?.executed, true);
+		assert.equal(data._meta.type_aware.protocol_version, 7);
+		assert.equal(data._meta.type_aware.identity?.semantic_schema_version, 3);
 		assert.ok(data._meta.type_aware.type_coupling);
 	});
 	assertFallowJson(["impact"], (data) => {

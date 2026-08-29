@@ -6,7 +6,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Changed
 - Updated the coordinated Pi development lock and package-boundary certification to 0.84.3, including the manifest-declared bundled CLI entrypoint, while retaining host-provided wildcard Pi peer dependencies.
-- Updated the pinned build and analysis tooling to esbuild 0.28.2 and Fallow 3.16.0, including current capability-schema and packaged host compatibility coverage.
+- Updated the pinned build and analysis tooling to esbuild 0.28.2 and Fallow 3.18.0, including CLI-derived capability and issue-registry coverage, type-aware wire protocol 7 and semantic schema 3 checks, unchanged 3.17 versioned output roots, and packaged host compatibility coverage.
 
 ## [0.5.0] - 2026-08-19
 
