@@ -4,6 +4,9 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Changed
+- Updated the pinned Fallow compatibility target to 3.21.0 and re-certified the current command/schema, MCP-resource, type-aware, quality, and packaged host surfaces, including the 3.20 strict-exit and project-reference resolution changes plus the 3.21 runtime-coverage and hidden-source diagnostic fixes.
+
 ## [0.5.1] - 2026-08-29
 
 ### Changed

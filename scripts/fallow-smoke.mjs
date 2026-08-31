@@ -91,13 +91,13 @@ function assertModeledArgs() {
 
 function assertCurrentFallowSchema(data) {
 	assert.equal(data.name, "fallow");
-	assert.equal(data.version, "3.18.0");
+	assert.equal(data.version, "3.21.0");
 	assert.equal(data.manifest_version, "1");
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
 	for (const command of [
-		"dead-code", "type-aware", "inspect", "trace", "guard", "fix", "config", "list", "workspaces", "dupes", "health",
-		"flags", "explain", "audit", "decision-surface", "impact", "security", "report", "schema", "coverage", "viz",
+		"dead-code", "type-aware", "similar-code", "inspect", "trace", "guard", "fix", "agent", "config", "list", "workspaces",
+		"dupes", "health", "flags", "explain", "audit", "decision-surface", "impact", "security", "report", "schema", "coverage", "viz",
 	]) {
 		assert.ok(commands.has(command), `Fallow schema is missing ${command}`);
 	}
@@ -129,6 +129,20 @@ function assertCurrentFallowSchema(data) {
 	assert.equal(issueTypes.size, data.issue_types.length);
 	assert.match(issueTypes.get("unused-dependency-override").description, /package-manager/i);
 	assert.match(issueTypes.get("misconfigured-dependency-override").description, /package-manager/i);
+	assert.equal(data.mcp_resources?.server, "fallow-mcp");
+	assert.deepEqual(
+		data.mcp_resources.resources.map((resource) => resource.uri),
+		[
+			"fallow://tools",
+			"fallow://issue-types",
+			"fallow://explain",
+			"fallow://task-matrix",
+			"fallow://schema/config",
+			"fallow://schema/plugin",
+			"fallow://schema/rule-pack",
+			"fallow://explain/{issue_type}",
+		],
+	);
 }
 
 function assertCliSurfaces() {
