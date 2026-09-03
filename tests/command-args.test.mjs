@@ -92,6 +92,19 @@ describe("normalizeFallowArgs", () => {
 		]);
 	});
 
+	it("normalizes read-only similar-code paths and blocks model/cache mutation", () => {
+		assert.deepEqual(normalize(["similar-code", "--file", "@src/a.ts", "--threshold", "0.8"]).result, [
+			"similar-code", "--file", "src/a.ts", "--threshold", "0.8",
+		]);
+		assert.deepEqual(normalize([
+			"similar-code", "review", "--candidates=@reports/candidates.json", "--verdicts", "@reports/verdicts.json",
+		]).result, [
+			"similar-code", "review", "--candidates=reports/candidates.json", "--verdicts", "reports/verdicts.json",
+		]);
+		assert.throws(() => normalize(["similar-code", "setup", "--local"]), /never downloads/);
+		assert.throws(() => normalize(["similar-code", "cache", "clear", "--yes"]), /cache mutation/);
+	});
+
 	it("maps check-changed to root changed-file analysis", () => {
 		assert.deepEqual(normalize(["check-changed", "--changed-since", "main"]).result, ["--changed-since", "main"]);
 		assert.deepEqual(normalize(["check-changed", "--base=origin/main"]).result, ["--base=origin/main"]);

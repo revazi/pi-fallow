@@ -6,6 +6,7 @@ import { execFallowProcess } from "./process";
 import { getFallowToolCommandSpec, type FallowToolCommandSpec } from "./registry";
 import { createFallowRunner } from "./runner";
 import type { FallowRunParams as CompactFallowRunParams } from "./schema";
+import { prepareSimilarCodeArgs, SIMILAR_CODE_DEFAULT_TIMEOUT_SECS } from "./similar-code";
 import type { FallowOutputDetail } from "./types";
 
 // Compatibility shape for tool calls stored by Pi before the compact contract.
@@ -333,7 +334,8 @@ function commandPrefix(command: CompactFallowRunParams["command"]): readonly str
 }
 
 function normalizeCompactArgs(spec: FallowToolCommandSpec, args: string[]): string[] {
-	const normalized = spec.name === "check-changed" ? normalizeCheckChangedArgs(args) : [...args];
+	const commandArgs = spec.name === "check-changed" ? normalizeCheckChangedArgs(args) : [...args];
+	const normalized = spec.name === "similar-code" ? prepareSimilarCodeArgs(commandArgs) : commandArgs;
 	return normalizeAtPrefixedTargets(spec, normalized);
 }
 
@@ -479,7 +481,8 @@ function resolveFallowRoot(params: CompactFallowRunParams, contextRoot: string):
 
 function resolveFallowTimeout(params: CompactFallowRunParams): number {
 	if (params.timeoutSecs !== undefined) return params.timeoutSecs;
-	return Number(process.env.FALLOW_TIMEOUT_SECS || 120);
+	if (process.env.FALLOW_TIMEOUT_SECS) return Number(process.env.FALLOW_TIMEOUT_SECS);
+	return params.command === "similar-code" ? SIMILAR_CODE_DEFAULT_TIMEOUT_SECS : 120;
 }
 
 function resolveFallowOutputDetail(detail: CompactFallowRunParams["detail"]): FallowOutputDetail {
@@ -596,5 +599,6 @@ export const fallowCli = {
 	buildFallowArgs,
 	prepareFallowRunParams,
 	resolveFallowOutputDetail,
+	resolveFallowTimeout,
 };
 

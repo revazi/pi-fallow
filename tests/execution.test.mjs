@@ -168,7 +168,7 @@ describe("Fallow process execution", () => {
 				const contextController = new AbortController();
 				const execution = fallowCli.runFallow(
 					{},
-					{ command: "health" },
+					{ command: "similar-code", args: ["status"] },
 					{ cwd: workspace, signal: contextController.signal },
 					toolController.signal,
 				);
@@ -179,6 +179,27 @@ describe("Fallow process execution", () => {
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}
+	});
+
+	it("uses the cold-inference timeout for slash-command similar-code runs", async () => {
+		const previous = process.env.FALLOW_TIMEOUT_SECS;
+		const observed = [];
+		const executor = async (_pi, args, _cwd, _signal, timeoutSecs) => {
+			observed.push({ args, timeoutSecs });
+			return { binary: "fixture", args, result: fakeResult(0) };
+		};
+		const context = { cwd: root, mode: "rpc", hasUI: true, ui: {}, signal: undefined };
+		try {
+			delete process.env.FALLOW_TIMEOUT_SECS;
+			await buildFallowExecutor({}, context, ["similar-code", "status"], executor)();
+			await buildFallowExecutor({}, context, ["health"], executor)();
+			process.env.FALLOW_TIMEOUT_SECS = "45";
+			await buildFallowExecutor({}, context, ["similar-code"], executor)();
+		} finally {
+			if (previous === undefined) delete process.env.FALLOW_TIMEOUT_SECS;
+			else process.env.FALLOW_TIMEOUT_SECS = previous;
+		}
+		assert.deepEqual(observed.map((entry) => entry.timeoutSecs), [900, 120, 45]);
 	});
 
 	it("passes loader cancellation through the slash-command executor", async () => {

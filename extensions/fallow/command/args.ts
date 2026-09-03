@@ -1,5 +1,6 @@
 import { isPositionalCliArg, stripAtPrefix } from "../path";
 import { getFallowSlashAliasSpec, type FallowSlashAliasSpec } from "../registry";
+import { prepareSimilarCodeArgs } from "../similar-code";
 import { fallowProjectIssues } from "./issues";
 
 type Notify = (message: string, level: "info" | "warning") => void;
@@ -88,6 +89,7 @@ function resolveFallbackArgs(rawArgs: string[]): string[] {
 	const normalized = [...rawArgs];
 	validateRequiredCommandArgs(normalized);
 	validateProjectIssueArgs(normalized);
+	if (normalized[0] === "similar-code") return ["similar-code", ...prepareSimilarCodeArgs(normalized.slice(1))];
 	const alias = getFallowSlashAliasSpec(normalized[0] ?? "");
 	return alias ? buildFallowSlashAliasArgs(normalized, alias) : normalized;
 }

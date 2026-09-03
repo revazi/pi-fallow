@@ -26,6 +26,7 @@ const COMMAND_TEMPLATES: CompletionSpec[] = [
 	{ value: "inspect --file ", label: "inspect file", description: "Inspect one file as a bundled evidence query" },
 	{ value: "inspect --symbol ", label: "inspect symbol", description: "Inspect an exported symbol as file.ts:exportName" },
 	{ value: "decision-surface --changed-since main", label: "decision-surface (main)", description: "Surface structural decisions embedded in the current change" },
+	{ value: "similar-code status", label: "similar-code readiness", description: "Check the pinned local model without downloading or scanning source" },
 ];
 
 const COMMANDS: CompletionSpec[] = [
@@ -203,6 +204,35 @@ const DECISION_SURFACE_FLAGS: FlagSpec[] = [
 	{ flag: "--max-decisions", description: "Maximum surfaced structural decisions", values: ["3", "4", "5"] },
 ];
 
+const SIMILAR_CODE_FLAGS: FlagSpec[] = [
+	{ flag: "--changed-since", description: "Report pairs touching files changed since a git ref", values: getRefValues },
+	{ flag: "--diff-file", description: "Unified diff path for line-level scoping" },
+	{ flag: "--workspace", description: "Workspace name/glob" },
+	{ flag: "--changed-workspaces", description: "Scope to workspaces touched since a git ref", values: getRefValues },
+	{ flag: "--config", description: "Path to .fallowrc.json/.jsonc or fallow.toml" },
+	{ flag: "--no-cache", description: "Disable incremental vector caching" },
+	{ flag: "--threads", description: "Parser thread count", values: ["1", "2", "4", "8"] },
+	{ flag: "--max-file-size", description: "Skip source files larger than this many MB" },
+	{ flag: "--explain", description: "Include metric and model interpretation metadata" },
+	{ flag: "--threshold", description: "Minimum cosine similarity retained", values: ["0.7", "0.8", "0.9"] },
+	{ flag: "--min-lines", description: "Minimum source lines per extracted function", values: ["3", "5", "10"] },
+	{ flag: "--top", description: "Cap displayed semantic candidates", values: ["5", "10", "20", "50"] },
+	{ flag: "--file", description: "Report pairs touching this project-relative file" },
+	{ flag: "--output-file", description: "Write the independent JSON report to a file" },
+	{ flag: "--candidates", description: "Raw discovery JSON used by inspect/review" },
+	{ flag: "--verdicts", description: "Separate verdict JSON used by review" },
+	{ flag: "--require-verdict-for-each-candidate", description: "Fail unless every candidate has a safe verdict match" },
+	{ flag: "--format", description: "Output format (the Pi command adds json automatically)", values: ["json"] },
+	{ flag: "--quiet", description: "Reduce non-JSON log output" },
+	{ flag: "--help", description: "Show help for this command" },
+];
+
+const SIMILAR_CODE_SUBCOMMANDS: CompletionSpec[] = [
+	{ value: "status", description: "Check companion and pinned-model readiness without reading source" },
+	{ value: "inspect", description: "Inspect one unverified candidate from a saved discovery report" },
+	{ value: "review", description: "Join a discovery report with a separate verdict document" },
+];
+
 const IMPACT_FLAGS: FlagSpec[] = [
 	{ flag: "--all", description: "Aggregate every tracked project" },
 	{ flag: "--sort", description: "Sort --all rows", values: ["recent", "resolved", "contained", "name"] },
@@ -273,6 +303,7 @@ const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 	inspect: INSPECT_FLAGS,
 	trace: TRACE_FLAGS,
 	security: SECURITY_FLAGS,
+	"similar-code": SIMILAR_CODE_FLAGS,
 	"decision-surface": DECISION_SURFACE_FLAGS,
 	workspaces: [],
 	config: [],
@@ -396,6 +427,7 @@ const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update"]);
 function allFlags(command: string | undefined): FlagSpec[] {
 	if (isCommandWithoutFlags(command)) return [];
 	if (command === "issues") return PROJECT_ISSUES_FLAGS;
+	if (command === "similar-code") return SIMILAR_CODE_FLAGS;
 	return uniqueFlags([...commandSpecificFlags(command), ...COMMON_FLAGS]);
 }
 
@@ -559,10 +591,23 @@ function pickValueCompletions(
 
 function resolvePositionalCompletions(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
 	if (!context.command) return completeRootPosition(context);
-	if (context.previousTokens[0] === "coverage" && context.previousTokens[1] !== "analyze") {
-		return completeCoverageAnalyze(context);
-	}
+	return completeCommandPosition(context);
+}
+
+function completeCommandPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	if (shouldCompleteCoverageAnalyze(context.previousTokens)) return completeCoverageAnalyze(context);
+	if (shouldCompleteSimilarCodeSubcommand(context)) return completeSimilarCodeSubcommand(context);
 	return completeFlags(context.beforeCurrent, context.current, context.flags, context.usedFlags);
+}
+
+function shouldCompleteCoverageAnalyze(tokens: string[]): boolean {
+	return tokens[0] === "coverage" && tokens[1] !== "analyze";
+}
+
+function shouldCompleteSimilarCodeSubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): boolean {
+	if (context.command !== "similar-code") return false;
+	if (context.previousTokens.length !== 1) return false;
+	return !context.current.startsWith("-");
 }
 
 function completeRootPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
@@ -575,6 +620,11 @@ function completeCoverageAnalyze(context: ReturnType<typeof analyzeFallowArgumen
 	const items = completeToken(context.beforeCurrent, context.current, [
 		{ value: "analyze", description: "Analyze runtime coverage and cold paths" },
 	]);
+	return items.length ? items : null;
+}
+
+function completeSimilarCodeSubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	const items = completeToken(context.beforeCurrent, context.current, SIMILAR_CODE_SUBCOMMANDS);
 	return items.length ? items : null;
 }
 

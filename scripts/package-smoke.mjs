@@ -123,6 +123,13 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		assert.equal(results.length, 2, "Packaged /fallow health did not emit a second Fallow result.");
 		assert.match(JSON.stringify(results[1].content), /health_score/, "Fallow health result is missing its health score.");
 
+		await rpc.prompt("/fallow similar-code status");
+		messages = await rpc.getMessages();
+		results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 3, "Packaged similar-code status did not emit a third Fallow result.");
+		assert.equal(results[2].details?.overview?.title, "Fallow similar-code status");
+		assert.ok(results[2].details.overview.stats.some((stat) => stat.label === "model ready"));
+
 		const forbiddenEvents = events.filter((event) =>
 			["extension_error", "agent_start", "turn_start"].includes(event.type),
 		);
@@ -142,6 +149,14 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageR
 	assert.equal(printResult.status, 0, `Pi print-mode default /fallow failed:\n${printResult.stderr}`);
 	assert.equal(printResult.stderr, "", `Pi print mode wrote to stderr:\n${printResult.stderr}`);
 
+	const similarPrint = runIsolatedPi(
+		cliPath,
+		["--print", ...commonArgs, "/fallow similar-code status"],
+		join(agentRoot, "similar-print"),
+	);
+	assert.equal(similarPrint.status, 0, `Pi print-mode similar-code status failed:\n${similarPrint.stderr}`);
+	assert.equal(similarPrint.stderr, "", `Pi similar-code print mode wrote to stderr:\n${similarPrint.stderr}`);
+
 	const jsonResult = runIsolatedPi(cliPath, ["--mode", "json", ...commonArgs, "/fallow"], join(agentRoot, "json"));
 	assert.equal(jsonResult.status, 0, `Pi JSON-mode default /fallow failed:\n${jsonResult.stderr}`);
 	assert.equal(jsonResult.stderr, "", `Pi JSON mode wrote to stderr:\n${jsonResult.stderr}`);
@@ -153,6 +168,25 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageR
 	assert.equal(results[0].message.details?.overview?.title, "Fallow project issues", "Pi JSON default /fallow did not aggregate project issues.");
 	const providerEvents = events.filter((event) => ["agent_start", "turn_start"].includes(event.type));
 	assert.deepEqual(providerEvents, [], "Pi JSON-mode extension command started an agent/provider turn.");
+
+	const similarJson = runIsolatedPi(
+		cliPath,
+		["--mode", "json", ...commonArgs, "/fallow similar-code status"],
+		join(agentRoot, "similar-json"),
+	);
+	assert.equal(similarJson.status, 0, `Pi JSON-mode similar-code status failed:\n${similarJson.stderr}`);
+	assert.equal(similarJson.stderr, "", `Pi similar-code JSON mode wrote to stderr:\n${similarJson.stderr}`);
+	const similarEvents = similarJson.stdout.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+	const similarResults = similarEvents.filter(
+		(event) => event.type === "message_end" && event.message?.customType === "fallow-result",
+	);
+	assert.equal(similarResults.length, 1, "Pi JSON-mode similar-code status did not emit one Fallow result.");
+	assert.equal(similarResults[0].message.details?.overview?.title, "Fallow similar-code status");
+	assert.deepEqual(
+		similarEvents.filter((event) => ["agent_start", "turn_start"].includes(event.type)),
+		[],
+		"Pi JSON-mode similar-code status started an agent/provider turn.",
+	);
 
 	const controlResult = runIsolatedPi(
 		cliPath,

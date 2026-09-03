@@ -17,6 +17,10 @@ function outputDetail(detail) {
 	return fallowCli.resolveFallowOutputDetail(detail);
 }
 
+function timeout(params) {
+	return fallowCli.resolveFallowTimeout(params);
+}
+
 describe("fallowCli.buildFallowArgs", () => {
 	it("maps compact check-changed args to root --changed-since analysis", () => {
 		assert.deepEqual(build({ command: "check-changed", args: ["--changed-since", "main"] }), [
@@ -72,6 +76,29 @@ describe("fallowCli.buildFallowArgs", () => {
 		assert.throws(() => build({ command: "architecture", args: ["--no-cache"] }), /architecture requires its target/);
 	});
 
+	it("builds explicit read-only similar-code commands and blocks setup/cache mutation", () => {
+		assert.deepEqual(build({ command: "similar-code", args: ["--file", "@src/a.ts", "--threshold", "0.8"] }), [
+			"similar-code", "--format", "json", "--quiet", "--file", "src/a.ts", "--threshold", "0.8",
+		]);
+		assert.deepEqual(build({
+			command: "similar-code",
+			args: ["inspect", "sc_example", "--candidates=@reports/similar-code.json"],
+		}), [
+			"similar-code", "--format", "json", "--quiet", "inspect", "sc_example",
+			"--candidates=reports/similar-code.json",
+		]);
+		assert.deepEqual(build({ command: "similar-code", args: ["status"] }), [
+			"similar-code", "--format", "json", "--quiet", "status",
+		]);
+		assert.deepEqual(build({ command: "similar-code", args: ["--file", "setup"] }), [
+			"similar-code", "--format", "json", "--quiet", "--file", "setup",
+		]);
+		assert.throws(() => build({ command: "similar-code", args: ["setup", "--local", "--yes"] }), /never downloads/);
+		assert.throws(() => build({ command: "similar-code", args: ["--threshold", "0.8", "setup", "--local"] }), /never downloads/);
+		assert.throws(() => build({ command: "similar-code", args: ["--", "setup"] }), /never downloads/);
+		assert.throws(() => build({ command: "similar-code", args: ["cache", "clear", "--yes"] }), /cache mutation/);
+	});
+
 	it("builds command aliases and raw options", () => {
 		assert.deepEqual(build({ command: "security", args: ["--changed-since", "HEAD~1", "--gate", "new", "--surface"] }), [
 			"security", "--format", "json", "--quiet", "--changed-since", "HEAD~1", "--gate", "new", "--surface",
@@ -115,6 +142,23 @@ describe("fallowCli.buildFallowArgs", () => {
 		assert.throws(() => build({ command: "health", args: ["-f", "human"] }), /must not include --format/);
 		assert.throws(() => build({ command: "fix-preview", args: ["--yes"] }), /must not include --yes/);
 		assert.throws(() => build({ command: "fix-apply", args: ["--dry-run"] }), /must not include --dry-run/);
+	});
+});
+
+describe("fallowCli timeout", () => {
+	it("uses a longer default only for explicit similar-code analysis", () => {
+		const previous = process.env.FALLOW_TIMEOUT_SECS;
+		try {
+			delete process.env.FALLOW_TIMEOUT_SECS;
+			assert.equal(timeout({ command: "health" }), 120);
+			assert.equal(timeout({ command: "similar-code" }), 900);
+			assert.equal(timeout({ command: "similar-code", timeoutSecs: 30 }), 30);
+			process.env.FALLOW_TIMEOUT_SECS = "60";
+			assert.equal(timeout({ command: "similar-code" }), 60);
+		} finally {
+			if (previous === undefined) delete process.env.FALLOW_TIMEOUT_SECS;
+			else process.env.FALLOW_TIMEOUT_SECS = previous;
+		}
 	});
 });
 

@@ -13,11 +13,11 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 Unless noted otherwise, these are repository-specific measurements from the `0.5.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
-- **Tests and coverage:** 169 tests. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; current subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
-- **Fallow quality:** Fallow 3.21 reports health **85.1 (A)**, average maintainability **91.9**, and zero threshold findings, dead-code issues, or clone groups.
+- **Tests and coverage:** 179 tests. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; current subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
+- **Fallow quality:** Fallow 3.21 reports health **85.0 (A)**, average maintainability **91.7**, and zero threshold findings, dead-code issues, or clone groups.
 - **Dependency audits:** strict production and complete-tree npm audits report zero vulnerabilities. These audit results are separate from Fallow's modeled security-candidate analysis.
 - **Host compatibility:** packaged, provider-free Pi **0.84.3** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
-- **Token baseline:** the current `fallow_run` tool contract is **439 tokens under both pinned tokenizers**. Across the frozen corpus, bounded tool results total **8,046 `o200k_base` / 7,935 `cl100k_base` tokens**. The output-detail work leaves the benchmarked slash-command and editor-prompt surfaces unchanged and reduces aggregate `o200k_base` tool-result tokens by **82.16%** from the immediate pre-output-detail baseline. These are deterministic corpus measurements, not provider billing claims; see [`benchmarks/README.md`](./benchmarks/README.md).
+- **Token baseline:** the current `fallow_run` tool contract is **421 tokens under both pinned tokenizers**. Across the frozen corpus, bounded tool results total **8,036 `o200k_base` / 7,925 `cl100k_base` tokens**. The output-detail work leaves the benchmarked slash-command and editor-prompt surfaces unchanged and reduces aggregate `o200k_base` tool-result tokens by **82.16%** from the immediate pre-output-detail baseline. These are deterministic corpus measurements, not provider billing claims; see [`benchmarks/README.md`](./benchmarks/README.md).
 - **Retained memory:** current steady-state retained-heap evidence is approximately **1.80×** fixture size for the default large report, **1.70×** for normalized findings, and **0.66×** for schema output. Heap measurements are machine-, process-, and Node-sensitive; methodology and the historical baseline are in [`benchmarks/PERFORMANCE.md`](./benchmarks/PERFORMANCE.md).
 
 ## Foundations now in place
@@ -32,7 +32,8 @@ The long measurement history belongs in the benchmark documentation rather than 
 - package-boundary certification against Pi 0.84.3 and Fallow 3.21 on the tested Node lines;
 - measured model guidance for deletion evidence, fix previews, advisory type-aware results, and routine bounded detail;
 - a typed command registry shared by tool, slash, autocomplete, and smoke-test surfaces, including architecture-to-`guard` support;
-- authoritative normalized-report selection shared across output and prompts, with complete-report hydration and drift protection; and
+- authoritative normalized-report selection shared across output and prompts, with complete-report hydration and drift protection;
+- explicit opt-in semantic similar-code status, discovery, inspect, and review flows with local-model provenance, advisory completion, and mutation guards; and
 - an issue-focused default that combines actionable dead-code, duplication, health, and security candidates without flooding the navigator with informational file scores or hotspots.
 
 See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.md`](./benchmarks/PERFORMANCE.md), [`CHANGELOG.md`](./CHANGELOG.md), and the [README compatibility section](./README.md#tested-compatibility) for authoritative detail.

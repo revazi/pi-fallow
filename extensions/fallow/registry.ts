@@ -110,6 +110,13 @@ const fallowCommandRegistry = [
 		slash: { root: { value: "flags", description: "Analyze feature flags", hintOrder: 20 } },
 	},
 	{
+		name: "similar-code",
+		tool: { cliPrefix: ["similar-code"] },
+		slash: {
+			root: { value: "similar-code", description: "Find advisory semantic code-similarity candidates (explicit opt-in)", hintOrder: 12 },
+		},
+	},
+	{
 		name: "inspect",
 		tool: { cliPrefix: ["inspect"] },
 		slash: {

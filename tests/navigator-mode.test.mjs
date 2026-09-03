@@ -24,6 +24,27 @@ describe("navigator command mode", () => {
 		assert.equal(hasFallowNavigator("tui", status), false);
 	});
 
+	it("opens advisory similar-code candidates but not readiness status", () => {
+		const readiness = buildFallowOverview({ kind: "similar-code-status", model_ready: false });
+		assert.equal(resolveFallowNavigatorMode(readiness), "none");
+		assert.equal(hasFallowNavigator("tui", readiness), false);
+
+		const candidates = buildFallowOverview({
+			kind: "similar-code",
+			generation: {},
+			candidates: [{
+				candidate_id: "sc_example",
+				left: { path: "src/a.ts", name: "a", start_line: 1 },
+				right: { path: "src/b.ts", name: "b", start_line: 2 },
+				verification_status: "unverified",
+			}],
+			completion: { status: "complete", cache: {} },
+			diagnostics: [],
+		});
+		assert.equal(resolveFallowNavigatorMode(candidates), "actionable");
+		assert.equal(hasFallowNavigator("tui", candidates), true);
+	});
+
 	it("uses informational mode when a semantic result contains only context", () => {
 		const couplingOnly = buildFallowOverview({
 			kind: "health",

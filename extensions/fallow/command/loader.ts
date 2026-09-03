@@ -3,6 +3,7 @@ import { BorderedLoader } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { fallowPurple } from "../colors";
 import { fallowEngine } from "../engine";
+import { isSimilarCodeCommand, SIMILAR_CODE_DEFAULT_TIMEOUT_SECS } from "../similar-code";
 import { isFallowTuiMode } from "./mode";
 import type { FallowCommandContext } from "./types";
 
@@ -15,19 +16,25 @@ export function buildFallowFinalArgs(rawCommandArgs: string[]): string[] {
 	return hasFormat ? [...rawCommandArgs] : [...rawCommandArgs, "--format", "json", "--quiet"];
 }
 
+function resolveFallowCommandTimeout(args: readonly string[]): number {
+	if (process.env.FALLOW_TIMEOUT_SECS) return Number(process.env.FALLOW_TIMEOUT_SECS);
+	return isSimilarCodeCommand(args) ? SIMILAR_CODE_DEFAULT_TIMEOUT_SECS : 120;
+}
+
 export function buildFallowExecutor(
 	pi: ExtensionAPI,
 	ctx: FallowCommandContext,
 	args: string[],
+	executor = fallowCli.execFallow,
 ): FallowCommandExecutor {
-	const timeoutSecs = Number(process.env.FALLOW_TIMEOUT_SECS || 120);
+	const timeoutSecs = resolveFallowCommandTimeout(args);
 	return (signal?: AbortSignal) => fallowEngine.runFallowWithExecutor({
 		pi,
 		cwd: ctx.cwd,
 		args,
 		signal: signal ?? ctx.signal,
 		timeoutSecs,
-		executor: fallowCli.execFallow,
+		executor,
 		throwOnExecutionError: false,
 		preserveNavigatorDetails: isFallowTuiMode(ctx.mode),
 	});

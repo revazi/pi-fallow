@@ -348,12 +348,13 @@ function requireStorage(report: NormalizedFallowReport): NormalizedReportStorage
 }
 
 function extractSemanticFields(raw: Record<string, any> | undefined): RetainedSemanticFields {
+	const source = asRecord(raw?.candidate) ?? raw;
 	return {
-		type: firstString(raw, ["kind", "type", "issue_type", "rule_id"]),
-		id: firstString(raw, ["benchmark_id", "id", "finding_id"]),
-		severity: firstString(raw, ["severity"]),
-		evidence: firstText(raw, ["evidence", "reason", "rationale", "message", "description"]),
-		action: firstAction(raw) || firstText(raw, ["recommendation", "suggested_action"]),
+		type: firstString(source, ["kind", "type", "issue_type", "rule_id"]),
+		id: firstString(source, ["candidate_id", "benchmark_id", "id", "finding_id"]),
+		severity: firstString(source, ["severity"]),
+		evidence: firstText(source, ["evidence", "reason", "rationale", "message", "description"]),
+		action: firstAction(source) || firstText(source, ["recommendation", "suggested_action"]),
 	};
 }
 

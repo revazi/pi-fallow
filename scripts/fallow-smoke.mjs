@@ -173,6 +173,17 @@ function assertCliSurfaces() {
 		assert.ok(Array.isArray(data.workspaces));
 	});
 	assertFallowJson(["schema"], assertCurrentFallowSchema);
+	assertFallowJson(["similar-code", "status"], (data) => {
+		assert.equal(data.kind, "similar-code-status");
+		assert.equal(data.schema_version, "1");
+		assert.equal(data.version, "3.21.0");
+		assert.equal(data.protocol_version, 2);
+		assert.equal(data.analysis_offline, true);
+		assert.equal(typeof data.model_ready, "boolean");
+		assert.equal(typeof data.model_id, "string");
+		assert.equal(typeof data.model_revision, "string");
+		assert.equal(typeof data.download_bytes, "number");
+	});
 	assertFallowJson(["type-aware", "status"], (data) => {
 		assert.equal(data.kind, "type-aware-status");
 		assert.equal(data.schema_version, 8);

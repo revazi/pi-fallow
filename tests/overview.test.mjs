@@ -220,6 +220,148 @@ describe("buildFallowOverview", () => {
 		]);
 	});
 
+	it("renders semantic candidates with advisory provenance and completion", () => {
+		const candidate = {
+			candidate_id: "sc_example",
+			review_key: "scr_example",
+			left: { path: "src/a.ts", name: "normalizeA", start_line: 10 },
+			right: { path: "src/b.ts", name: "normalizeB", start_line: 30 },
+			similarity: 0.934,
+			similarity_band: "very-high",
+			verification_status: "unverified",
+			actions: [{ action: "inspect", description: "Inspect source-grounded evidence", read_only: true }],
+		};
+		const overview = buildFallowOverview({
+			kind: "similar-code",
+			generation: {
+				threshold: 0.8,
+				model: { model_id: "local/model", revision: "immutable-revision" },
+				provider: { source_left_machine: false },
+			},
+			candidates: [candidate],
+			completion: { status: "complete", provider_inference_ms: 250, cache: { status: "hit" } },
+			diagnostics: [],
+		});
+
+		assert.equal(overview.title, "Fallow similar code");
+		assert.equal(overview.status, "warning");
+		assert.deepEqual(overview.stats, [
+			{ label: "candidates", value: 1 },
+			{ label: "completion", value: "complete" },
+			{ label: "threshold", value: 0.8 },
+			{ label: "model", value: "local/model" },
+			{ label: "model revision", value: "immutable-revision" },
+			{ label: "provider inference", value: "250ms" },
+			{ label: "cache", value: "hit" },
+		]);
+		assert.equal(overview.sections[0].title, "Unverified semantic candidates");
+		assert.deepEqual(overview.sections[0].items[0], {
+			label: "normalizeA ↔ normalizeB",
+			path: "src/a.ts",
+			line: 10,
+			meta: "similarity 0.934 · very-high · right src/b.ts:30 · unverified",
+			action: "Inspect source-grounded evidence",
+			raw: candidate,
+		});
+		assert.match(overview.notes[0], /advisory and unverified/);
+		assert.match(overview.notes[1], /source did not leave the machine/);
+	});
+
+	it("renders source-grounded inspect packets and separately reviewed candidates", () => {
+		const candidate = {
+			candidate_id: "sc_example",
+			left: { path: "src/a.ts", name: "left", start_line: 5 },
+			right: { path: "src/b.ts", name: "right", start_line: 25 },
+			similarity: 0.91,
+			verification_status: "unverified",
+		};
+		const completion = { status: "complete", cache: { status: "hit" } };
+		const inspect = buildFallowOverview({
+			kind: "similar-code-inspect",
+			generation: {},
+			candidate,
+			packet: { candidate_id: "sc_example", left: { source_window: "function left() {}" } },
+			completion,
+			diagnostics: [],
+		});
+		assert.equal(inspect.title, "Fallow similar-code inspect");
+		assert.equal(inspect.sections[0].title, "Inspected semantic candidate");
+		assert.match(inspect.sections[0].items[0].action, /abstain when evidence is incomplete/);
+		assert.equal(inspect.sections[0].items[0].raw.packet.left.source_window, "function left() {}");
+
+		const review = buildFallowOverview({
+			kind: "similar-code-review",
+			generation: {},
+			candidates: [{
+				candidate,
+				verdict: { refactor_safe: false, rationale: "Different empty-value behavior." },
+				verdict_match: "review-key",
+				outcome: "related-but-distinct",
+			}],
+			completion,
+			diagnostics: [],
+		});
+		assert.equal(review.title, "Fallow similar-code review");
+		assert.match(review.sections[0].items[0].meta, /related-but-distinct · match review-key/);
+		assert.equal(review.sections[0].items[0].action, "Different empty-value behavior.");
+		assert.match(review.notes.at(-1), /separate verdict document/);
+	});
+
+	it("surfaces partial similar-code completion and bounded diagnostics", () => {
+		const overview = buildFallowOverview({
+			kind: "similar-code",
+			generation: {},
+			candidates: [],
+			completion: { status: "partial", cache: { status: "disabled" } },
+			diagnostics: [
+				{ domain: "provider", code: "timeout", message: "Provider timed out.", path: "src/a.ts" },
+				{ domain: "extraction", code: "limit", message: "Input limit reached." },
+				{ domain: "cache", code: "invalid", message: "Ignored invalid cache entry." },
+				{ domain: "enrichment", code: "missing", message: "Enrichment unavailable." },
+			],
+		});
+
+		assert.equal(overview.status, "warning");
+		assert.match(overview.notes.join("\n"), /empty or truncated result is not conclusive/);
+		assert.match(overview.notes.join("\n"), /src\/a\.ts: Provider timed out/);
+		assert.match(overview.notes.at(-1), /1 additional similar-code diagnostic/);
+	});
+
+	it("distinguishes similar-code readiness, missing setup, and verdict failures", () => {
+		const status = buildFallowOverview({
+			kind: "similar-code-status",
+			model_ready: false,
+			model_id: "local/model",
+			model_revision: "revision",
+			companion_version: "3.21.0",
+			protocol_version: 2,
+			download_bytes: 324329844,
+			analysis_offline: true,
+			problem: "the local model is not installed",
+		});
+		assert.equal(status.title, "Fallow similar-code status");
+		assert.equal(status.status, "warning");
+		assert.deepEqual(status.stats[0], { label: "model ready", value: "false" });
+		assert.match(status.notes.join("\n"), /inference runs locally/);
+
+		const missing = buildFallowOverview({
+			error: true,
+			message: "the local model is not installed; run `fallow similar-code setup --local`",
+			exit_code: 3,
+		}, 3);
+		assert.equal(missing.title, "Fallow similar-code setup required");
+		assert.equal(missing.status, "error");
+		assert.match(missing.notes[0], /does not download models/);
+
+		const verdictFailure = buildFallowOverview({
+			error: true,
+			message: "verdict document does not match the candidate generation",
+			exit_code: 2,
+		}, 2);
+		assert.equal(verdictFailure.title, "Fallow error");
+		assert.deepEqual(verdictFailure.notes, ["verdict document does not match the candidate generation"]);
+	});
+
 	it("renders execution errors without a contradictory no-issues note", () => {
 		const overview = buildFallowOverview({ error: true, message: "missing required issue type", exit_code: 2 }, 2);
 
