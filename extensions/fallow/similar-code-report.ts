@@ -1,11 +1,20 @@
 import { asRecord } from "./data";
 import { retainNormalizedFallowEntry } from "./normalized-report";
 import { isMissingSimilarCodeModelMessage } from "./similar-code";
+import {
+	addSimilarCodeRunMetadata,
+	addSimilarCodeStat as addStat,
+	asSimilarCodeArray as asArray,
+	isSimilarCodeString as isString,
+	joinSimilarCodeParts as joinParts,
+	similarCodeNumber as numberValue,
+	similarCodeRecord as recordOrEmpty,
+	similarCodeString as stringValue,
+	type SimilarCodeOverviewStat as OverviewStat,
+} from "./similar-code-metadata";
 import type { FallowIssueLine, FallowOverviewSection } from "./types";
 
 const INLINE_RAW_CANDIDATES = 5;
-
-type OverviewStat = { label: string; value: string | number };
 type MutableTitle = { value: string };
 type SimilarCodeOverviewHandler = (
 	root: Record<string, any>,
@@ -16,7 +25,6 @@ type SimilarCodeOverviewHandler = (
 	includeAllRaw: boolean,
 ) => void;
 
-const EMPTY_RECORD: Record<string, any> = {};
 const SIMILAR_CODE_OVERVIEW_HANDLERS = new Map<string, SimilarCodeOverviewHandler>([
 	["similar-code-status", (root, stats, _sections, title, notes) => addSimilarCodeStatus(root, stats, title, notes)],
 	["similar-code", addSimilarCodeCandidates],
@@ -44,7 +52,10 @@ function addSimilarCodeStatus(root: Record<string, any>, stats: OverviewStat[], 
 	addStat(stats, "revision", root.model_revision);
 	addStat(stats, "companion", root.companion_version);
 	addStat(stats, "protocol", root.protocol_version);
+	addStat(stats, "license", root.license);
+	addStat(stats, "integrity verified", typeof root.integrity_verified === "boolean" ? String(root.integrity_verified) : undefined);
 	addStat(stats, "download", formatDownloadSize(root.download_bytes));
+	addStat(stats, "cache directory", root.cache_dir);
 	if (root.analysis_offline === true) notes.push("Semantic inference runs locally; project source does not leave the machine.");
 	if (root.problem) notes.push(String(root.problem));
 }
@@ -79,8 +90,9 @@ function addSimilarCodeInspect(
 	title.value = "Fallow similar-code inspect";
 	addSimilarCodeRunMetadata(root, stats, notes, root.candidate ? 1 : 0);
 	if (!root.candidate) return;
+	const packet = recordOrEmpty(root.packet);
 	const raw = { candidate: root.candidate, packet: root.packet };
-	const item = buildCandidateItem(root.candidate, true, raw);
+	const item = buildCandidateItem(root.candidate, true, raw, packet.availability);
 	item.action = "Review the source-grounded packet and abstain when evidence is incomplete.";
 	sections.push({ title: "Inspected semantic candidate", count: 1, color: "accent", items: [item] });
 }
@@ -96,6 +108,9 @@ function addSimilarCodeReview(
 	title.value = "Fallow similar-code review";
 	const reviewed = asArray(root.candidates);
 	addSimilarCodeRunMetadata(root, stats, notes, reviewed.length);
+	const review = recordOrEmpty(root.review);
+	addStat(stats, "candidate input", review.candidates_sha256);
+	addStat(stats, "verdict input", review.verdicts_sha256);
 	if (reviewed.length) {
 		sections.push({
 			title: "Reviewed semantic candidates",
@@ -107,45 +122,12 @@ function addSimilarCodeReview(
 	notes.push("Review outcomes come from a separate verdict document; verify its provenance before acting.");
 }
 
-function addSimilarCodeRunMetadata(
-	root: Record<string, any>,
-	stats: OverviewStat[],
-	notes: string[],
-	candidateCount: number,
-): void {
-	const generation = recordOrEmpty(root.generation);
-	const completion = recordOrEmpty(root.completion);
-	const model = recordOrEmpty(generation.model);
-	const provider = recordOrEmpty(generation.provider);
-	const cache = recordOrEmpty(completion.cache);
-	addStat(stats, "candidates", candidateCount);
-	addStat(stats, "completion", completion.status);
-	addStat(stats, "threshold", generation.threshold);
-	addStat(stats, "model", model.model_id);
-	addStat(stats, "model revision", model.revision);
-	addStat(stats, "provider inference", numberWithSuffix(completion.provider_inference_ms, "ms"));
-	addStat(stats, "cache", cache.status);
-	addSimilarCodeTrustNotes(notes, provider, completion);
-	appendDiagnostics(notes, root.diagnostics);
-}
-
-function addSimilarCodeTrustNotes(
-	notes: string[],
-	provider: Record<string, any>,
-	completion: Record<string, any>,
-): void {
-	notes.push("Semantic similar-code candidates are advisory and unverified until source-grounded review supplies a separate verdict.");
-	if (provider.source_left_machine === false) notes.push("Pinned-model inference ran locally; project source did not leave the machine.");
-	addPartialCompletionNote(notes, completion.status);
-}
-
-function addPartialCompletionNote(notes: string[], status: unknown): void {
-	if (typeof status !== "string") return;
-	if (status === "complete") return;
-	notes.push(`Similar-code completion is ${status}; an empty or truncated result is not conclusive.`);
-}
-
-function buildCandidateItem(entry: unknown, includeRaw: boolean, retainedRaw: unknown = entry): FallowIssueLine {
+function buildCandidateItem(
+	entry: unknown,
+	includeRaw: boolean,
+	retainedRaw: unknown = entry,
+	enrichmentOverride?: unknown,
+): FallowIssueLine {
 	const candidate = recordOrEmpty(entry);
 	const left = recordOrEmpty(candidate.left);
 	const right = recordOrEmpty(candidate.right);
@@ -153,7 +135,7 @@ function buildCandidateItem(entry: unknown, includeRaw: boolean, retainedRaw: un
 		label: `${locationName(left)} ↔ ${locationName(right)}`,
 		path: stringValue(left.path),
 		line: numberValue(left.start_line),
-		meta: candidateMeta(candidate, right),
+		meta: candidateMeta(candidate, right, enrichmentOverride ?? candidate.enrichment),
 		action: candidateAction(candidate),
 	};
 	retainNormalizedFallowEntry(item, retainedRaw);
@@ -161,13 +143,24 @@ function buildCandidateItem(entry: unknown, includeRaw: boolean, retainedRaw: un
 	return item;
 }
 
-function candidateMeta(candidate: Record<string, any>, right: Record<string, any>): string | undefined {
+function candidateMeta(candidate: Record<string, any>, right: Record<string, any>, enrichment: unknown): string | undefined {
 	return joinParts([
+		stringValue(candidate.candidate_id) ? `id ${candidate.candidate_id}` : undefined,
 		numberWithPrefix(candidate.similarity, "similarity "),
 		candidate.similarity_band,
 		formatRightLocation(right),
+		formatEnrichmentAvailability(enrichment),
 		stringValue(candidate.verification_status) || "unverified",
 	]);
+}
+
+function formatEnrichmentAvailability(value: unknown): string | undefined {
+	const enrichment = asRecord(value);
+	if (!enrichment || !Object.keys(enrichment).length) return undefined;
+	const unavailable = Object.entries(enrichment)
+		.filter(([, state]) => state !== "available")
+		.map(([name, state]) => `${name.replaceAll("_", " ")} ${String(state)}`);
+	return unavailable.length ? `enrichment ${unavailable.join(", ")}` : "enrichment available";
 }
 
 function candidateAction(candidate: Record<string, any>): string {
@@ -205,33 +198,13 @@ export function isSimilarCodeWarning(root: Record<string, any>): boolean {
 	return asRecord(root.completion)?.status === "partial";
 }
 
-function appendDiagnostics(notes: string[], value: unknown): void {
-	const diagnostics = asArray(value);
-	const visible = diagnostics.slice(0, 3).map(formatDiagnostic).filter(isString);
-	notes.push(...visible);
-	appendOmittedDiagnosticNote(notes, diagnostics.length);
-}
-
-function formatDiagnostic(entry: unknown): string | undefined {
-	const diagnostic = recordOrEmpty(entry);
-	const message = stringValue(diagnostic.message);
-	if (!message) return undefined;
-	const path = stringValue(diagnostic.path);
-	return path ? `${path}: ${message}` : message;
-}
-
-function appendOmittedDiagnosticNote(notes: string[], diagnosticCount: number): void {
-	if (diagnosticCount <= 3) return;
-	notes.push(`${diagnosticCount - 3} additional similar-code diagnostic(s) are in the complete report.`);
-}
-
 function firstAction(candidate: Record<string, any>): string | undefined {
 	return asArray(candidate.actions).map(readOnlyActionDescription).find(isString);
 }
 
 function readOnlyActionDescription(entry: unknown): string | undefined {
 	const action = recordOrEmpty(entry);
-	if (action.read_only === false) return undefined;
+	if (action.read_only !== true) return undefined;
 	return stringValue(action.description);
 }
 
@@ -253,37 +226,4 @@ function formatDownloadSize(value: unknown): string | undefined {
 
 function numberWithPrefix(value: unknown, prefix: string): string | undefined {
 	return typeof value === "number" ? `${prefix}${value.toFixed(3)}` : undefined;
-}
-
-function numberWithSuffix(value: unknown, suffix: string): string | undefined {
-	return typeof value === "number" ? `${value}${suffix}` : undefined;
-}
-
-function addStat(stats: OverviewStat[], label: string, value: unknown): void {
-	if (typeof value === "string" || typeof value === "number") stats.push({ label, value });
-}
-
-function asArray(value: unknown): any[] {
-	return Array.isArray(value) ? value : [];
-}
-
-function recordOrEmpty(value: unknown): Record<string, any> {
-	return asRecord(value) || EMPTY_RECORD;
-}
-
-function stringValue(value: unknown): string | undefined {
-	return typeof value === "string" && value ? value : undefined;
-}
-
-function isString(value: unknown): value is string {
-	return typeof value === "string";
-}
-
-function numberValue(value: unknown): number | undefined {
-	return typeof value === "number" ? value : undefined;
-}
-
-function joinParts(values: unknown[]): string | undefined {
-	const parts = values.filter((value) => value !== undefined && value !== null && value !== "").map(String);
-	return parts.length ? parts.join(" · ") : undefined;
 }

@@ -7,11 +7,14 @@ const PROCESS_KILL_GRACE_MS = 1_000;
 type SpawnedProcess = ReturnType<typeof spawn>;
 type ProcessSignal = "SIGTERM" | "SIGKILL";
 
+export type FallowTerminationReason = "cancelled" | "timed-out";
+
 export interface FallowProcessResult extends ExecResult {
 	launchError?: {
 		code?: string;
 		message: string;
 	};
+	terminationReason?: FallowTerminationReason;
 }
 
 function signalWindowsTree(proc: SpawnedProcess, force: boolean): void {
@@ -83,7 +86,9 @@ export async function execFallowProcess(
 	signal: AbortSignal | undefined,
 	timeoutSecs: number,
 ): Promise<FallowProcessResult> {
-	if (signal?.aborted) return { stdout: "", stderr: "", code: 130, killed: true };
+	if (signal?.aborted) {
+		return { stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled" };
+	}
 	return new Promise((resolve) => {
 		const proc = spawn(command, args, {
 			cwd,
@@ -96,6 +101,7 @@ export async function execFallowProcess(
 		let stdout = "";
 		let stderr = "";
 		let killed = false;
+		let terminationReason: FallowTerminationReason | undefined;
 		let launched = false;
 		let settled = false;
 		let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -104,9 +110,9 @@ export async function execFallowProcess(
 		const cleanup = () => {
 			clearTimer(timeoutId);
 			clearTimer(forceKillId);
-			signal?.removeEventListener("abort", killProcess);
+			signal?.removeEventListener("abort", cancelProcess);
 		};
-		const finish = (result: ExecResult) => {
+		const finish = (result: FallowProcessResult) => {
 			if (settled) return;
 			settled = true;
 			cleanup();
@@ -115,12 +121,15 @@ export async function execFallowProcess(
 		const forceKill = () => {
 			if (!settled) signalProcessTree(proc, true);
 		};
-		const killProcess = () => {
+		const terminateProcess = (reason: FallowTerminationReason) => {
 			if (killed || settled) return;
 			killed = true;
+			terminationReason = reason;
 			signalProcessTree(proc, false);
 			forceKillId = setTimeout(forceKill, PROCESS_KILL_GRACE_MS);
 		};
+		const cancelProcess = () => terminateProcess("cancelled");
+		const timeoutProcess = () => terminateProcess("timed-out");
 
 		proc.stdout?.on("data", (data) => { stdout += data.toString(); });
 		proc.stderr?.on("data", (data) => { stderr += data.toString(); });
@@ -131,15 +140,22 @@ export async function execFallowProcess(
 				stderr: stderr || error.message,
 				code: error.code === "ENOENT" ? 127 : 1,
 				killed,
+				terminationReason,
 				launchError: launched ? undefined : { code: error.code, message: error.message },
 			});
 		});
 		proc.on("close", (code) => {
 			forceRemainingProcessTree(proc, killed);
-			finish({ stdout, stderr, code: resolveExitCode(code, killed), killed });
+			finish({
+				stdout,
+				stderr,
+				code: resolveExitCode(code, killed),
+				killed,
+				...(terminationReason ? { terminationReason } : {}),
+			});
 		});
 
-		signal?.addEventListener("abort", killProcess, { once: true });
-		if (timeoutSecs > 0) timeoutId = setTimeout(killProcess, timeoutSecs * 1000);
+		signal?.addEventListener("abort", cancelProcess, { once: true });
+		if (timeoutSecs > 0) timeoutId = setTimeout(timeoutProcess, timeoutSecs * 1000);
 	});
 }

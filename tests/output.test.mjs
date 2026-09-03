@@ -352,7 +352,7 @@ describe("formatToolOutput", () => {
 				id: "sc_example",
 				location: { path: "src/a.ts", line: 5 },
 				subject: "left ↔ right",
-				details: "similarity 0.910 · very-high · right src/b.ts:25 · unverified",
+				details: "id sc_example · similarity 0.910 · very-high · right src/b.ts:25 · unverified",
 				action: "Inspect this candidate",
 			});
 			assert.match(payload.notes.join("\n"), /advisory and unverified/);

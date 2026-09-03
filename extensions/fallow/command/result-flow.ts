@@ -66,13 +66,19 @@ function buildFallowResultPrefix(projectState: FallowProjectState | undefined, p
 
 function notifyFallowCompletion(ctx: FallowCommandContext, execution: FallowCommandResult["execution"], binary: string, args: string[]): void {
 	if (!ctx.hasUI) return;
-	ctx.ui.notify(buildFallowCompletionMessage(execution.code, execution.killed, binary, args), shouldNotifyAsError(execution) ? "error" : "info");
+	ctx.ui.notify(buildFallowCompletionMessage(execution, binary, args), shouldNotifyAsError(execution) ? "error" : "info");
 }
 
-function buildFallowCompletionMessage(code: number, killed: boolean, binary: string, args: string[]): string {
+function buildFallowCompletionMessage(
+	execution: FallowCommandResult["execution"],
+	binary: string,
+	args: string[],
+): string {
 	const display = commandDisplay(binary, args);
-	if (code === 1) return `fallow found issues: ${display}`;
-	return `fallow ${fallowExitLabel(code, killed)}: ${display}`;
+	if (execution.terminationReason === "timed-out") return `fallow timed out: ${display}`;
+	if (execution.terminationReason === "cancelled") return `fallow cancelled: ${display}`;
+	if (execution.code === 1) return `fallow found issues: ${display}`;
+	return `fallow ${fallowExitLabel(execution.code, execution.killed)}: ${display}`;
 }
 
 function shouldNotifyAsError(result: { code: number; killed: boolean }): boolean {

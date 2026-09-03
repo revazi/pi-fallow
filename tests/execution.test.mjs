@@ -90,7 +90,9 @@ describe("Fallow process execution", () => {
 		const controller = new AbortController();
 		controller.abort();
 		const result = await fallowCli.execCommand("definitely-not-a-command", [], root, controller.signal, 10);
-		assert.deepEqual(result, { stdout: "", stderr: "", code: 130, killed: true });
+		assert.deepEqual(result, {
+			stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled",
+		});
 	});
 
 	it("reports a missing executable as a pre-execution launch failure", async () => {
@@ -114,6 +116,7 @@ describe("Fallow process execution", () => {
 			const result = await fallowCli.execCommand(fixture, [], root, undefined, 1);
 			assert.equal(result.killed, true);
 			assert.equal(result.code, 130);
+			assert.equal(result.terminationReason, "timed-out");
 			assert.match(result.stderr, /received SIGTERM/);
 			assert.ok(Date.now() - started < 3_000, "forced termination should settle promptly");
 		});
@@ -133,6 +136,7 @@ describe("Fallow process execution", () => {
 				controller.abort();
 				const result = await execution;
 				assert.equal(result.killed, true);
+				assert.equal(result.terminationReason, "cancelled");
 				await waitForProcessExit(childPid);
 			}, { PI_FALLOW_PROCESS_FIXTURE_PID_FILE: pidFile });
 		} finally {
@@ -173,7 +177,7 @@ describe("Fallow process execution", () => {
 					toolController.signal,
 				);
 				setTimeout(() => toolController.abort(), 50);
-				await assert.rejects(execution, /killed=true/);
+				await assert.rejects(execution, /killed=true termination=cancelled/);
 				assert.equal(contextController.signal.aborted, false);
 			});
 		} finally {
@@ -217,6 +221,8 @@ describe("Fallow process execution", () => {
 				setTimeout(() => loaderController.abort(), 50);
 				const result = await execution;
 				assert.equal(result.execution.killed, true);
+				assert.equal(result.execution.terminationReason, "cancelled");
+				assert.equal(result.details.terminationReason, "cancelled");
 				assert.equal(contextController.signal.aborted, false);
 			});
 		} finally {
@@ -251,6 +257,23 @@ describe("Fallow exit-code semantics", () => {
 				...input,
 				executor: async () => ({ binary: "fixture", args: [], result: fakeResult(130, { killed: true }) }),
 			}), /killed=true/);
+
+			for (const [terminationReason, message] of [
+				["timed-out", /execution timed out before completion/],
+				["cancelled", /execution was cancelled before completion/],
+			]) {
+				const result = await fallowEngine.runFallowWithExecutor({
+					...input,
+					throwOnExecutionError: false,
+					executor: async () => ({
+						binary: "fixture",
+						args: [],
+						result: { ...fakeResult(130, { killed: true }), terminationReason },
+					}),
+				});
+				assert.match(result.content, message);
+				assert.equal(result.details.terminationReason, terminationReason);
+			}
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}
