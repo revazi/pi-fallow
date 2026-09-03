@@ -13,8 +13,8 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 Unless noted otherwise, these are repository-specific measurements from the `0.5.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
-- **Tests and coverage:** 179 tests. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; current subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
-- **Fallow quality:** Fallow 3.21 reports health **84.4 (B)**, average maintainability **91.6**, and zero threshold findings, dead-code issues, or clone groups.
+- **Tests and coverage:** 190 tests. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; current subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
+- **Fallow quality:** Fallow 3.21 reports health **84.4 (B)**, average maintainability **91.7**, and zero threshold findings, dead-code issues, or clone groups.
 - **Dependency audits:** strict production and complete-tree npm audits report zero vulnerabilities. These audit results are separate from Fallow's modeled security-candidate analysis.
 - **Host compatibility:** packaged, provider-free Pi **0.84.3** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
 - **Token baseline:** the current `fallow_run` tool contract is **421 tokens under both pinned tokenizers**. Across the frozen corpus, bounded tool results total **8,036 `o200k_base` / 7,925 `cl100k_base` tokens**. The output-detail work leaves the benchmarked slash-command and editor-prompt surfaces unchanged and reduces aggregate `o200k_base` tool-result tokens by **82.16%** from the immediate pre-output-detail baseline. These are deterministic corpus measurements, not provider billing claims; see [`benchmarks/README.md`](./benchmarks/README.md).
@@ -28,7 +28,7 @@ The long measurement history belongs in the benchmark documentation rather than 
 - cancellation and process-tree lifecycle handling, including timeout escalation, plus TUI, RPC, print, and JSON mode paths;
 - asynchronous cached Git completion/base detection and cached, invalidation-aware Fallow runner resolution;
 - bounded summary/findings/raw model output with readable complete-output references whenever data is omitted;
-- compact-by-default and explicit full-detail prompts, all-finding navigation, search/filter/multi-selection, and responsive navigator scaling;
+- compact-by-default and explicit full-detail prompts, all-finding navigation, search/filter/multi-selection, responsive navigator scaling, and command-aware read-only action palettes with stateful return;
 - package-boundary certification against Pi 0.84.3 and Fallow 3.21 on the tested Node lines;
 - measured model guidance for deletion evidence, fix previews, advisory type-aware results, and routine bounded detail;
 - a typed command registry shared by tool, slash, autocomplete, and smoke-test surfaces, including architecture-to-`guard` support;
@@ -42,7 +42,7 @@ See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.m
 
 1. **Keep command and report compatibility honest.** Expand representative command/schema fixtures and add useful command-registry-versus-`fallow schema` drift checks while preserving graceful behavior with separately installed Fallow versions.
 2. **Decide whether user-owned customization is still desired.** If demand remains, design Pi Fallow-specific global/project configuration, prompt templates, and a safe prompt/config preview without taking ownership of Fallow's configuration file.
-3. **Complete navigator workflows.** Add command-aware actions and trace/report history, then make any remaining UI density improvements based on real large-report use rather than decorative churn.
+3. **Complete navigator workflows.** Add trace/report history and comparison, then make any remaining UI density improvements based on real large-report use rather than decorative churn.
 4. **Improve quality where evidence points.** Raise coverage and maintainability gradually around real execution, command-flow, rendering, project-state, and PR-summary hotspots. Do not split files cosmetically merely to improve a metric.
 5. **Maintain compatibility and supply-chain gates.** Keep Pi, Fallow, Node, and dependency compatibility current with strict production/complete-tree audits and repeatable package-boundary certification.
 
@@ -60,4 +60,4 @@ Future work must preserve these boundaries:
 
 1. Add fixture/schema compatibility and registry-drift checks needed to keep release evidence reproducible.
 2. Confirm demand and scope before implementing user-owned configuration or prompt customization/preview.
-3. Iterate on command-aware navigator history/actions, hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.
+3. Iterate on navigator history/comparison, hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.

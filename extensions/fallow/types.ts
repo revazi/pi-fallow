@@ -70,6 +70,23 @@ export interface FallowOverview {
 	notes: string[];
 }
 
+export interface FallowNavigatorState {
+	selectedReportIndex?: number;
+	scrollStart: number;
+	expandedReportIndices: number[];
+	markedReportIndices: number[];
+	query: string;
+	sectionFilter?: number;
+	severityFilter?: string;
+	showInformational: boolean;
+	includeFullDetails: boolean;
+}
+
+export interface FallowNavigatorReturnTarget {
+	commandArgs: string[];
+	state: FallowNavigatorState;
+}
+
 export type FallowNavigatorResult =
 	| { type: "prompt"; prompt: string; issueCount: number; detail: "compact" | "full" }
-	| { type: "trace"; commandArgs: string[] };
+	| { type: "action"; label: string; commandArgs: string[]; returnTo: FallowNavigatorReturnTarget };

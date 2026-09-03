@@ -410,6 +410,86 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.match(rendered, /Include full finding JSON/);
 	});
 
+	it("opens a command-aware action palette and emits shell-free return state", () => {
+		let result = null;
+		const overview = buildFallowOverview({
+			kind: "dead-code",
+			unused_exports: [{
+				kind: "unused-export",
+				export_name: "renderWidget",
+				path: "src/widget.ts",
+				line: 7,
+				actions: [{ type: "remove-export", auto_fixable: false, description: "Remove export." }],
+			}],
+		});
+		const navigator = new FallowIssueNavigator(overview, theme, (value) => {
+			result = value;
+		}, () => {}, { commandArgs: ["dead-code", "--format", "json", "--quiet"] });
+
+		navigator.handleInput("p");
+		const palette = navigator.render(100).join("\n");
+		assert.match(palette, /Actions for renderWidget/);
+		assert.match(palette, /Inspect file/);
+		assert.match(palette, /Trace export/);
+		assert.match(palette, /Analyze symbol impact/);
+		assert.doesNotMatch(palette, /Preview safe fixes/);
+		assert.match(palette, /fix application is never/);
+		assert.match(palette, /available here/);
+		for (const line of navigator.render(60)) assert.ok(visibleWidth(line) <= 60, line);
+		navigator.handleInput("\u001b");
+		assert.match(navigator.render(100).join("\n"), /Include full finding JSON/);
+		assert.equal(result, null);
+		navigator.handleInput("p");
+		navigator.handleInput("\r");
+
+		assert.ok(result);
+		assert.equal(result.type, "action");
+		assert.equal(result.label, "Inspect file");
+		assert.deepEqual(result.commandArgs, ["inspect", "--file", "src/widget.ts"]);
+		assert.deepEqual(result.returnTo.commandArgs, ["dead-code", "--format", "json", "--quiet"]);
+		assert.equal(result.returnTo.state.selectedReportIndex, 0);
+	});
+
+	it("restores filters, selection, marks, expansion, and prompt detail after an action", () => {
+		const overview = createFilterOverview();
+		let actionResult = null;
+		const navigator = new FallowIssueNavigator(overview, theme, (value) => {
+			actionResult = value;
+		}, () => {}, { commandArgs: ["health", "--format", "json", "--quiet"] });
+		navigator.handleInput("j");
+		navigator.handleInput("s");
+		navigator.handleInput("d");
+		navigator.handleInput("/");
+		for (const character of "dead") navigator.handleInput(character);
+		navigator.handleInput("\r");
+		navigator.handleInput("\r");
+		navigator.handleInput("p");
+		navigator.handleInput("\r");
+
+		assert.equal(actionResult?.type, "action");
+		const restored = new FallowIssueNavigator(overview, theme, () => {}, () => {}, {
+			initialState: actionResult.returnTo.state,
+			commandArgs: actionResult.returnTo.commandArgs,
+		});
+		const rendered = restored.render(100).join("\n");
+		assert.match(rendered, /2\/3 findings/);
+		assert.match(rendered, /search: dead/);
+		assert.match(rendered, /1 selected/);
+		assert.match(rendered, /☑ Include full finding JSON/);
+	});
+
+	it("keeps the trace shortcut on the safe action path", () => {
+		let result = null;
+		const navigator = new FallowIssueNavigator(createOverview(), theme, (value) => {
+			result = value;
+		}, () => {}, { commandArgs: ["dead-code"] });
+		navigator.handleInput("j");
+		navigator.handleInput("t");
+
+		assert.equal(result?.type, "action");
+		assert.deepEqual(result?.commandArgs, ["dead-code", "--trace-file", "src/dead.ts"]);
+	});
+
 	it("renders within the width provided by the overlay", () => {
 		const navigator = new FallowIssueNavigator(createOverview(), theme, () => {}, () => {});
 		const width = 60;

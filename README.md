@@ -23,7 +23,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
 - **Non-blocking autocomplete:** subcommands, flags, enum values, static refs, and asynchronously discovered project branch refs are suggested without running Git while you type.
-- **Interactive navigator:** every actionable finding remains navigable with search, section/severity filters, multi-selection, tracing, and editor loading; informational file scores/hotspots are classified separately.
+- **Interactive navigator:** every actionable finding remains navigable with search, section/severity filters, multi-selection, command-aware read-only actions, tracing, and editor loading; informational file scores/hotspots are classified separately.
 - **Run-mode support:** `/fallow` executes in TUI, RPC, JSON, and print modes; terminal loaders and navigator overlays are TUI-only, while non-TUI modes retain full transcript output.
 - **Robust output parsing:** direct or noisy embedded JSON is scanned once with nesting, strings, and escapes handled correctly.
 - **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
@@ -163,9 +163,12 @@ In the interactive navigator:
 - `x` — clear filters; `c` — clear explicit selections
 - `i` — show/hide informational file scores and hotspots; they are hidden by default and never counted as findings
 - `d` — toggle full raw finding JSON in the agent prompt; it is deselected by default
+- `p` — open the current finding's command-aware action palette
 - `e` or `a` — load selected findings into the editor
-- `t` — run a trace for the selected finding when possible
-- `q` / `Esc` — close (`Esc` first cancels an active search)
+- `t` — run the first valid trace action for the selected finding
+- `q` / `Esc` — close (`Esc` first cancels an active search or closes the action palette)
+
+The action palette derives only shell-free argument arrays supported by the current finding evidence: file/symbol inspection, rule explanation, export/file/dependency/clone tracing, type-aware symbol impact, and architecture-rule lookup. Unknown findings retain only generic actions that have sufficient safe inputs. A fix option appears only when Fallow explicitly marks a retained finding action `auto_fixable: true`, and it always runs project-wide `fix --dry-run --no-create-config`; applying a fix is never available from the palette. Closing or cancelling an action result reruns the originating report and restores its search, filters, current row, expansion, selections, informational toggle, and prompt-detail mode.
 
 The navigator defaults to compact prompts. Compact mode includes every selected finding with type, severity, location, subject, concise evidence/details, and suggested action, plus the complete-report path. Selecting the full-details checkbox additionally embeds complete raw JSON for every selected finding; the overlay warns that this can use substantially more model context.
 

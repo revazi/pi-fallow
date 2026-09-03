@@ -1,11 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { detectFallowBaseRef } from "../project/git";
-import type { FallowNavigatorResult } from "../types";
+import type { FallowNavigatorResult, FallowNavigatorState } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs, resolveFallowRunArgs } from "./args";
 import { resolveFallowCommandBaseRef } from "./base";
 import { isFallowTuiMode } from "./mode";
+import { runFallowNavigatorLoop } from "./navigator-loop";
 import { executeFallowResult } from "./result-flow";
 import type { FallowCommandContext, FallowCommandState } from "./types";
 
@@ -72,11 +73,9 @@ async function executeFallowCommandLoop(
 	commandState: FallowCommandState,
 	initialArgs: string[],
 ): Promise<FallowNavigatorResult | null | undefined> {
-	let result = await runFallowCommandOnce(pi, ctx, commandState, initialArgs, true);
-	while (isFallowTuiMode(ctx.mode) && result?.type === "trace") {
-		result = await runFallowCommandOnce(pi, ctx, commandState, result.commandArgs, false);
-	}
-	return result;
+	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState) => (
+		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState)
+	));
 }
 
 function runFallowCommandOnce(
@@ -85,10 +84,11 @@ function runFallowCommandOnce(
 	commandState: FallowCommandState,
 	args: string[],
 	rememberLast: boolean,
+	initialNavigatorState?: FallowNavigatorState,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	return executeFallowResult(pi, ctx, args, rememberLast, (updated) => {
 		commandState.lastArgs = updated;
-	});
+	}, initialNavigatorState);
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {
