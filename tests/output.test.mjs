@@ -321,6 +321,48 @@ describe("formatToolOutput", () => {
 		}
 	});
 
+	it("keeps both semantic-candidate locations and advisory completion in bounded findings", async () => {
+		const report = {
+			kind: "similar-code",
+			generation: {
+				threshold: 0.8,
+				model: { model_id: "local/model", revision: "revision" },
+				provider: { source_left_machine: false },
+			},
+			candidates: [{
+				candidate_id: "sc_example",
+				review_key: "scr_example",
+				left: { path: "src/a.ts", name: "left", start_line: 5 },
+				right: { path: "src/b.ts", name: "right", start_line: 25 },
+				similarity: 0.91,
+				similarity_band: "very-high",
+				verification_status: "unverified",
+				actions: [{ action: "inspect", description: "Inspect this candidate", read_only: true }],
+			}],
+			completion: { status: "complete", provider_inference_ms: 10, cache: { status: "miss" } },
+			diagnostics: [],
+		};
+		const result = await formatToolOutput(parseJson(JSON.stringify(report), ""), process.cwd(), 0, false, "findings");
+		try {
+			const payload = JSON.parse(result.text.slice("Fallow findings:\n".length));
+			assert.equal(payload.finding_count, 1);
+			assert.deepEqual(payload.findings[0], {
+				section: "Unverified semantic candidates",
+				type: "Unverified semantic candidates",
+				id: "sc_example",
+				location: { path: "src/a.ts", line: 5 },
+				subject: "left ↔ right",
+				details: "id sc_example · similarity 0.910 · very-high · right src/b.ts:25 · unverified",
+				action: "Inspect this candidate",
+			});
+			assert.match(payload.notes.join("\n"), /advisory and unverified/);
+			assert.match(payload.notes.join("\n"), /source did not leave the machine/);
+			assert.equal(await readFile(result.fullOutputPath, "utf8"), JSON.stringify(report, null, 2));
+		} finally {
+			await removeFullOutput(result);
+		}
+	});
+
 	it("returns normalized context when an informational report has no actionable findings", async () => {
 		const report = {
 			kind: "health",

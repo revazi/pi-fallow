@@ -29,6 +29,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
 - **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
 - **Stable type-aware reports:** Fallow semantic symbol impact and advisory public-signature coupling can be requested through both Pi surfaces, with completeness and advisory status kept visible.
+- **Opt-in semantic similarity:** `/fallow similar-code` and `fallow_run(command: "similar-code")` expose Fallow's pinned local-model workflow without adding candidates to default checks or downloading model artifacts.
 
 ## Installation
 
@@ -96,6 +97,10 @@ Manual slash command examples:
 /fallow security --changed-since main --gate new
 /fallow architecture extensions/fallow/cli.ts extensions/fallow/registry.ts
 /fallow decision-surface --changed-since main
+/fallow similar-code status
+/fallow similar-code --file extensions/fallow/cli.ts --top 10
+/fallow similar-code inspect sc_example --candidates similar-code.json
+/fallow similar-code review --candidates similar-code.json --verdicts verdicts.json
 /fallow workspaces
 /fallow schema
 /fallow coverage analyze
@@ -124,6 +129,16 @@ The agent-facing `fallow_run` tool passes command-specific flags as separate `ar
 When `fallow_run` is active, its compact Pi prompt guidance tells the model to inspect or trace before deletion, treat incomplete type-aware evidence as advisory, preview fixes before applying them, avoid unrequested changes, and reserve raw detail for necessary diagnostics.
 
 `--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
+
+### Opt-in similar-code analysis
+
+`/fallow similar-code` and `fallow_run` with `command: "similar-code"` expose Fallow's semantic similar-code workflow explicitly. It is never part of `/fallow`, `/fallow issues`, audits, security checks, or automatic fixes. Raw candidates are unverified advisory leads—not deterministic clone findings or proof that a consolidation is safe. Check `completion.status`, phase skips, diagnostics, model provenance, both source locations, and enrichment availability before drawing conclusions. Only `completion.status: "complete"` makes an empty result conclusive for the admitted scope.
+
+Start with `/fallow similar-code status`. This reads no project source and reports the exact companion, pinned model identifier/revision, license, integrity state, download size, cache directory, and readiness. Pi Fallow never runs `similar-code setup` or cache mutation and never downloads a model or sidecar. After reviewing those details, a user who chooses to install the pinned model must run `fallow similar-code setup --local` directly outside Pi Fallow.
+
+Inference uses Fallow's version-pinned local companion and reports whether source left the machine; the current contract requires local-only source processing. Model vectors live in Fallow's user-local, project-namespaced cache, while saved candidate reports remain independent JSON documents for reproducible inspect/review steps. Cold inference can take minutes and currently requires roughly the download size reported by `similar-code status` (about 310 MiB for Fallow 3.21); warm cached runs should be faster but remain project- and hardware-dependent. Pi Fallow allows up to 15 minutes by default for this explicit command, while cancellation and `FALLOW_TIMEOUT_SECS` or tool `timeoutSecs` overrides remain available.
+
+Use discovery once and preserve its complete JSON report. `similar-code inspect` validates one candidate against that saved report and current source hashes; `similar-code review` joins the unchanged candidates with a separate verdict document. Missing setup, partial/provider failures, stale inspection evidence, verdict-join failures, cancellation, and timeout remain distinct result states. A separate review verdict should abstain whenever source-grounded evidence is incomplete.
 
 Some Fallow surfaces deliberately remain direct CLI features rather than Pi Fallow report commands:
 

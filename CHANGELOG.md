@@ -4,6 +4,9 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Added
+- Added explicit opt-in semantic similar-code analysis across `/fallow` and `fallow_run`, with read-only status/discovery/inspect/review flows, reproducible model and input provenance, advisory source-grounded rendering, partial-phase and skip diagnostics, distinct cancellation/timeout metadata, a cold-run timeout allowance, and hard guards against model downloads or cache mutation.
+
 ### Changed
 - Updated the pinned Fallow compatibility target to 3.21.0 and re-certified the current command/schema, MCP-resource, type-aware, quality, and packaged host surfaces, including the 3.20 strict-exit and project-reference resolution changes plus the 3.21 runtime-coverage and hidden-source diagnostic fixes.
 

@@ -1,3 +1,5 @@
+import type { FallowTerminationReason } from "./process";
+
 export type FallowOutputDetail = "summary" | "findings" | "raw";
 
 export interface FallowProjectState {
@@ -22,6 +24,7 @@ export interface FallowDetails {
 	args: string[];
 	cwd: string;
 	exitCode: number;
+	terminationReason?: FallowTerminationReason;
 	elapsedMs: number;
 	parsed: boolean;
 	summary: string;

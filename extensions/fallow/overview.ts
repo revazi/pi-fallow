@@ -1,5 +1,6 @@
 import { asRecord } from "./data";
 import { getNormalizedFallowReport, retainNormalizedFallowEntry } from "./normalized-report";
+import { addSimilarCodeOverview, isSimilarCodeWarning } from "./similar-code-report";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
 
 // Preserve the existing inline raw-detail footprint while normalized rows remain unbounded.
@@ -818,6 +819,7 @@ export function buildFallowOverview(
 	addProjectIssuesMetadata(root, stats, title, notes);
 	addConfigStats(root, stats, title);
 	addOverviewSections(root, sections, title, includeAllRaw);
+	addSimilarCodeOverview(root, stats, sections, title, notes, includeAllRaw);
 	addSemanticEvidence(root, stats, sections, title, notes, includeAllRaw);
 	addFeatureFlags(root, sections, title, includeAllRaw);
 	addSecurity(root, sections, title, includeAllRaw);
@@ -841,7 +843,7 @@ export function buildFallowOverview(
 }
 
 function applyErrorTitle(root: Record<string, any>, title: { value: string }): void {
-	if (root.error) title.value = "Fallow error";
+	if (root.error && title.value === "Fallow") title.value = "Fallow error";
 }
 
 function addOverviewSections(
@@ -861,13 +863,15 @@ function addExitCodeNote(notes: string[], exitCode: number): void {
 
 function buildFallowStatus(root: Record<string, any>, sections: FallowOverviewSection[], exitCode: number): "success" | "warning" | "error" {
 	if (isFallowErrorState(root, exitCode)) return "error";
-	return isFallowWarningState(sections, exitCode) ? "warning" : "success";
+	return isFallowWarningState(root, sections, exitCode) ? "warning" : "success";
 }
 
 function isFallowErrorState(root: Record<string, any>, exitCode: number): boolean {
 	return !!root.error || exitCode >= 2;
 }
 
-function isFallowWarningState(sections: FallowOverviewSection[], exitCode: number): boolean {
-	return sections.some((section) => section.role !== "context" && section.items.length > 0) || exitCode === 1;
+function isFallowWarningState(root: Record<string, any>, sections: FallowOverviewSection[], exitCode: number): boolean {
+	return isSimilarCodeWarning(root)
+		|| sections.some((section) => section.role !== "context" && section.items.length > 0)
+		|| exitCode === 1;
 }

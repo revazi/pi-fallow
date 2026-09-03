@@ -57,6 +57,13 @@ describe("Fallow autocomplete", () => {
 		assert.ok(completionLabels("architecture --").includes("--no-cache"));
 		assert.ok(completionLabels("issues --").includes("--surface"));
 		assert.ok(completionLabels("issues --").includes("--score"));
+		assert.ok(labels(rootCompletions).includes("similar-code"));
+		assert.ok(completionLabels("").includes("similar-code readiness"));
+		assert.deepEqual(completionLabels("similar-code s"), ["status"]);
+		assert.ok(completionLabels("similar-code --").includes("--threshold"));
+		assert.ok(completionLabels("similar-code --").includes("--file"));
+		assert.equal(completionLabels("similar-code --").includes("--type-aware"), false);
+		assert.deepEqual(completionLabels("similar-code --threshold 0."), ["0.7", "0.8", "0.9"]);
 		assert.ok(completionLabels("run --").includes("--surface"));
 		assert.equal(completionLabels("run --").includes("--file-scores"), false);
 		assert.deepEqual(completionLabels("health --type-aware-require c"), ["complete"]);

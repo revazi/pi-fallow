@@ -1,17 +1,24 @@
-import type { ExtensionAPI, ExecResult } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { buildFallowPrSummary } from "./pr-summary/build";
 import { formatFallowPrSummaryText } from "./pr-summary/text";
 import { detectFallowProjectState } from "./project/state";
 import { formatFallowProjectStateText } from "./project/text";
 import { parseJson } from "./json";
 import { formatToolOutput } from "./output";
+import type { FallowTerminationReason } from "./process";
 import type { FallowDetails, FallowOutputDetail, FallowOverview, FallowPrSummary, FallowProjectState } from "./types";
 
 interface FallowExecutor {
 	(pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number): Promise<{
 		binary: string;
 		args: string[];
-		result: ExecResult;
+		result: {
+			stdout: string;
+			stderr: string;
+			code: number;
+			killed?: boolean;
+			terminationReason?: FallowTerminationReason;
+		};
 	}>;
 }
 
@@ -34,6 +41,7 @@ interface ExecutedFallowCommand {
 	stderr: string;
 	code: number;
 	killed: boolean;
+	terminationReason?: FallowTerminationReason;
 	elapsedMs: number;
 }
 
@@ -43,6 +51,7 @@ interface FallowCommandResult {
 	execution: {
 		code: number;
 		killed: boolean;
+		terminationReason?: FallowTerminationReason;
 	};
 	formatted: {
 		summary: string;
@@ -75,12 +84,16 @@ async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowC
 	return {
 		binary: execution.binary,
 		args: execution.args,
-		execution: { code: execution.code, killed: execution.killed },
+		execution: {
+			code: execution.code,
+			killed: execution.killed,
+			...(execution.terminationReason ? { terminationReason: execution.terminationReason } : {}),
+		},
 		formatted,
 		projectState,
 		prSummary,
 		details: buildFallowDetails(execution, parsed.parsed, input.cwd, formatted, projectState, prSummary),
-		content: buildFallowResultContent(formattedOutput.text, projectState, prSummary),
+		content: buildFallowResultContent(formattedOutput.text, projectState, prSummary, execution.terminationReason),
 	};
 }
 
@@ -94,7 +107,8 @@ async function executeCommand(input: FallowCommandInput): Promise<ExecutedFallow
 		stdout: result.stdout,
 		stderr: result.stderr,
 		code: result.code,
-		killed: result.killed,
+		killed: result.killed === true,
+		terminationReason: result.terminationReason,
 		elapsedMs: Date.now() - started,
 	};
 }
@@ -107,17 +121,21 @@ function shouldThrowExecutionError(
 	return execution.code >= 2 || execution.killed;
 }
 
-function throwExecutionError(execution: Pick<ExecutedFallowCommand, "binary" | "args" | "code" | "killed">, formattedText: string): never {
+function throwExecutionError(
+	execution: Pick<ExecutedFallowCommand, "binary" | "args" | "code" | "killed" | "terminationReason">,
+	formattedText: string,
+): never {
+	const termination = execution.terminationReason ? ` termination=${execution.terminationReason}` : "";
 	const reason = [
 		`Fallow command failed (${formatCommandLine(execution.binary, execution.args)})`,
-		`exitCode=${execution.code}${execution.killed ? " killed=true" : ""}`,
+		`exitCode=${execution.code}${execution.killed ? " killed=true" : ""}${termination}`,
 		formattedText,
 	].join("\n");
 	throw new Error(reason);
 }
 
 function buildFallowDetails(
-	execution: Pick<ExecutedFallowCommand, "binary" | "args" | "elapsedMs" | "code">,
+	execution: Pick<ExecutedFallowCommand, "binary" | "args" | "elapsedMs" | "code" | "terminationReason">,
 	parsed: boolean,
 	cwd: string,
 	formatted: { summary: string; overview?: FallowOverview; fullOutputPath?: string; truncated?: boolean },
@@ -129,6 +147,7 @@ function buildFallowDetails(
 		args: execution.args,
 		cwd,
 		exitCode: execution.code,
+		...(execution.terminationReason ? { terminationReason: execution.terminationReason } : {}),
 		elapsedMs: execution.elapsedMs,
 		parsed,
 		summary: formatted.summary,
@@ -158,11 +177,19 @@ function buildFallowResultContent(
 	formattedText: string,
 	projectState: FallowProjectState,
 	prSummary: FallowPrSummary | undefined,
+	terminationReason: FallowTerminationReason | undefined,
 ): string {
+	const terminationText = formatTerminationText(terminationReason);
 	const prSummaryText = formatFallowPrSummaryText(prSummary);
 	const projectStateText = formatFallowProjectStateText(projectState);
-	const contentPrefix = [prSummaryText, projectStateText].filter(Boolean).join("\n");
+	const contentPrefix = [terminationText, prSummaryText, projectStateText].filter(Boolean).join("\n");
 	return contentPrefix ? `${contentPrefix}\n\n${formattedText}` : formattedText;
+}
+
+function formatTerminationText(reason: FallowTerminationReason | undefined): string {
+	if (reason === "timed-out") return "Fallow execution timed out before completion.";
+	if (reason === "cancelled") return "Fallow execution was cancelled before completion.";
+	return "";
 }
 
 export const fallowEngine = {

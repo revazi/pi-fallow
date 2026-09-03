@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import { delimiter, dirname, extname, join, resolve } from "node:path";
-import type { ExecResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { execFallowProcess, type FallowProcessResult } from "./process";
 
 const DEFAULT_FALLBACK_CACHE_TTL_MS = 30_000;
@@ -63,7 +63,7 @@ interface RunnerOptions {
 interface FallowRunnerExecution {
 	binary: string;
 	args: string[];
-	result: ExecResult;
+	result: FallowProcessResult;
 }
 
 export function createFallowRunner({
@@ -309,7 +309,7 @@ function routeCancellation(route: RunnerRoute, args: string[]): FallowRunnerExec
 }
 
 function cancellationResult(): FallowProcessResult {
-	return { stdout: "", stderr: "", code: 130, killed: true };
+	return { stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled" };
 }
 
 function usableCachedRoute(route: RunnerRoute | undefined, now: number): RunnerRoute | undefined {

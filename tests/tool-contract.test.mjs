@@ -16,12 +16,12 @@ describe("fallow_run compact contract", () => {
 		assert.equal(tool.parameters.properties.detail.default, "findings");
 		assert.match(tool.promptSnippet, /Fallow project analysis/);
 		assert.deepEqual(tool.promptGuidelines, [
-			"Use fallow_run inspect or trace-symbol before deletion; incomplete type-aware evidence is advisory.",
-			"Use fallow_run fix-preview before fix-apply; apply only user-requested changes.",
-			"Use fallow_run detail summary or findings routinely; use raw only for necessary diagnostics.",
+			"fallow_run inspect/trace before deletion; incomplete evidence is advisory.",
+			"fallow_run fix-preview before fix-apply; apply only requested changes.",
+			"fallow_run similar-code only on request; no model/cache setup. Prefer summary/findings; raw for diagnostics.",
 		]);
 		assert.ok(tool.promptGuidelines.every((guideline) => guideline.includes("fallow_run")));
-		assert.match(tool.description, /type-aware impact/);
+		assert.match(tool.description, /separate CLI-token args/);
 	});
 
 	it("keeps measured prompt guidance within its fixed token budget", () => {
