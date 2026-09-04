@@ -5,16 +5,17 @@ import { fallowToolContract } from "./fallow/contract";
 import { runFallowCommandHandler } from "./fallow/command/handler";
 import { fallowArgumentHint } from "./fallow/registry";
 import type { FallowCommandState } from "./fallow/command/types";
+import { createFallowHistoryState } from "./fallow/history";
 import { registerFallowSessionStart } from "./fallow/session";
 import { renderFallowMessageRenderer, renderFallowToolCall, renderFallowToolResult } from "./fallow/tool-render";
 import { renderFallowAboutMessage } from "./fallow/update-notice";
 
 export default function (pi: ExtensionAPI) {
-	const commandState: FallowCommandState = { lastArgs: null, baseRefs: new Map() };
+	const commandState: FallowCommandState = { lastArgs: null, baseRefs: new Map(), history: createFallowHistoryState() };
 	registerFallowTool(pi);
 	registerFallowCommand(pi, commandState);
 	registerFallowResultRenderer(pi);
-	registerFallowSessionStart(pi);
+	registerFallowSessionStart(pi, commandState);
 }
 
 function registerFallowTool(pi: ExtensionAPI): void {

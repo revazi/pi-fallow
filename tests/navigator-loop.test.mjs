@@ -70,6 +70,25 @@ describe("Fallow navigator action loop", () => {
 		assert.equal(calls[4].initialState, state);
 	});
 
+	it("protects history source ids from eviction while nested actions unwind", async () => {
+		const historyAction = {
+			...actionResult(),
+			returnTo: { commandArgs: ["history", "compare", "r1", "r20"], state },
+		};
+		const nested = {
+			...actionResult(["trace", "src/a.ts:oldExport"]),
+			returnTo: { commandArgs: ["inspect", "--file", "src/a.ts"], state },
+		};
+		const responses = [historyAction, nested, null, null, null];
+		const calls = [];
+		await runFallowNavigatorLoop(["history", "compare", "r1", "r20"], true, async (args, rememberLast, initialState, protectedHistoryIds) => {
+			calls.push({ args, protectedHistoryIds });
+			return responses.shift();
+		});
+		assert.deepEqual(calls[1].protectedHistoryIds, ["r1", "r20"]);
+		assert.deepEqual(calls[2].protectedHistoryIds, ["r1", "r20"]);
+	});
+
 	it("does not execute navigator actions outside TUI mode", async () => {
 		const calls = [];
 		const result = await runFallowNavigatorLoop(["issues"], false, async (args, rememberLast) => {

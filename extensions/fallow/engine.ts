@@ -53,6 +53,7 @@ interface FallowCommandResult {
 		killed: boolean;
 		terminationReason?: FallowTerminationReason;
 	};
+	reportMetadata: FallowReportMetadata;
 	formatted: {
 		summary: string;
 		overview?: FallowOverview;
@@ -89,6 +90,7 @@ async function runFallowWithExecutor(input: FallowCommandInput): Promise<FallowC
 			killed: execution.killed,
 			...(execution.terminationReason ? { terminationReason: execution.terminationReason } : {}),
 		},
+		reportMetadata: buildFallowReportMetadata(parsed.data, parsed.parsed, execution),
 		formatted,
 		projectState,
 		prSummary,
@@ -111,6 +113,120 @@ async function executeCommand(input: FallowCommandInput): Promise<ExecutedFallow
 		terminationReason: result.terminationReason,
 		elapsedMs: Date.now() - started,
 	};
+}
+
+interface FallowReportMetadata {
+	kind?: string;
+	fallowVersion?: string;
+	schemaVersion?: string;
+	complete: boolean;
+	completenessReason?: string;
+}
+
+function buildFallowReportMetadata(
+	data: unknown,
+	parsed: boolean,
+	execution: Pick<ExecutedFallowCommand, "code" | "killed" | "terminationReason">,
+): FallowReportMetadata {
+	const root = reportRoot(data);
+	const completenessReason = reportIncompleteReason(root, parsed, execution);
+	return {
+		...reportIdentity(root),
+		complete: completenessReason === undefined,
+		...optionalCompletenessReason(completenessReason),
+	};
+}
+
+function reportRoot(data: unknown): Record<string, unknown> | undefined {
+	if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
+	return data as Record<string, unknown>;
+}
+
+function reportIdentity(root: Record<string, unknown> | undefined): Partial<FallowReportMetadata> {
+	return {
+		...optionalStringField("kind", stringValue(root?.kind)),
+		...optionalStringField("fallowVersion", stringValue(root?.version)),
+		...optionalStringField("schemaVersion", scalarValue(root?.schema_version)),
+	};
+}
+
+function optionalStringField(key: string, value: string | undefined): Record<string, string> {
+	return value ? { [key]: value } : {};
+}
+
+function optionalCompletenessReason(value: string | undefined): Pick<FallowReportMetadata, "completenessReason"> | Record<string, never> {
+	return value ? { completenessReason: value } : {};
+}
+
+function reportIncompleteReason(
+	root: Record<string, unknown> | undefined,
+	parsed: boolean,
+	execution: Pick<ExecutedFallowCommand, "code" | "killed" | "terminationReason">,
+): string | undefined {
+	return executionIncompleteReason(execution) ?? contentIncompleteReason(root, parsed);
+}
+
+function executionIncompleteReason(
+	execution: Pick<ExecutedFallowCommand, "code" | "killed" | "terminationReason">,
+): string | undefined {
+	if (execution.terminationReason) return execution.terminationReason;
+	if (execution.killed) return "cancelled";
+	return execution.code >= 2 ? `exit-${execution.code}` : undefined;
+}
+
+function contentIncompleteReason(root: Record<string, unknown> | undefined, parsed: boolean): string | undefined {
+	return structureIncompleteReason(root, parsed) ?? structuredContentIncompleteReason(root!);
+}
+
+function structureIncompleteReason(root: Record<string, unknown> | undefined, parsed: boolean): string | undefined {
+	return parsed && root ? undefined : "unstructured-report";
+}
+
+function structuredContentIncompleteReason(root: Record<string, unknown>): string | undefined {
+	if (root.error) return "report-error";
+	return explicitCompletionReason(root.completion) ?? identityCompletenessReason(root);
+}
+
+function explicitCompletionReason(value: unknown): string | undefined {
+	const status = completionStatus(value);
+	if (!status || status === "complete") return undefined;
+	return `completion-${status}`;
+}
+
+function completionStatus(value: unknown): string | undefined {
+	return stringValue(recordValue(value)?.status);
+}
+
+function identityCompletenessReason(root: Record<string, unknown>): string | undefined {
+	return nonCompleteIdentityReason(recordValue(root.identity), "identity")
+		?? typeAwareCompletenessReason(recordValue(root._meta));
+}
+
+function typeAwareCompletenessReason(metadata: Record<string, unknown> | undefined): string | undefined {
+	const typeAware = recordValue(metadata?.type_aware);
+	return nonCompleteIdentityReason(recordValue(typeAware?.identity), "type-aware");
+}
+
+function nonCompleteIdentityReason(identity: Record<string, unknown> | undefined, label: string): string | undefined {
+	const completeness = stringValue(identity?.completeness);
+	if (!completeness || completeness === "complete") return undefined;
+	return `${label}-${completeness}`;
+}
+
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+	return value as Record<string, unknown>;
+}
+
+function stringValue(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	return value || undefined;
+}
+
+function scalarValue(value: unknown): string | undefined {
+	if (typeof value === "string") return value;
+	if (typeof value === "number") return String(value);
+	return undefined;
 }
 
 function shouldThrowExecutionError(

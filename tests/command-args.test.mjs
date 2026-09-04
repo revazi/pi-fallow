@@ -31,7 +31,7 @@ describe("resolveFallowRunArgs", () => {
 	});
 
 	it("rejects recursive or extension-only defaults", () => {
-		for (const command of ["run", "rerun", "about", "version", "update"]) {
+		for (const command of ["run", "rerun", "history", "about", "version", "update"]) {
 			assert.throws(() => resolveFallowRunArgs([], [command]), /PI_FALLOW_DEFAULT_COMMAND must start/);
 		}
 	});

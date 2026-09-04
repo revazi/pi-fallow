@@ -233,6 +233,13 @@ const SIMILAR_CODE_SUBCOMMANDS: CompletionSpec[] = [
 	{ value: "review", description: "Join a discovery report with a separate verdict document" },
 ];
 
+const HISTORY_SUBCOMMANDS: CompletionSpec[] = [
+	{ value: "list", description: "List this project's bounded session history" },
+	{ value: "open", description: "Reopen a retained report by run id" },
+	{ value: "compare", description: "Compare prior and current retained run ids" },
+	{ value: "clear", description: "Clear project history metadata without deleting report files" },
+];
+
 const IMPACT_FLAGS: FlagSpec[] = [
 	{ flag: "--all", description: "Aggregate every tracked project" },
 	{ flag: "--sort", description: "Sort --all rows", values: ["recent", "resolved", "contained", "name"] },
@@ -311,6 +318,7 @@ const FLAGS_BY_COMMAND: Record<string, FlagSpec[]> = {
 	impact: IMPACT_FLAGS,
 	list: PROJECT_INFO_FLAGS,
 	"project-info": PROJECT_INFO_FLAGS,
+	history: [],
 	"list-boundaries": [],
 	"fix-preview": [],
 	"fix-apply": [],
@@ -597,6 +605,7 @@ function resolvePositionalCompletions(context: ReturnType<typeof analyzeFallowAr
 function completeCommandPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
 	if (shouldCompleteCoverageAnalyze(context.previousTokens)) return completeCoverageAnalyze(context);
 	if (shouldCompleteSimilarCodeSubcommand(context)) return completeSimilarCodeSubcommand(context);
+	if (shouldCompleteHistorySubcommand(context)) return completeHistorySubcommand(context);
 	return completeFlags(context.beforeCurrent, context.current, context.flags, context.usedFlags);
 }
 
@@ -608,6 +617,10 @@ function shouldCompleteSimilarCodeSubcommand(context: ReturnType<typeof analyzeF
 	if (context.command !== "similar-code") return false;
 	if (context.previousTokens.length !== 1) return false;
 	return !context.current.startsWith("-");
+}
+
+function shouldCompleteHistorySubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): boolean {
+	return context.command === "history" && context.previousTokens.length === 1 && !context.current.startsWith("-");
 }
 
 function completeRootPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
@@ -625,6 +638,11 @@ function completeCoverageAnalyze(context: ReturnType<typeof analyzeFallowArgumen
 
 function completeSimilarCodeSubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
 	const items = completeToken(context.beforeCurrent, context.current, SIMILAR_CODE_SUBCOMMANDS);
+	return items.length ? items : null;
+}
+
+function completeHistorySubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	const items = completeToken(context.beforeCurrent, context.current, HISTORY_SUBCOMMANDS);
 	return items.length ? items : null;
 }
 

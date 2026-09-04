@@ -36,7 +36,7 @@ export function buildFallowExecutor(
 		timeoutSecs,
 		executor,
 		throwOnExecutionError: false,
-		preserveNavigatorDetails: isFallowTuiMode(ctx.mode),
+		preserveNavigatorDetails: true,
 	});
 }
 

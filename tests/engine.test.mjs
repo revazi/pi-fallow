@@ -26,6 +26,7 @@ function runFixture(cwd, data, options = {}) {
 				stderr: options.stderr ?? "",
 				code: options.code ?? 0,
 				killed: options.killed ?? false,
+				terminationReason: options.terminationReason,
 			},
 		}),
 	});
@@ -65,6 +66,7 @@ describe("Fallow engine result retention", () => {
 			});
 
 			assert.deepEqual(result.execution, { code: 0, killed: false });
+			assert.deepEqual(result.reportMetadata, { kind: "dead-code", complete: true });
 			assert.equal("result" in result, false);
 			assert.equal("parsed" in result, false);
 			assert.equal("text" in result.formatted, false);
@@ -73,6 +75,51 @@ describe("Fallow engine result retention", () => {
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
 		}
+	});
+
+	it("records compact report identity and conservative completeness", async () => {
+		const complete = await runFixture("/tmp", {
+			kind: "similar-code",
+			schema_version: 9,
+			version: "3.21.0",
+			completion: { status: "complete", phases: [{ large: "evidence" }] },
+		});
+		assert.deepEqual(complete.reportMetadata, {
+			kind: "similar-code",
+			fallowVersion: "3.21.0",
+			schemaVersion: "9",
+			complete: true,
+		});
+
+		const partial = await runFixture("/tmp", {
+			kind: "similar-code",
+			schema_version: 9,
+			version: "3.21.0",
+			completion: { status: "partial" },
+		});
+		assert.equal(partial.reportMetadata.complete, false);
+		assert.equal(partial.reportMetadata.completenessReason, "completion-partial");
+
+		const typeAwarePartial = await runFixture("/tmp", {
+			kind: "health",
+			schema_version: 9,
+			version: "3.21.0",
+			_meta: { type_aware: { identity: { completeness: "partial" } } },
+		});
+		assert.equal(typeAwarePartial.reportMetadata.complete, false);
+		assert.equal(typeAwarePartial.reportMetadata.completenessReason, "type-aware-partial");
+
+		const impactUnavailable = await runFixture("/tmp", {
+			kind: "impact",
+			schema_version: 9,
+			version: "3.21.0",
+			identity: { completeness: "unavailable" },
+		});
+		assert.equal(impactUnavailable.reportMetadata.completenessReason, "identity-unavailable");
+
+		const unstructured = await runFixture("/tmp", "not json", { code: 2 });
+		assert.equal(unstructured.reportMetadata.complete, false);
+		assert.equal(unstructured.reportMetadata.completenessReason, "exit-2");
 	});
 
 	it("applies requested detail without retaining the raw presentation", async () => {

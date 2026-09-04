@@ -116,7 +116,7 @@ Set `PI_FALLOW_DEFAULT_COMMAND` to a shell-free command string to replace the ag
 export PI_FALLOW_DEFAULT_COMMAND='health --complexity --targets --score'
 ```
 
-Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive defaults such as `run`, `rerun`, or `about` are rejected.
+Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive or extension-only defaults such as `run`, `rerun`, `history`, or `about` are rejected.
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
@@ -150,6 +150,16 @@ Pi Fallow therefore does not add these status/file/browser operations to `fallow
 
 `/fallow about` shows the installed Pi Fallow version, latest npm version, update command, and project links. Pi Fallow also checks npm once per TUI session and shows a non-blocking warning when a newer version is available. Update an npm installation with `pi update npm:pi-fallow`. Set `PI_FALLOW_DISABLE_UPDATE_NOTICE=1` to disable startup update notices.
 
+### Session run history and comparison
+
+Every completed `/fallow` analysis and trace is added to bounded in-memory session history. `/fallow history` (or `history list`) shows the current project's runs; `/fallow history open r1` reopens an unchanged retained report in the existing navigator; `/fallow history compare r1 r2` treats the first run as prior and the second as current; and `/fallow history clear` removes only the current project's history metadata. History commands never replace `/fallow rerun`, which continues to execute the last analysis command.
+
+History retains at most the 20 most recent completed slash-command results across the Pi session, partitioned by resolved project root. Entries record a bounded command-scope digest, completion timestamp, Fallow/schema versions, report kind, counts, exit/completeness state, complete-report path and digest, and Git `HEAD` when available. Raw reports and overviews are not retained in the history object. There is no cloud storage or cross-session persistence, and run IDs from another root cannot be opened or discovered.
+
+Comparison is deliberately conservative. Both reports must still exist unchanged and have complete results with the same command scope, report kind, schema version, and Fallow version. Stable finding IDs take priority. Otherwise, identity uses type, path, and subject while ignoring line numbers, so ordinary line shifts match; path changes are shown as new plus resolved unless a stable ID proves continuity. Missing identities, duplicate identities, incomplete reports, drifted files, and incompatible versions/scopes are reported as unavailable rather than guessed. New and unchanged findings remain current actionable findings; resolved and unavailable entries are context only and can never be selected as current work.
+
+TUI history opens and comparisons use the existing navigator and action flow. RPC and print modes emit bounded text without opening custom UI; JSON mode emits structured history/open/comparison payloads without opening custom UI. Session restart, the 20-entry bound, explicit `history clear`, or operating-system temporary-file cleanup can expire an entry. Clear and eviction never delete report files.
+
 Saved full reports remain in the operating system's temporary directory. Pi Fallow never deletes them automatically; the operating system's own temporary-file retention policy still applies.
 
 In the interactive navigator:
@@ -168,7 +178,7 @@ In the interactive navigator:
 - `t` — run the first valid trace action for the selected finding
 - `q` / `Esc` — close (`Esc` first cancels an active search or closes the action palette)
 
-The action palette derives only shell-free argument arrays supported by the current finding evidence: file/symbol inspection, rule explanation, export/file/dependency/clone tracing, type-aware symbol impact, and architecture-rule lookup. Unknown findings retain only generic actions that have sufficient safe inputs. A fix option appears only when Fallow explicitly marks a retained finding action `auto_fixable: true`, and it always runs project-wide `fix --dry-run --no-create-config`; applying a fix is never available from the palette. Closing or cancelling an action result reruns the originating report and restores its search, filters, current row, expansion, selections, informational toggle, and prompt-detail mode.
+The action palette derives only shell-free argument arrays supported by the current finding evidence: file/symbol inspection, rule explanation, export/file/dependency/clone tracing, type-aware symbol impact, and architecture-rule lookup. Unknown findings retain only generic actions that have sufficient safe inputs. A fix option appears only when Fallow explicitly marks a retained finding action `auto_fixable: true`, and it always runs project-wide `fix --dry-run --no-create-config`; applying a fix is never available from the palette. Closing or cancelling an action result restores its source navigator state; ordinary live reports are rerun, while history views reopen the exact digest-validated artifact.
 
 The navigator defaults to compact prompts. Compact mode includes every selected finding with type, severity, location, subject, concise evidence/details, and suggested action, plus the complete-report path. Selecting the full-details checkbox additionally embeds complete raw JSON for every selected finding; the overlay warns that this can use substantially more model context.
 
@@ -182,7 +192,7 @@ The current `0.5.x` development line is certified with this host matrix:
 |---|---|---|---|
 | 0.84.3 | 0.84.3 | 22.19 and 24 | 3.21.0 |
 
-Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
+Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` and session history over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 
 This matrix records tested compatibility; it is not an installation constraint or a claim about untested Pi versions. Pi packages intentionally remain host-provided wildcard peer dependencies, following Pi's package guidance. Other Pi versions may work, but are not certified until they pass the same package smoke checks.
 

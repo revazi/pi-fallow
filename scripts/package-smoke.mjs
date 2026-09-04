@@ -130,6 +130,14 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		assert.equal(results[2].details?.overview?.title, "Fallow similar-code status");
 		assert.ok(results[2].details.overview.stats.some((stat) => stat.label === "model ready"));
 
+		await rpc.prompt("/fallow history");
+		messages = await rpc.getMessages();
+		results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 4, "Packaged history did not emit a fourth Fallow result.");
+		assert.match(results[3].content, /Fallow session history \(3\/20\)/);
+		assert.match(results[3].content, /r1/);
+		assert.match(results[3].content, /r3/);
+
 		const forbiddenEvents = events.filter((event) =>
 			["extension_error", "agent_start", "turn_start"].includes(event.type),
 		);

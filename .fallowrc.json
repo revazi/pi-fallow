@@ -4,6 +4,7 @@
     "tests/*.test.mjs",
     "tests/fixtures/*.mjs",
     "scripts/performance-memory-worker.mjs",
+    "scripts/history-memory-worker.mjs",
     "benchmarks/bin/fallow-fixture.mjs"
   ],
   "ignoreDependencies": [

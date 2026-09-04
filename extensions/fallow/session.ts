@@ -1,11 +1,14 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCompletions } from "./autocomplete";
 import { fallowCli } from "./cli";
+import type { FallowCommandState } from "./command/types";
+import { resetFallowHistory } from "./history";
 import { scheduleFallowUpdateNotice } from "./update-notice";
 
-export function registerFallowSessionStart(pi: ExtensionAPI): void {
+export function registerFallowSessionStart(pi: ExtensionAPI, commandState?: FallowCommandState): void {
 	pi.on("session_start", (_event, ctx) => {
 		fallowCli.clearRunnerCache(pi);
+		if (commandState) resetFallowHistory(commandState.history);
 		if (ctx.mode !== "tui") return;
 		void fallowCompletions.preloadGitReferences(pi, ctx.cwd);
 		scheduleFallowUpdateNotice(pi, ctx);

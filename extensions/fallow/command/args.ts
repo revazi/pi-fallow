@@ -6,7 +6,7 @@ import { fallowProjectIssues } from "./issues";
 type Notify = (message: string, level: "info" | "warning") => void;
 
 const FALLBACK_DEFAULT_COMMAND = ["issues"];
-const INVALID_DEFAULT_COMMANDS = new Set(["run", "rerun", "about", "version", "update"]);
+const INVALID_DEFAULT_COMMANDS = new Set(["run", "rerun", "history", "about", "version", "update"]);
 
 export function resolveFallowRunArgs(rawArgs: string[], configuredDefaultArgs: string[]): string[] {
 	if (isExplicitFallowCommand(rawArgs)) return rawArgs;

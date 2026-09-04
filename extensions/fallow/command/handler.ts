@@ -1,10 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
+import { recordFallowHistory } from "../history";
 import { detectFallowBaseRef } from "../project/git";
 import type { FallowNavigatorResult, FallowNavigatorState } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs, resolveFallowRunArgs } from "./args";
 import { resolveFallowCommandBaseRef } from "./base";
+import { executeFallowHistoryCommand } from "./history";
 import { isFallowTuiMode } from "./mode";
 import { runFallowNavigatorLoop } from "./navigator-loop";
 import { executeFallowResult } from "./result-flow";
@@ -73,8 +75,8 @@ async function executeFallowCommandLoop(
 	commandState: FallowCommandState,
 	initialArgs: string[],
 ): Promise<FallowNavigatorResult | null | undefined> {
-	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState) => (
-		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState)
+	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState, protectedHistoryIds) => (
+		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState, protectedHistoryIds)
 	));
 }
 
@@ -85,10 +87,16 @@ function runFallowCommandOnce(
 	args: string[],
 	rememberLast: boolean,
 	initialNavigatorState?: FallowNavigatorState,
+	protectedHistoryIds?: string[],
 ): Promise<FallowNavigatorResult | null | undefined> {
+	if (args[0] === "history") {
+		return executeFallowHistoryCommand(pi, ctx, commandState.history, args, initialNavigatorState);
+	}
 	return executeFallowResult(pi, ctx, args, rememberLast, (updated) => {
 		commandState.lastArgs = updated;
-	}, initialNavigatorState);
+	}, initialNavigatorState, initialNavigatorState ? undefined : (result, commandArgs) => (
+		recordFallowHistory(pi, commandState.history, ctx.cwd, result, protectedHistoryIds, commandArgs)
+	));
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {

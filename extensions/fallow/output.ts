@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "./data";
 import type { ParsedFallowOutput } from "./json";
-import { getNormalizedFallowReport } from "./normalized-report";
 import { fallowOutputDetail } from "./output-detail";
 import { buildFallowOverview } from "./overview";
 import type { FallowOutputDetail, FallowOverview } from "./types";
@@ -134,7 +133,7 @@ function shouldPreserveFullOutput(
 	overview: FallowOverview | undefined,
 ): boolean {
 	if (rawTruncated || outputDetail !== "raw") return true;
-	return preserveNavigatorDetails && overviewHasFindings(overview);
+	return preserveNavigatorDetails && overview !== undefined;
 }
 
 function selectOutputPresentation(
@@ -170,10 +169,6 @@ function buildToolOutputSummary(
 
 function getFormattedRawText(parsed: ParsedFallowOutput): string {
 	return parsed.parsed ? JSON.stringify(parsed.data, null, 2) : parsed.raw;
-}
-
-function overviewHasFindings(overview: FallowOverview | undefined): boolean {
-	return overview ? getNormalizedFallowReport(overview).entryCount > 0 : false;
 }
 
 async function writeOutputPathIfNeeded(
