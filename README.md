@@ -192,7 +192,7 @@ The current `0.5.x` development line is certified with this host matrix:
 |---|---|---|---|
 | 0.84.3 | 0.84.3 | 22.19 and 24 | 3.21.0 |
 
-Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health`, session history, and post-history rerun behavior over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
+Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` and session history over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 
 This matrix records tested compatibility; it is not an installation constraint or a claim about untested Pi versions. Pi packages intentionally remain host-provided wildcard peer dependencies, following Pi's package guidance. Other Pi versions may work, but are not certified until they pass the same package smoke checks.
 

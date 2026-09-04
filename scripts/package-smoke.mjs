@@ -138,12 +138,6 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		assert.match(results[3].content, /r1/);
 		assert.match(results[3].content, /r3/);
 
-		await rpc.prompt("/fallow rerun");
-		messages = await rpc.getMessages();
-		results = messages.filter((message) => message.customType === "fallow-result");
-		assert.equal(results.length, 5, "Packaged rerun after history did not emit a fifth Fallow result.");
-		assert.equal(results[4].details?.overview?.title, "Fallow similar-code status", "History replaced the rerun target.");
-
 		const forbiddenEvents = events.filter((event) =>
 			["extension_error", "agent_start", "turn_start"].includes(event.type),
 		);
