@@ -5,6 +5,7 @@ All notable changes to Pi Fallow are documented here.
 ## [Unreleased]
 
 ### Added
+- Added bounded, project-isolated `/fallow history` for reopening digest-validated session reports and conservatively comparing compatible runs as new, unchanged, resolved, or unavailable without retaining raw reports in memory or treating resolved findings as current work.
 - Added a command-aware TUI navigator action palette with safe inspect, explain, trace, symbol-impact, and architecture queries; action results return to preserved navigator state, while fix actions are limited to explicitly previewable project-wide dry runs and can never apply changes.
 - Added explicit opt-in semantic similar-code analysis across `/fallow` and `fallow_run`, with read-only status/discovery/inspect/review flows, reproducible model and input provenance, advisory source-grounded rendering, partial-phase and skip diagnostics, distinct cancellation/timeout metadata, a cold-run timeout allowance, and hard guards against model downloads or cache mutation.
 

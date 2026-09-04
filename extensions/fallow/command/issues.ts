@@ -44,7 +44,7 @@ function buildFallowProjectIssuesExecutor(
 			timeout,
 		),
 		throwOnExecutionError: false,
-		preserveNavigatorDetails: ctx.mode === "tui",
+		preserveNavigatorDetails: true,
 		outputDetail: "raw",
 	});
 }

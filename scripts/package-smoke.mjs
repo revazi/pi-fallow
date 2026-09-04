@@ -130,6 +130,20 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 		assert.equal(results[2].details?.overview?.title, "Fallow similar-code status");
 		assert.ok(results[2].details.overview.stats.some((stat) => stat.label === "model ready"));
 
+		await rpc.prompt("/fallow history");
+		messages = await rpc.getMessages();
+		results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 4, "Packaged history did not emit a fourth Fallow result.");
+		assert.match(results[3].content, /Fallow session history \(3\/20\)/);
+		assert.match(results[3].content, /r1/);
+		assert.match(results[3].content, /r3/);
+
+		await rpc.prompt("/fallow rerun");
+		messages = await rpc.getMessages();
+		results = messages.filter((message) => message.customType === "fallow-result");
+		assert.equal(results.length, 5, "Packaged rerun after history did not emit a fifth Fallow result.");
+		assert.equal(results[4].details?.overview?.title, "Fallow similar-code status", "History replaced the rerun target.");
+
 		const forbiddenEvents = events.filter((event) =>
 			["extension_error", "agent_start", "turn_start"].includes(event.type),
 		);
@@ -156,6 +170,8 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageR
 	);
 	assert.equal(similarPrint.status, 0, `Pi print-mode similar-code status failed:\n${similarPrint.stderr}`);
 	assert.equal(similarPrint.stderr, "", `Pi similar-code print mode wrote to stderr:\n${similarPrint.stderr}`);
+
+	validateHistoryPrintMode(cliPath, commonArgs, agentRoot);
 
 	const jsonResult = runIsolatedPi(cliPath, ["--mode", "json", ...commonArgs, "/fallow"], join(agentRoot, "json"));
 	assert.equal(jsonResult.status, 0, `Pi JSON-mode default /fallow failed:\n${jsonResult.stderr}`);
@@ -188,12 +204,42 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageR
 		"Pi JSON-mode similar-code status started an agent/provider turn.",
 	);
 
+	validateHistoryJsonMode(cliPath, commonArgs, agentRoot);
+
 	const controlResult = runIsolatedPi(
 		cliPath,
 		["--print", ...commonArgs, "/pi-fallow-unknown-command"],
 		join(agentRoot, "control"),
 	);
 	assertCredentialFreeControl(controlResult, piPackageRoot);
+}
+
+function validateHistoryPrintMode(cliPath, commonArgs, agentRoot) {
+	const result = runIsolatedPi(
+		cliPath,
+		["--print", ...commonArgs, "/fallow history"],
+		join(agentRoot, "history-print"),
+	);
+	assert.equal(result.status, 0, `Pi print-mode history failed:\n${result.stderr}`);
+	assert.equal(result.stderr, "", `Pi history print mode wrote to stderr:\n${result.stderr}`);
+}
+
+function validateHistoryJsonMode(cliPath, commonArgs, agentRoot) {
+	const result = runIsolatedPi(
+		cliPath,
+		["--mode", "json", ...commonArgs, "/fallow history"],
+		join(agentRoot, "history-json"),
+	);
+	assert.equal(result.status, 0, `Pi JSON-mode history failed:\n${result.stderr}`);
+	assert.equal(result.stderr, "", `Pi history JSON mode wrote to stderr:\n${result.stderr}`);
+	const events = result.stdout.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+	const message = events.find((event) => event.type === "message_end" && event.message?.customType === "fallow-result");
+	assert.equal(JSON.parse(message.message.content).kind, "pi-fallow-history");
+	assert.deepEqual(
+		events.filter((event) => ["agent_start", "turn_start"].includes(event.type)),
+		[],
+		"Pi JSON-mode history started an agent/provider turn.",
+	);
 }
 
 export function assertCredentialFreeControl(result, piPackageRoot) {

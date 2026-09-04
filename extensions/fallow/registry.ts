@@ -49,6 +49,10 @@ const fallowCommandRegistry = [
 		slash: { root: { value: "rerun", description: "Rerun the last /fallow command", hintOrder: 3 } },
 	},
 	{
+		name: "history",
+		slash: { root: { value: "history", description: "List, reopen, compare, or clear session-scoped Fallow reports", hintOrder: 4 } },
+	},
+	{
 		name: "about",
 		slash: { root: { value: "about", description: "Show Pi Fallow version, update, and project links", hintOrder: 0 } },
 	},

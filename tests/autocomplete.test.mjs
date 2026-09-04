@@ -60,6 +60,8 @@ describe("Fallow autocomplete", () => {
 		assert.ok(labels(rootCompletions).includes("similar-code"));
 		assert.ok(completionLabels("").includes("similar-code readiness"));
 		assert.deepEqual(completionLabels("similar-code s"), ["status"]);
+		assert.deepEqual(completionLabels("history "), ["list", "open", "compare", "clear"]);
+		assert.deepEqual(completionLabels("history c"), ["compare", "clear"]);
 		assert.ok(completionLabels("similar-code --").includes("--threshold"));
 		assert.ok(completionLabels("similar-code --").includes("--file"));
 		assert.equal(completionLabels("similar-code --").includes("--type-aware"), false);
@@ -161,9 +163,11 @@ describe("Fallow autocomplete", () => {
 		};
 		const previous = process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE;
 		process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE = "1";
+		const state = { lastArgs: null, baseRefs: new Map(), history: { nextId: 4, entries: [{ id: "r3" }] } };
 		try {
-			registerFallowSessionStart(pi);
+			registerFallowSessionStart(pi, state);
 			sessionStart({}, { mode: "rpc", cwd: "/rpc-project", ui: { addAutocompleteProvider() { providers++; } } });
+			state.history.entries.push({ id: "r1" });
 			sessionStart({}, { mode: "tui", cwd: "/tui-project", ui: { addAutocompleteProvider() { providers++; } } });
 		} finally {
 			if (previous === undefined) delete process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE;
@@ -172,6 +176,7 @@ describe("Fallow autocomplete", () => {
 		assert.equal(calls.length, 1);
 		assert.equal(calls[0].options.cwd, resolve("/tui-project"));
 		assert.equal(providers, 1);
+		assert.deepEqual(state.history, { nextId: 1, entries: [] });
 	});
 
 	it("contains no synchronous Git or process.cwd call in the completion path", async () => {

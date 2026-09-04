@@ -197,6 +197,17 @@ describe("formatToolOutput", () => {
 		}
 	});
 
+	it("retains structured no-finding reports when command history is enabled", async () => {
+		const report = { kind: "dead-code", schema_version: 9, version: "3.21.0", total_issues: 0, unused_exports: [] };
+		const result = await formatToolOutput(parseJson(JSON.stringify(report), ""), process.cwd(), 0, true);
+		try {
+			assert.ok(result.fullOutputPath);
+			assert.equal(await readFile(result.fullOutputPath, "utf8"), JSON.stringify(report, null, 2));
+		} finally {
+			if (result.fullOutputPath) await rm(dirname(result.fullOutputPath), { recursive: true, force: true });
+		}
+	});
+
 	it("saves even a small finding report when the TUI prompt may need full details", async () => {
 		const report = { kind: "dead-code", total_issues: 1, unused_exports: [{ export_name: "helper", path: "src/a.ts" }] };
 		const result = await formatToolOutput(parseJson(JSON.stringify(report), ""), process.cwd(), 1, true);

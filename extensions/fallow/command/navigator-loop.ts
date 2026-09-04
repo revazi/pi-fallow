@@ -4,6 +4,7 @@ export type FallowNavigatorRunOnce = (
 	args: string[],
 	rememberLast: boolean,
 	initialState?: FallowNavigatorState,
+	protectedHistoryIds?: string[],
 ) => Promise<FallowNavigatorResult | null | undefined>;
 
 export async function runFallowNavigatorLoop(
@@ -31,8 +32,9 @@ async function runAction(
 	returnStack: FallowNavigatorReturnTarget[],
 	runOnce: FallowNavigatorRunOnce,
 ): Promise<FallowNavigatorResult | null | undefined> {
-	const actionResult = await runOnce(result.commandArgs, false);
-	return continueNavigatorLoop(actionResult, [...returnStack, result.returnTo], runOnce);
+	const nextStack = [...returnStack, result.returnTo];
+	const actionResult = await runOnce(result.commandArgs, false, undefined, protectedHistoryIds(nextStack));
+	return continueNavigatorLoop(actionResult, nextStack, runOnce);
 }
 
 async function returnToPreviousNavigator(
@@ -56,4 +58,18 @@ function isPromptResult(
 	result: FallowNavigatorResult | null | undefined,
 ): result is Extract<FallowNavigatorResult, { type: "prompt" }> {
 	return result?.type === "prompt";
+}
+
+function protectedHistoryIds(returnStack: FallowNavigatorReturnTarget[]): string[] {
+	return returnStack.flatMap((target) => historyIdsFromArgs(target.commandArgs));
+}
+
+function historyIdsFromArgs(args: string[]): string[] {
+	if (args[0] !== "history") return [];
+	return historyOperationIds(args);
+}
+
+function historyOperationIds(args: string[]): string[] {
+	if (args[1] === "open") return args.slice(2, 3);
+	return args[1] === "compare" ? args.slice(2, 4) : [];
 }
