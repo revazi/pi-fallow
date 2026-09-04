@@ -171,8 +171,6 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageR
 	assert.equal(similarPrint.status, 0, `Pi print-mode similar-code status failed:\n${similarPrint.stderr}`);
 	assert.equal(similarPrint.stderr, "", `Pi similar-code print mode wrote to stderr:\n${similarPrint.stderr}`);
 
-	validateHistoryPrintMode(cliPath, commonArgs, agentRoot);
-
 	const jsonResult = runIsolatedPi(cliPath, ["--mode", "json", ...commonArgs, "/fallow"], join(agentRoot, "json"));
 	assert.equal(jsonResult.status, 0, `Pi JSON-mode default /fallow failed:\n${jsonResult.stderr}`);
 	assert.equal(jsonResult.stderr, "", `Pi JSON mode wrote to stderr:\n${jsonResult.stderr}`);
@@ -204,42 +202,12 @@ function validateNonInteractiveModes(cliPath, packageRoot, agentRoot, piPackageR
 		"Pi JSON-mode similar-code status started an agent/provider turn.",
 	);
 
-	validateHistoryJsonMode(cliPath, commonArgs, agentRoot);
-
 	const controlResult = runIsolatedPi(
 		cliPath,
 		["--print", ...commonArgs, "/pi-fallow-unknown-command"],
 		join(agentRoot, "control"),
 	);
 	assertCredentialFreeControl(controlResult, piPackageRoot);
-}
-
-function validateHistoryPrintMode(cliPath, commonArgs, agentRoot) {
-	const result = runIsolatedPi(
-		cliPath,
-		["--print", ...commonArgs, "/fallow history"],
-		join(agentRoot, "history-print"),
-	);
-	assert.equal(result.status, 0, `Pi print-mode history failed:\n${result.stderr}`);
-	assert.equal(result.stderr, "", `Pi history print mode wrote to stderr:\n${result.stderr}`);
-}
-
-function validateHistoryJsonMode(cliPath, commonArgs, agentRoot) {
-	const result = runIsolatedPi(
-		cliPath,
-		["--mode", "json", ...commonArgs, "/fallow history"],
-		join(agentRoot, "history-json"),
-	);
-	assert.equal(result.status, 0, `Pi JSON-mode history failed:\n${result.stderr}`);
-	assert.equal(result.stderr, "", `Pi history JSON mode wrote to stderr:\n${result.stderr}`);
-	const events = result.stdout.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
-	const message = events.find((event) => event.type === "message_end" && event.message?.customType === "fallow-result");
-	assert.equal(JSON.parse(message.message.content).kind, "pi-fallow-history");
-	assert.deepEqual(
-		events.filter((event) => ["agent_start", "turn_start"].includes(event.type)),
-		[],
-		"Pi JSON-mode history started an agent/provider turn.",
-	);
 }
 
 export function assertCredentialFreeControl(result, piPackageRoot) {

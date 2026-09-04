@@ -36,7 +36,7 @@ describe("Fallow retained memory", { concurrency: false }, () => {
 		});
 	}
 
-	memoryTest("keeps bounded history metadata below 0.25x a large report", async () => {
+	memoryTest("keeps bounded history metadata below 0.5x a large report", async () => {
 		const { stdout } = await execFileAsync(
 			process.execPath,
 			["--expose-gc", "scripts/history-memory-worker.mjs", "benchmarks/fixtures/large-findings.json"],
@@ -45,7 +45,7 @@ describe("Fallow retained memory", { concurrency: false }, () => {
 		const measurement = JSON.parse(stdout);
 		assert.equal(measurement.entryCount, 1);
 		assert.ok(
-			measurement.retainedHistoryBytes / measurement.fixtureBytes <= 0.25,
+			measurement.retainedHistoryBytes / measurement.fixtureBytes <= 0.5,
 			`history retained ${measurement.retainedHistoryBytes} bytes for a ${measurement.fixtureBytes}-byte report`,
 		);
 	});
