@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { formatFallowProjectStateText } from "../project/text";
 import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
-import type { FallowNavigatorResult, FallowPrSummary, FallowProjectState } from "../types";
+import type { FallowNavigatorResult, FallowNavigatorState, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
 import { fallowProjectIssues } from "./issues";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
@@ -17,13 +17,14 @@ export async function executeFallowResult(
 	rawCommandArgs: string[],
 	rememberLast: boolean,
 	setLastFallowArgs: (args: string[] | null) => void,
+	initialNavigatorState?: FallowNavigatorState,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (rawCommandArgs[0] === "issues") {
-		return executeFallowProjectIssuesResult(pi, ctx, rawCommandArgs, rememberLast, setLastFallowArgs);
+		return executeFallowProjectIssuesResult(pi, ctx, rawCommandArgs, rememberLast, setLastFallowArgs, initialNavigatorState);
 	}
 	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
 	if (rememberLast) setLastFallowArgs([...finalArgs]);
-	return runFallowResultFlow(pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs));
+	return runFallowResultFlow(pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs), initialNavigatorState);
 }
 
 function executeFallowProjectIssuesResult(
@@ -32,9 +33,16 @@ function executeFallowProjectIssuesResult(
 	commandArgs: string[],
 	rememberLast: boolean,
 	setLastFallowArgs: (args: string[] | null) => void,
+	initialNavigatorState?: FallowNavigatorState,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (rememberLast) setLastFallowArgs([...commandArgs]);
-	return runFallowResultFlow(pi, ctx, commandArgs, fallowProjectIssues.buildExecutor(pi, ctx, commandArgs));
+	return runFallowResultFlow(
+		pi,
+		ctx,
+		commandArgs,
+		fallowProjectIssues.buildExecutor(pi, ctx, commandArgs),
+		initialNavigatorState,
+	);
 }
 
 async function runFallowResultFlow(
@@ -42,6 +50,7 @@ async function runFallowResultFlow(
 	ctx: FallowCommandContext,
 	finalArgs: string[],
 	executeCommand: FallowCommandExecutor,
+	initialNavigatorState?: FallowNavigatorState,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	const commandResult = await runFallowWithLoaderIfUi(ctx, executeCommand, finalArgs);
 	if (!commandResult) return handleMissingFallowResult(ctx);
@@ -50,7 +59,16 @@ async function runFallowResultFlow(
 	const resultPrefix = buildFallowResultPrefix(projectState, prSummary);
 	notifyFallowCompletion(ctx, execution, binary, executedArgs);
 	renderFallowResultMessage(pi, ctx, commandResult, resultPrefix);
-	return openFallowNavigator(ctx, commandResult, binary, executedArgs, projectState, prSummary);
+	return openFallowNavigator(
+		ctx,
+		commandResult,
+		binary,
+		executedArgs,
+		finalArgs,
+		projectState,
+		prSummary,
+		initialNavigatorState,
+	);
 }
 
 function handleMissingFallowResult(ctx: FallowCommandContext): null {
@@ -109,8 +127,10 @@ function openFallowNavigator(
 	result: FallowCommandResult,
 	binary: string,
 	executedArgs: string[],
+	originCommandArgs: string[],
 	projectState: FallowProjectState,
 	prSummary: FallowPrSummary | undefined,
+	initialState?: FallowNavigatorState,
 ): Promise<FallowNavigatorResult | null> {
 	const { formatted } = result;
 	if (!isFallowTuiMode(ctx.mode) || !formatted.overview) return Promise.resolve(null);
@@ -125,6 +145,8 @@ function openFallowNavigator(
 			() => tui.requestRender(),
 			{
 				command: commandDisplay(binary, executedArgs),
+				commandArgs: [...originCommandArgs],
+				initialState,
 				fullOutputPath: formatted.fullOutputPath,
 				truncated: formatted.truncated,
 				projectState,
@@ -133,7 +155,6 @@ function openFallowNavigator(
 				informationalMode,
 			},
 		);
-		return navigator;
 	}, {
 		overlay: true,
 		overlayOptions: FALLOW_NAVIGATOR_OVERLAY_OPTIONS,

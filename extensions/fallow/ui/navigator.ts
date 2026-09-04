@@ -1,11 +1,18 @@
 import { readFile } from "node:fs/promises";
-import { CURSOR_MARKER, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type Component, type Focusable } from "@earendil-works/pi-tui";
+import {
+	CURSOR_MARKER, matchesKey, SelectList, truncateToWidth, visibleWidth, wrapTextWithAnsi,
+	type Component, type Focusable, type SelectItem,
+} from "@earendil-works/pi-tui";
+import { buildFallowNavigatorActions, type FallowNavigatorAction } from "../navigator-actions";
 import { allNormalizedFallowEntries, getNormalizedFallowReport, hydrateNormalizedFallowEntry, type NormalizedFallowEntry } from "../normalized-report";
 import { buildFallowOverview } from "../overview";
 import { buildFallowPrompt, type FallowPromptDetail, type FallowPromptFinding } from "../prompt";
 import { renderFallowProjectState } from "../project/render";
 import { renderFallowPrSummary } from "../pr-summary/render";
-import type { FallowIssueLine, FallowNavigatorResult, FallowOverview, FallowOverviewSection, FallowPrSummary, FallowProjectState } from "../types";
+import type {
+	FallowIssueLine, FallowNavigatorResult, FallowNavigatorState, FallowOverview, FallowOverviewSection,
+	FallowPrSummary, FallowProjectState,
+} from "../types";
 import { amber, cyan, getOverviewStatusColor, pill, pink, purple, violet } from "./shared";
 
 const FRAME_BORDER_WIDTH = 4;
@@ -52,6 +59,8 @@ function buildInformationHeader(text: string | undefined, theme: any): string {
 
 interface FallowNavigatorOptions {
 	command?: string;
+	commandArgs?: string[];
+	initialState?: FallowNavigatorState;
 	fullOutputPath?: string;
 	truncated?: boolean;
 	projectState?: FallowProjectState;
@@ -83,6 +92,8 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private showInformational = false;
 	private includeFullDetails = false;
 	private preparingPrompt = false;
+	private actionPalette?: { list: SelectList };
+	private actionNotice?: string;
 	private cachedWidth?: number;
 	private cachedLines?: string[];
 
@@ -95,6 +106,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	) {
 		this.showInformational = options.informationalMode === true;
 		this.issues = flattenNormalizedIssues(overview);
+		this.restoreState(options.initialState);
 	}
 
 	handleInput(data: string): void {
@@ -114,6 +126,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			{ matches: (value) => value === "c", action: () => this.clearMarked() },
 			{ matches: (value) => value === "i", action: () => this.toggleInformational() },
 			{ matches: (value) => value === "d", action: () => this.togglePromptDetail() },
+			{ matches: (value) => value === "p", action: () => this.openActionPalette() },
 			{ matches: (value) => value === "e" || value === "a", action: () => this.finishWithPrompt() },
 			{ matches: (value) => value === "t", action: () => this.finishWithTrace() },
 			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l", action: () => this.toggleExpanded() },
@@ -128,8 +141,17 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private routeModalInput(data: string): boolean {
 		if (this.preparingPrompt) return true;
+		if (this.routeActionPaletteInput(data)) return true;
 		if (!this.editingSearch) return false;
 		this.handleSearchInput(data);
+		return true;
+	}
+
+	private routeActionPaletteInput(data: string): boolean {
+		const palette = this.actionPalette;
+		if (!palette) return false;
+		palette.list.handleInput(data);
+		if (this.actionPalette === palette) this.changed();
 		return true;
 	}
 
@@ -150,6 +172,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	invalidate(): void {
 		this.cachedWidth = undefined;
 		this.cachedLines = undefined;
+		this.actionPalette?.list.invalidate();
 	}
 
 	private handleSearchInput(data: string): void {
@@ -265,12 +288,22 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private renderBody(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
+		if (this.actionPalette) {
+			this.renderActionPaletteBody(frameWidth, innerWidth, lines);
+			return;
+		}
 		const empty = this.emptyBodyMessage(visible);
 		if (empty) {
 			lines.push(this.frame(this.theme.fg(empty.tone, empty.text), frameWidth));
 			return;
 		}
 		this.renderIssues(frameWidth, innerWidth, visible, lines);
+	}
+
+	private renderActionPaletteBody(frameWidth: number, innerWidth: number, lines: string[]): void {
+		const subject = this.currentIssue()?.normalized.subject ?? "current finding";
+		lines.push(this.frame(`${violet("●")} ${this.theme.fg("accent", this.theme.bold(`Actions for ${subject}`))}`, frameWidth));
+		for (const line of this.actionPalette!.list.render(innerWidth)) lines.push(this.frame(line, frameWidth));
 	}
 
 	private emptyBodyMessage(visible: FlatIssue[]): { text: string; tone: "success" | "warning" } | undefined {
@@ -324,6 +357,15 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private renderFooterControls(frameWidth: number, innerWidth: number, lines: string[]): void {
+		if (this.actionPalette) {
+			this.appendWrappedFooter(
+				this.theme.fg("muted", "Actions are read-only except the explicitly labelled dry-run preview; fix application is never available here."),
+				frameWidth,
+				innerWidth,
+				lines,
+			);
+			return;
+		}
 		if (this.isInformationalMode()) {
 			this.appendWrappedFooter(this.informationalImplicationLine(), frameWidth, innerWidth, lines);
 			return;
@@ -345,7 +387,8 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private footerSelectionLine(): string {
-		return `${pill(this.selectionStatus(), purple)} ${this.theme.fg("muted", "e/a loads prompt into editor for your comments")}`;
+		const notice = this.actionNotice ? ` ${this.theme.fg("warning", this.actionNotice)}` : "";
+		return `${pill(this.selectionStatus(), purple)} ${this.theme.fg("muted", "e/a loads prompt; p opens safe actions")}${notice}`;
 	}
 
 	private selectionStatus(): string {
@@ -403,6 +446,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private select(index: number): void {
 		this.selected = clampSelection(index, this.visibleIssues().length);
+		this.actionNotice = undefined;
 		this.changed();
 	}
 
@@ -468,6 +512,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.selected = 0;
 		this.scrollStart = 0;
 		this.expanded.clear();
+		this.actionNotice = undefined;
 		this.changed();
 	}
 
@@ -543,6 +588,43 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.changed();
 	}
 
+	private openActionPalette(): void {
+		if (this.isInformationalMode()) return;
+		const current = this.currentIssue();
+		if (!current) return;
+		const actions = buildFallowNavigatorActions(current.normalized);
+		if (!actions.length) {
+			this.actionNotice = "No safe Fallow action is available for this finding.";
+			this.changed();
+			return;
+		}
+		const items: SelectItem[] = actions.map((entry) => ({
+			value: entry.id,
+			label: entry.kind === "preview" ? `${entry.label} (dry-run)` : entry.label,
+			description: entry.description,
+		}));
+		const list = new SelectList(items, Math.min(items.length, 10), {
+			selectedPrefix: (text) => this.theme.fg("accent", text),
+			selectedText: (text) => this.theme.fg("accent", text),
+			description: (text) => this.theme.fg("muted", text),
+			scrollInfo: (text) => this.theme.fg("dim", text),
+			noMatch: (text) => this.theme.fg("warning", text),
+		});
+		list.onSelect = (item) => {
+			const selected = actions.find((entry) => entry.id === item.value);
+			if (!selected) return;
+			this.actionPalette = undefined;
+			this.finishWithAction(selected);
+		};
+		list.onCancel = () => {
+			this.actionPalette = undefined;
+			this.changed();
+		};
+		this.actionNotice = undefined;
+		this.actionPalette = { list };
+		this.changed();
+	}
+
 	private promptDetail(): FallowPromptDetail {
 		return this.includeFullDetails ? "full" : "compact";
 	}
@@ -611,28 +693,57 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private finishWithTrace(): void {
 		if (this.isInformationalMode()) return;
-		const trace = this.currentTraceCandidate();
-		if (!trace) return;
-		this.onDone({ type: "trace", commandArgs: ["dead-code", "--trace-file", trace] });
+		const current = this.currentIssue();
+		if (!current) return;
+		const trace = buildFallowNavigatorActions(current.normalized).find((entry) => entry.id.startsWith("trace-"));
+		if (trace) this.finishWithAction(trace);
 	}
 
-	private currentTraceCandidate(): string | null {
-		const selected = this.currentIssue();
-		if (!selected) return null;
-		const path = selected.item.path ? this.stripTraceSuffix(selected.item.path) : this.pathFromAction(selected.item.action);
-		return path ?? null;
+	private finishWithAction(action: FallowNavigatorAction): void {
+		if (!this.options.commandArgs?.length) {
+			this.actionPalette = undefined;
+			this.actionNotice = "The originating command is unavailable; rerun /fallow before using actions.";
+			this.changed();
+			return;
+		}
+		this.onDone({
+			type: "action",
+			label: action.label,
+			commandArgs: [...action.commandArgs],
+			returnTo: {
+				commandArgs: [...this.options.commandArgs],
+				state: this.snapshotState(),
+			},
+		});
 	}
 
-	private pathFromAction(action: string | undefined): string | null {
-		if (!action) return null;
-		const pathWithLine = pickPathFromText(action, /(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+:\d+)(?:\s|$)/);
-		if (pathWithLine) return this.stripTraceSuffix(pathWithLine);
-		const barePath = pickPathFromText(action, /(?:^|\s)([^\s"'`]+?\.[A-Za-z0-9_./+-]+)(?:\s|$)/);
-		return barePath ? this.stripTraceSuffix(barePath) : null;
+	private snapshotState(): FallowNavigatorState {
+		return {
+			selectedReportIndex: this.currentIssue()?.id,
+			scrollStart: this.scrollStart,
+			expandedReportIndices: [...this.expanded],
+			markedReportIndices: [...this.marked],
+			query: this.query,
+			sectionFilter: this.sectionFilter,
+			severityFilter: this.severityFilter,
+			showInformational: this.showInformational,
+			includeFullDetails: this.includeFullDetails,
+		};
 	}
 
-	private stripTraceSuffix(path: string): string {
-		return path.replace(/[\]\)>,.;:!?]+$/u, "").replace(/:\d+$/, "");
+	private restoreState(state: FallowNavigatorState | undefined): void {
+		if (!state) return;
+		const validIds = new Set(this.issues.map((entry) => entry.id));
+		this.query = state.query;
+		this.sectionFilter = validSectionFilter(state.sectionFilter, this.overview);
+		this.severityFilter = state.severityFilter;
+		this.showInformational = restoredInformationalVisibility(state.showInformational, this.isInformationalMode());
+		this.includeFullDetails = state.includeFullDetails;
+		this.marked = retainedStateIds(state.markedReportIndices, validIds);
+		this.expanded = retainedStateIds(state.expandedReportIndices, validIds);
+		const visible = this.visibleIssues();
+		this.selected = restoredSelection(state.selectedReportIndex, visible);
+		this.scrollStart = Math.max(0, state.scrollStart);
 	}
 
 	private statLines(width: number): string[] {
@@ -650,6 +761,13 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private helpLine(): string {
 		const key = (text: string) => pill(text, violet);
+		if (this.actionPalette) {
+			return [
+				`${key("↑↓")} ${this.theme.fg("muted", "choose action")}`,
+				`${key("enter")} ${this.theme.fg("muted", "run")}`,
+				`${key("esc")} ${this.theme.fg("muted", "back")}`,
+			].join("  ");
+		}
 		const common = [
 			`${key("↑↓/jk")} ${this.theme.fg("muted", "navigate")}`,
 			`${key("/")} ${this.theme.fg("muted", "search")}`,
@@ -667,8 +785,9 @@ export class FallowIssueNavigator implements Component, Focusable {
 			`${key("c")} ${this.theme.fg("muted", "clear selected")}`,
 			`${key("i")} ${this.theme.fg("muted", "informational files")}`,
 			`${key("d")} ${this.theme.fg("muted", "prompt detail")}`,
+			`${key("p")} ${this.theme.fg("muted", "actions")}`,
 			`${key("e/a")} ${this.theme.fg("muted", "load")}`,
-			`${key("t")} ${this.theme.fg("muted", "trace")}`,
+			`${key("t")} ${this.theme.fg("muted", "quick trace")}`,
 			`${key("q")} ${this.theme.fg("muted", "close")}`,
 		].join("  ");
 	}
@@ -802,16 +921,29 @@ function clampSelection(index: number, visibleCount: number): number {
 	return Math.max(0, Math.min(Math.max(0, visibleCount - 1), index));
 }
 
+function validSectionFilter(sectionFilter: number | undefined, overview: FallowOverview): number | undefined {
+	if (sectionFilter === undefined) return undefined;
+	return overview.sections[sectionFilter] ? sectionFilter : undefined;
+}
+
+function restoredInformationalVisibility(showInformational: boolean, informationalMode: boolean): boolean {
+	return showInformational || informationalMode;
+}
+
+function retainedStateIds(ids: number[], validIds: Set<number>): Set<number> {
+	return new Set(ids.filter((id) => validIds.has(id)));
+}
+
+function restoredSelection(reportIndex: number | undefined, visible: FlatIssue[]): number {
+	const selected = visible.findIndex((entry) => entry.id === reportIndex);
+	return clampSelection(Math.max(0, selected), visible.length);
+}
+
 function removeLastCharacter(value: string): string {
 	return [...value].slice(0, -1).join("");
 }
 
 function isPrintableCharacter(value: string): boolean {
 	return [...value].length === 1 && value >= " ";
-}
-
-function pickPathFromText(text: string, pattern: RegExp): string | null {
-	const match = text.match(pattern);
-	return match?.[1] ?? null;
 }
 
