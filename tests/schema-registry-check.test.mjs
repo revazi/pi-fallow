@@ -85,6 +85,28 @@ describe("registry versus certified Fallow schema", () => {
 		assert.throws(() => assertRegistrySchema(frozen, [{ name: "coverage-analyze", cliPrefix: ["coverage", "missing"] }]), /unverified nested CLI prefix/);
 	});
 
+	it("rejects new required inputs without rejecting already supplied fixed flags", () => {
+		for (const [root, specName, flag] of [
+			["health", "health", "--new-input"],
+			["dead-code", "trace-export", "new_positional"],
+			["coverage", "coverage-analyze", "--new-input"],
+		]) {
+			const schema = changedSchema((data) => {
+				command(data, root).flags.push({ name: flag, type: "string", required: true });
+			});
+			assert.throws(() => assertRegistrySchema(schema, [getFallowToolCommandSpec(specName)]), /new required argument/);
+		}
+		const global = changedSchema((data) => { globalFlag(data, "--config").required = true; });
+		assert.throws(() => assertRegistrySchema(global, specs), /new required argument --config/);
+		const supplied = changedSchema((data) => { command(data, "fix").flags[0].required = true; });
+		assertRegistrySchema(supplied, [getFallowToolCommandSpec("fix-preview")]);
+		const managed = changedSchema((data) => {
+			globalFlag(data, "--quiet").required = true;
+			globalFlag(data, "--changed-since").required = true;
+		});
+		assertRegistrySchema(managed, [getFallowToolCommandSpec("check-changed")]);
+	});
+
 	it("allows additive commands, flags, issue types, formats, and version changes", () => {
 		const schema = changedSchema((data) => {
 			data.version = "99.0.0";
