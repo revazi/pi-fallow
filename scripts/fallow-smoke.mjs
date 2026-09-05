@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createJiti } from "jiti";
+import { assertRegistrySchema } from "./schema-registry-check.mjs";
 
 const jiti = createJiti(import.meta.url);
 const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
+const { fallowToolCommands, getFallowToolCommandSpec } = await jiti.import("../extensions/fallow/registry.ts");
 
 function assertArgs(params, expected) {
 	assert.deepEqual(fallowCli.buildFallowArgs(params), expected, params.command);
@@ -90,6 +92,7 @@ function assertModeledArgs() {
 }
 
 function assertCurrentFallowSchema(data) {
+	assertRegistrySchema(data, fallowToolCommands.map(getFallowToolCommandSpec));
 	assert.equal(data.name, "fallow");
 	assert.equal(data.version, "3.21.0");
 	assert.equal(data.manifest_version, "1");
@@ -146,6 +149,9 @@ function assertCurrentFallowSchema(data) {
 }
 
 function assertCliSurfaces() {
+	// Manifest v1 omits nested coverage commands; verify this registry prefix
+	// through read-only help instead of pretending schema certifies it.
+	assert.match(runFallow(["coverage", "analyze", "--help"]), /Usage: fallow coverage analyze\b/);
 	assertFallowJson([], (data) => {
 		assert.equal(data.kind, "combined");
 		assert.equal(data.schema_version, 11);
