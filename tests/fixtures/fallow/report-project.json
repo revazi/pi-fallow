@@ -1,0 +1,5 @@
+{
+  "package.json": "{\"name\":\"certification-fixture\",\"private\":true,\"type\":\"module\",\"main\":\"index.js\"}\n",
+  "index.js": "import { used } from './lib.js';\nconsole.log(used(2));\n",
+  "lib.js": "export function used(value) { return value + 1; }\nexport function unused(value) { return value - 1; }\n"
+}

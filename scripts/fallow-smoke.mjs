@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { createJiti } from "jiti";
 import { assertRegistrySchema } from "./schema-registry-check.mjs";
+import { assertEvidenceSubset, collectReportEvidence } from "./report-certification.mjs";
 
 const jiti = createJiti(import.meta.url);
 const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
@@ -229,5 +231,7 @@ function assertCliSurfaces() {
 }
 
 assertModeledArgs();
+const frozenReports = JSON.parse(await readFile(new URL("../tests/fixtures/fallow/reports-3.21.0.json", import.meta.url), "utf8"));
+assertEvidenceSubset(await collectReportEvidence(), frozenReports);
 assertCliSurfaces();
 console.log("Fallow CLI smoke checks passed.");

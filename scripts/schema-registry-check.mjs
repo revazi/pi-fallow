@@ -42,6 +42,7 @@ function assertCommandSchema(schema, commands, spec) {
 	assertManagedOutput(flags, context);
 	assertPrefix(suffix, flags, spec, context);
 	assertTarget(command, suffix, spec, context);
+	assertRequiredArguments(flags, spec, context);
 	assertPositionalFlags(flags, spec, context);
 	if (spec.name === "check-changed") requireFlag(flags, "--changed-since", "string", context);
 	if (["dead-code", "health"].includes(spec.name)) assertTypeAwareFlags(flags, spec.name, context);
@@ -76,6 +77,18 @@ function assertTarget(command, suffix, spec, context) {
 	assert.equal(positionals.length, 1, `${context}: expected one positional target`);
 	assert.equal(positionals[0].type, "string", `${context}: positional target must remain string`);
 	assert.equal(positionals[0].required, true, `${context}: review changed positional target requirement`);
+}
+
+function assertRequiredArguments(flags, spec, context) {
+	for (const flag of flags.filter((entry) => entry.required)) {
+		assert.ok(suppliesRequiredArgument(spec, flag), `${context}: new required argument ${flag.name}`);
+	}
+}
+
+function suppliesRequiredArgument(spec, flag) {
+	const normalizedFlags = spec.name === "check-changed" ? ["--changed-since"] : [];
+	if (flag.name.startsWith("-")) return [...spec.cliPrefix, "--format", "--quiet", ...normalizedFlags].includes(flag.name);
+	return spec.positionalTarget === true && spec.cliPrefix.length === 1;
 }
 
 function assertPositionalFlags(flags, spec, context) {

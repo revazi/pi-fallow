@@ -57,7 +57,7 @@ What these cover:
 - `npm run health` runs Fallow health checks.
 - `npm run dupes` checks for duplicate code.
 - `npm run dead-code` checks for unused files/exports and stale suppressions.
-- `npm run smoke:fallow` smoke-tests modeled Fallow CLI surfaces and checks every tool registry prefix against the live capability schema. Offline fixture and mutation tests run with `npm test`; see [`tests/fixtures/fallow/README.md`](./tests/fixtures/fallow/README.md) for certification scope and regeneration.
+- `npm run smoke:fallow` smoke-tests modeled Fallow CLI surfaces and checks every tool registry prefix against the live capability schema. It also recaptures isolated report/help evidence and compares known fields while accepting additive object fields. Offline fixture and mutation tests run with `npm test`; see [`tests/fixtures/fallow/README.md`](./tests/fixtures/fallow/README.md) for certification scope and regeneration.
 - `npm run coverage` generates text/lcov reports and enforces gradual all-file thresholds.
 - `npm run audit:production` and `npm run audit:all` check the shipped and complete dependency trees.
 - `npm run package:smoke` packs, installs, and validates the npm tarball in an isolated project.

@@ -13,7 +13,7 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 Unless noted otherwise, these are repository-specific measurements from the `0.5.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
-- **Tests and coverage:** 214 tests; current coverage is **90.24% statements/lines**, **86.88% branches**, and **88.94% functions**. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
+- **Tests and coverage:** 223 tests; current coverage is **90.38% statements/lines**, **86.89% branches**, and **89.04% functions**. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
 - **Fallow quality:** Fallow 3.21 reports health **83.4 (B)**, average maintainability **91.6**, and zero threshold findings, dead-code issues, or clone groups.
 - **Dependency audits:** strict production and complete-tree npm audits report zero vulnerabilities. These audit results are separate from Fallow's modeled security-candidate analysis.
 - **Host compatibility:** packaged, provider-free Pi **0.84.3** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
@@ -41,7 +41,7 @@ See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.m
 
 ## Remaining priorities
 
-1. **Keep command and report compatibility honest.** Frozen capability-schema and live registry-prefix checks now cover managed output, positional targets, and selected type-aware flags (see [`fixture scope`](./tests/fixtures/fallow/README.md)). Expand representative report fixtures and nested-command coverage next; installed-capability diagnostics remain separate work, preserving graceful behavior with separately installed Fallow versions.
+1. **Keep command and report compatibility honest.** Frozen capability-schema and live registry-prefix checks now cover managed output, positional targets, and selected type-aware flags (see [`fixture scope`](./tests/fixtures/fallow/README.md)). Initial real report fixtures and nested help/missing-input checks now supplement those checks. Continue #83 with successful companion-backed nested execution and broader representative reports; installed-capability diagnostics remain separate work, preserving graceful behavior with separately installed Fallow versions.
 2. **Decide whether user-owned customization is still desired.** If demand remains, design Pi Fallow-specific global/project configuration, prompt templates, and a safe prompt/config preview without taking ownership of Fallow's configuration file.
 3. **Refine navigator workflows from evidence.** Make any remaining history, comparison, or UI density improvements only when real large-report use identifies a concrete need.
 4. **Improve quality where evidence points.** Raise coverage and maintainability gradually around real execution, command-flow, rendering, project-state, and PR-summary hotspots. Do not split files cosmetically merely to improve a metric.
