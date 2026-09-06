@@ -1,0 +1,5 @@
+{
+  "package.json": "{\"name\":\"coverage-certification\",\"private\":true,\"type\":\"module\",\"main\":\"runner.js\"}\n",
+  "target.js": "export function observed(value) {\n  return value.trim().toUpperCase();\n}\nexport function cold(value) {\n  return value.trim().toLowerCase();\n}\n",
+  "runner.js": "import { observed } from './target.js';\nconsole.log(observed(' certification '));\n"
+}

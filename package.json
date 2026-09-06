@@ -25,7 +25,7 @@
   },
   "scripts": {
     "check": "npm test && npm run check:bundle && npm run health",
-    "check:publish": "npm test && npm run check:bundle && npm run health && npm run dupes && npm run dead-code && npm run smoke:fallow && npm run audit:all && npm run package:smoke",
+    "check:publish": "npm test && npm run check:bundle && npm run health && npm run dupes && npm run dead-code && npm run smoke:fallow && npm run smoke:fallow-cov && npm run audit:all && npm run package:smoke",
     "check:bundle": "esbuild extensions/fallow.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild && esbuild extensions/index.ts --bundle --platform=node --format=esm --external:@earendil-works/pi-coding-agent --external:@earendil-works/pi-tui --external:@earendil-works/pi-ai --external:typebox --outdir=/tmp/pi-fallow-esbuild",
     "health": "fallow health --format json --quiet",
     "dupes": "fallow dupes --format json --quiet",
@@ -39,6 +39,7 @@
     "bench:performance": "node scripts/performance-benchmark.mjs",
     "bench:performance:compare": "node scripts/performance-benchmark-compare.mjs",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
+    "smoke:fallow-cov": "npm exec --yes --ignore-scripts --package=@fallow-cli/fallow-cov@0.4.1 -- node scripts/fallow-cov-certification.mjs",
     "pack:check": "npm pack --dry-run",
     "package:smoke": "node scripts/package-smoke.mjs",
     "publish:public": "npm run check:publish && npm publish --access public --provenance"

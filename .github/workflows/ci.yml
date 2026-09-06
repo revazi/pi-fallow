@@ -118,6 +118,9 @@ jobs:
       - name: Fallow CLI smoke checks
         run: npm run smoke:fallow
 
+      - name: Optional fallow-cov certification
+        run: npm run smoke:fallow-cov
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest

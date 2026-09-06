@@ -1,0 +1,138 @@
+{
+  "fallowVersion": "3.21.0",
+  "nodeMajor": 24,
+  "sidecar": {
+    "package": "@fallow-cli/fallow-cov",
+    "version": "0.4.1",
+    "license": "SEE LICENSE IN LICENSE"
+  },
+  "inputSha256": "2b842c960c4e18c0cab5a92b2f4669e5b06732658d29ac9f7b3f8d9e0063f26f",
+  "args": [
+    "coverage",
+    "analyze",
+    "--runtime-coverage",
+    "<V8_COVERAGE_DIR>",
+    "--format",
+    "json",
+    "--quiet",
+    "--no-cache"
+  ],
+  "exitCode": 0,
+  "report": {
+    "kind": "coverage-analyze",
+    "schema_version": "2",
+    "version": "3.21.0",
+    "elapsed_ms": 0,
+    "runtime_coverage": {
+      "schema_version": "1",
+      "verdict": "cold-code-detected",
+      "signals": [
+        "cold-code-detected"
+      ],
+      "summary": {
+        "data_source": "local",
+        "last_received_at": null,
+        "functions_tracked": 2,
+        "functions_hit": 1,
+        "functions_unhit": 1,
+        "functions_untracked": 0,
+        "coverage_percent": 50,
+        "trace_count": 3,
+        "period_days": 0,
+        "deployments_seen": 0,
+        "capture_quality": {
+          "window_seconds": 0,
+          "instances_observed": 0,
+          "lazy_parse_warning": false,
+          "untracked_ratio_percent": 0
+        }
+      },
+      "findings": [
+        {
+          "id": "fallow:prod:c26fb3c4",
+          "stable_id": "fallow:fn:a41be9331fc5cb14",
+          "source_hash": "1871302182a26122",
+          "path": "target.js",
+          "function": "cold",
+          "line": 4,
+          "verdict": "safe_to_delete",
+          "invocations": 0,
+          "confidence": "medium",
+          "evidence": {
+            "static_status": "unused",
+            "test_coverage": "not_covered",
+            "v8_tracking": "tracked",
+            "observation_days": 0,
+            "deployments_observed": 0
+          },
+          "actions": [
+            {
+              "type": "remove-function",
+              "description": "Statically unused AND tracked in production with zero invocations. Safe to delete.",
+              "auto_fixable": false
+            }
+          ],
+          "discriminators": {
+            "tracking_state": "never_called",
+            "invocation_ratio": 0,
+            "low_traffic_threshold": 0.001,
+            "trace_count": 3,
+            "min_observation_volume": 5000,
+            "meets_observation_volume": false
+          }
+        }
+      ],
+      "blast_radius": [
+        {
+          "id": "fallow:blast:abc3e2e3",
+          "stable_id": "fallow:fn:77c0fa433c473273",
+          "file": "target.js",
+          "function": "observed",
+          "line": 1,
+          "caller_count": 1,
+          "caller_count_weighted_by_traffic": 1,
+          "risk_band": "low"
+        },
+        {
+          "id": "fallow:blast:da0e03f5",
+          "stable_id": "fallow:fn:a41be9331fc5cb14",
+          "file": "target.js",
+          "function": "cold",
+          "line": 4,
+          "caller_count": 1,
+          "caller_count_weighted_by_traffic": 0,
+          "risk_band": "low"
+        }
+      ],
+      "importance": [
+        {
+          "id": "fallow:importance:52869af8",
+          "stable_id": "fallow:fn:77c0fa433c473273",
+          "file": "target.js",
+          "function": "observed",
+          "line": 1,
+          "invocations": 1,
+          "cyclomatic": 1,
+          "owner_count": 0,
+          "importance_score": 63,
+          "reason": "High traffic, low complexity, no CODEOWNERS data"
+        }
+      ],
+      "actionable": true,
+      "provenance": {
+        "data_source": "local",
+        "is_production": "unknown",
+        "freshness_days": 0,
+        "untracked_ratio": 0,
+        "unresolved_ratio": 0,
+        "stale": false,
+        "stale_after_days": 14
+      }
+    },
+    "_meta": {
+      "telemetry": {
+        "analysis_run_id": "<RUN_ID>"
+      }
+    }
+  }
+}

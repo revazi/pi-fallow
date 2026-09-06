@@ -116,11 +116,51 @@ inputs, and option arity. Live smoke recaptures evidence and requires the known
 fields to match, allowing additive object fields. Array contents/counts are exact
 for this fixed input, not a general comparison of arbitrary projects.
 
+## Optional signed `fallow-cov` evidence
+
+`coverage-report-3.21.0.json` is a successful local `coverage analyze` capture
+from `coverage-project.json`. Node 24 executes one function under native V8
+coverage while leaving one tracked function cold; Fallow 3.21.0 and the signed
+`@fallow-cli/fallow-cov` 0.4.1 sidecar then emit one non-auto-fixable cold-code
+finding, blast-radius and importance context, capture-quality discriminators,
+and explicit local/unknown-production provenance.
+
+The sidecar package declares `SEE LICENSE IN LICENSE` and is proprietary. This
+repository does not add it to normal dependencies. The dedicated CI smoke lane
+fetches the exact package ephemerally with npm install scripts disabled, resolves
+the one signed platform package, and passes its binary explicitly to Fallow.
+Thus normal `npm install` does not create `~/.fallow/bin` links, and ordinary
+unit tests remain offline. Fallow still verifies the adjacent signature before
+execution. A successful local capture in the certified version is evidence of
+that command path, not a license entitlement or a claim about continuous/cloud
+features; package terms remain authoritative.
+
+Regenerate and verify deliberately on Node 24:
+
+```sh
+npm exec --yes --ignore-scripts --package=@fallow-cli/fallow-cov@0.4.1 -- \
+  node scripts/fallow-cov-certification.mjs --write
+npm run smoke:fallow-cov
+```
+
+The script checks the wrapper package name/version/license, requires exactly one
+signed platform binary, uses isolated temporary project/home/config/cache/V8
+roots, and removes them in `finally`. It does not inherit cloud credentials or
+select cloud mode. Only top-level `elapsed_ms` and telemetry `analysis_run_id`
+are normalized. The checked-in report retains every runtime finding, action,
+discriminator, capture-quality value, and provenance field. The source-project
+digest and Node major are bound in the evidence.
+
+Offline tests preserve the complete JSON and mutation-check selected schema,
+summary, path, action, and tracking-state fields while allowing additive object
+fields. Normalized overlay coverage is intentionally tracked as #87 because the
+successful report exposed that existing `coverage-analyze` output is currently
+retained raw but not surfaced as navigator findings.
+
 ### Remaining #83 scope
 
-This remains short of full closure of #83. Successful `coverage analyze` needs
-the optional `fallow-cov` companion, which is not in the current development
-package. Model-backed discovery and successful source-grounded inspect/review
-are not certified here. Audit/change-gate and other specialized report layouts
-remain future coverage. These gaps must not be inferred as supported from
-help-only or failure-path checks.
+This remains short of full closure of #83. Model-backed discovery and successful
+source-grounded inspect/review are not certified until the user explicitly runs
+Fallow's pinned-model setup. Audit/change-gate and other specialized layouts
+remain future coverage. Help/failure evidence must not be inferred as successful
+model-backed analysis.
