@@ -22,6 +22,7 @@ type ProcessExecutor = (
 	cwd: string,
 	signal: AbortSignal | undefined,
 	timeoutSecs: number,
+	environment?: NodeJS.ProcessEnv,
 ) => Promise<FallowProcessResult>;
 type ExecutableFinder = (name: string, pathValue: string, cwd: string) => Promise<string | undefined>;
 
@@ -42,6 +43,7 @@ interface RunnerRequest {
 	cwd: string;
 	signal: AbortSignal | undefined;
 	timeoutSecs: number;
+	environment?: NodeJS.ProcessEnv;
 }
 
 interface RunnerCacheEntry {
@@ -82,9 +84,10 @@ export function createFallowRunner({
 		cwd: string,
 		signal: AbortSignal | undefined,
 		timeoutSecs: number,
+		environment?: NodeJS.ProcessEnv,
 	): Promise<FallowRunnerExecution> {
 		if (signal?.aborted) return unresolvedCancellation(args);
-		const request = { cwd: resolve(cwd), signal, timeoutSecs };
+		const request = { cwd: resolve(cwd), signal, timeoutSecs, environment };
 		const route = await resolveCachedRoute(pi, request);
 		return executeResolvedRoute(pi, args, request, route);
 	}
@@ -96,7 +99,7 @@ export function createFallowRunner({
 		route: RunnerRoute,
 	): Promise<FallowRunnerExecution> {
 		if (request.signal?.aborted) return routeCancellation(route, args);
-		const execution = await executeRoute(route, args, request.cwd, request.signal, request.timeoutSecs);
+		const execution = await executeRoute(route, args, request.cwd, request.signal, request.timeoutSecs, request.environment);
 		return handleExecution(pi, args, request, route, execution);
 	}
 
@@ -133,7 +136,7 @@ export function createFallowRunner({
 		removeCachedRoute(pi, request.cwd, failedRoute);
 		const retryRoute = await resolveRetryRoute(pi, request, failedRoute);
 		if (!retryRoute) return finalizeExecution(failedExecution, false);
-		const retry = await executeRoute(retryRoute, args, request.cwd, request.signal, request.timeoutSecs);
+		const retry = await executeRoute(retryRoute, args, request.cwd, request.signal, request.timeoutSecs, request.environment);
 		if (retry.result.launchError) removeCachedRoute(pi, request.cwd, retryRoute);
 		return finalizeExecution(retry, retryRoute.source === "configured");
 	}
@@ -279,9 +282,10 @@ export function createFallowRunner({
 		cwd: string,
 		signal: AbortSignal | undefined,
 		timeoutSecs: number,
+		environment?: NodeJS.ProcessEnv,
 	): Promise<FallowRunnerExecution & { result: FallowProcessResult }> {
 		const executedArgs = [...route.argsPrefix, ...args];
-		const result = await executeProcess(route.command, executedArgs, cwd, signal, timeoutSecs);
+		const result = await executeProcess(route.command, executedArgs, cwd, signal, timeoutSecs, environment);
 		return { binary: route.displayBinary, args: executedArgs, result };
 	}
 

@@ -89,6 +89,27 @@ describe("Fallow navigator action loop", () => {
 		assert.deepEqual(calls[2].protectedHistoryIds, ["r1", "r20"]);
 	});
 
+	it("forwards optional-analysis runs with scoped environment and restores the original navigator", async () => {
+		const responses = [
+			actionResult(["__pi-fallow-optional-analysis"]),
+			{ type: "forward", label: "Run Runtime Coverage", commandArgs: ["coverage", "analyze", "--runtime-coverage", "/tmp/v8"], executionEnvironment: { FALLOW_COV_BIN: "/managed/fallow-cov" } },
+			null,
+			{ type: "prompt", prompt: "restored", issueCount: 1, detail: "compact" },
+		];
+		const calls = [];
+		const result = await runFallowNavigatorLoop(["issues"], true, async (args, rememberLast, initialState, protectedIds, executionEnvironment) => {
+			calls.push({ args, initialState, executionEnvironment });
+			return responses.shift();
+		});
+		assert.equal(result?.type, "prompt");
+		assert.deepEqual(calls.map((entry) => entry.args), [
+			["issues"], ["__pi-fallow-optional-analysis"],
+			["coverage", "analyze", "--runtime-coverage", "/tmp/v8"], ["issues"],
+		]);
+		assert.deepEqual(calls[2].executionEnvironment, { FALLOW_COV_BIN: "/managed/fallow-cov" });
+		assert.equal(calls[3].initialState, state);
+	});
+
 	it("does not execute navigator actions outside TUI mode", async () => {
 		const calls = [];
 		const result = await runFallowNavigatorLoop(["issues"], false, async (args, rememberLast) => {

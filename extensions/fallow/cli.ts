@@ -466,8 +466,15 @@ function isRecord(value: unknown): value is Record<string, any> {
 
 const fallowRunner = createFallowRunner();
 
-function execFallow(pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal | undefined, timeoutSecs: number) {
-	return fallowRunner.execute(pi, args, cwd, signal, timeoutSecs);
+function execFallow(
+	pi: ExtensionAPI,
+	args: string[],
+	cwd: string,
+	signal: AbortSignal | undefined,
+	timeoutSecs: number,
+	environment?: NodeJS.ProcessEnv,
+) {
+	return fallowRunner.execute(pi, args, cwd, signal, timeoutSecs, environment);
 }
 
 function clearRunnerCache(pi: ExtensionAPI): void {

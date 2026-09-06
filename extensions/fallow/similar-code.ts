@@ -22,7 +22,7 @@ function assertReadOnlySimilarCodeArgs(args: string[]): void {
 	if (!subcommand || !MUTATING_SUBCOMMANDS.has(subcommand)) return;
 	if (subcommand === "setup") {
 		throw new Error(
-			"Pi Fallow never downloads the similar-code model. Review `/fallow similar-code status`, then run `fallow similar-code setup --local` directly if you choose to install it.",
+			"Similar Code setup is blocked in slash arguments and tools. In the TUI, open `/fallow`, press `o`, review Optional Analysis → Similar Code → Setup, and explicitly confirm the pinned download.",
 		);
 	}
 	throw new Error("Pi Fallow does not expose similar-code cache mutation; run the Fallow CLI directly after reviewing the cache command.");

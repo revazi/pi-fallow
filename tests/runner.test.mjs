@@ -63,6 +63,24 @@ describe("Fallow runner resolution", { concurrency: false }, () => {
 		assert.equal(executions, 0);
 	});
 
+	it("passes scoped child environment through without changing route discovery", async () => {
+		const restore = setEnvironment({ FALLOW_BIN: "/configured/fallow", PATH: "/unused" });
+		let receivedEnvironment;
+		const runner = createFallowRunner({
+			packageRoot: null,
+			executeProcess: async (_command, _args, _cwd, _signal, _timeout, environment) => {
+				receivedEnvironment = environment;
+				return executionResult();
+			},
+		});
+		try {
+			await runner.execute({}, ["coverage", "analyze"], "/project", undefined, 10, { FALLOW_COV_BIN: "/managed/fallow-cov" });
+			assert.deepEqual(receivedEnvironment, { FALLOW_COV_BIN: "/managed/fallow-cov" });
+		} finally {
+			restore();
+		}
+	});
+
 	it("treats an explicit FALLOW_BIN launch failure as final", async () => {
 		const restore = setEnvironment({ FALLOW_BIN: "/configured/fallow", PATH: "/unused" });
 		const calls = [];

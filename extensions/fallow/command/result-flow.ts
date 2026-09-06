@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { fallowCli } from "../cli";
 import { formatFallowProjectStateText } from "../project/text";
 import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
@@ -21,6 +22,7 @@ export async function executeFallowResult(
 	setLastFallowArgs: (args: string[] | null) => void,
 	initialNavigatorState?: FallowNavigatorState,
 	onCompleted?: FallowCommandCompleted,
+	executionEnvironment?: NodeJS.ProcessEnv,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (rawCommandArgs[0] === "issues") {
 		return executeFallowProjectIssuesResult(
@@ -30,7 +32,7 @@ export async function executeFallowResult(
 	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
 	if (rememberLast) setLastFallowArgs([...finalArgs]);
 	return runFallowResultFlow(
-		pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs), initialNavigatorState, onCompleted,
+		pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs, fallowCli.execFallow, executionEnvironment), initialNavigatorState, onCompleted,
 	);
 }
 
@@ -121,7 +123,7 @@ function renderFallowResultMessage(
 	resultPrefix: string,
 ): void {
 	const { details: commandDetails, formatted, content } = result;
-	const hasNavigator = hasFallowNavigator(ctx.mode, formatted.overview);
+	const hasNavigator = hasFallowNavigator(ctx.mode, formatted.overview, true);
 	pi.sendMessage({
 		customType: "fallow-result",
 		content: buildFallowTranscriptContent(resultPrefix, formatted.summary, content, hasNavigator),
@@ -151,6 +153,7 @@ function openFallowNavigator(
 		truncated: result.formatted.truncated,
 		projectState,
 		prSummary,
+		optionalAnalysis: true,
 	});
 }
 
@@ -162,6 +165,7 @@ interface FallowOverviewNavigatorOptions {
 	truncated?: boolean;
 	projectState?: FallowProjectState;
 	prSummary?: FallowPrSummary;
+	optionalAnalysis?: boolean;
 }
 
 export function openFallowOverviewNavigator(
@@ -170,7 +174,7 @@ export function openFallowOverviewNavigator(
 	options: FallowOverviewNavigatorOptions,
 ): Promise<FallowNavigatorResult | null> {
 	if (!isFallowTuiMode(ctx.mode) || !overview) return Promise.resolve(null);
-	const navigatorMode = resolveFallowNavigatorMode(overview);
+	const navigatorMode = resolveFallowNavigatorMode(overview, options.optionalAnalysis);
 	if (navigatorMode === "none") return Promise.resolve(null);
 	const informationalMode = navigatorMode === "informational";
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => (
@@ -179,6 +183,7 @@ export function openFallowOverviewNavigator(
 			commandArgs: [...options.commandArgs],
 			visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows, informationalMode),
 			informationalMode,
+			optionalAnalysis: options.optionalAnalysis,
 		})
 	), {
 		overlay: true,

@@ -12,6 +12,7 @@ const jiti = createJiti(import.meta.url);
 const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
 const { fallowEngine } = await jiti.import("../extensions/fallow/engine.ts");
 const { buildFallowExecutor } = await jiti.import("../extensions/fallow/command/loader.ts");
+const { settleCancellableTask } = await jiti.import("../extensions/fallow/process.ts");
 
 function assignEnvironmentValue(key, value) {
 	if (value === undefined) delete process.env[key];
@@ -92,6 +93,24 @@ describe("Fallow process execution", () => {
 		const result = await fallowCli.execCommand("definitely-not-a-command", [], root, controller.signal, 10);
 		assert.deepEqual(result, {
 			stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled",
+		});
+	});
+
+	it("scopes runtime sidecar environment overrides to the child process", async () => {
+		await withFixture("environment", async () => {
+			const previous = process.env.FALLOW_COV_BIN;
+			const restore = applyEnvironment({ FALLOW_API_KEY: "parent-secret" });
+			try {
+				const result = await fallowCli.execCommand(fixture, [], root, undefined, 10, {
+					FALLOW_COV_BIN: "/managed/fallow-cov", FALLOW_API_KEY: undefined,
+				});
+				assert.equal(result.code, 0);
+				assert.deepEqual(JSON.parse(result.stdout), { fallowCovBin: "/managed/fallow-cov", apiKey: null });
+				assert.equal(process.env.FALLOW_COV_BIN, previous);
+				assert.equal(process.env.FALLOW_API_KEY, "parent-secret");
+			} finally {
+				restoreEnvironment(restore);
+			}
 		});
 	});
 
@@ -204,6 +223,19 @@ describe("Fallow process execution", () => {
 			else process.env.FALLOW_TIMEOUT_SECS = previous;
 		}
 		assert.deepEqual(observed.map((entry) => entry.timeoutSecs), [900, 120, 45]);
+	});
+
+	it("waits for cancellable work to settle before returning cancellation", async () => {
+		const controller = new AbortController();
+		let settled = false;
+		const resultPromise = settleCancellableTask(
+			() => new Promise((resolveWork) => setTimeout(() => { settled = true; resolveWork("late result"); }, 10)),
+			controller.signal,
+			() => controller.signal.aborted,
+		);
+		controller.abort();
+		assert.equal(await resultPromise, null);
+		assert.equal(settled, true);
 	});
 
 	it("passes loader cancellation through the slash-command executor", async () => {

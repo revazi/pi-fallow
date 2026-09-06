@@ -79,12 +79,37 @@ function resolveExitCode(code: number | null, killed: boolean): number {
 	return killed ? 130 : 1;
 }
 
+export async function settleCancellableTask<T>(
+	execute: (signal: AbortSignal) => Promise<T>,
+	signal: AbortSignal,
+	wasAborted: () => boolean,
+): Promise<T | null> {
+	try {
+		const result = await execute(signal);
+		return wasAborted() ? null : result;
+	} catch (error) {
+		if (wasAborted()) return null;
+		throw error;
+	}
+}
+
+function childEnvironment(overrides: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
+	if (!overrides) return process.env;
+	const environment = { ...process.env };
+	for (const [key, value] of Object.entries(overrides)) {
+		if (value === undefined) delete environment[key];
+		else environment[key] = value;
+	}
+	return environment;
+}
+
 export async function execFallowProcess(
 	command: string,
 	args: string[],
 	cwd: string,
 	signal: AbortSignal | undefined,
 	timeoutSecs: number,
+	environment?: NodeJS.ProcessEnv,
 ): Promise<FallowProcessResult> {
 	if (signal?.aborted) {
 		return { stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled" };
@@ -95,7 +120,7 @@ export async function execFallowProcess(
 			detached: process.platform !== "win32",
 			shell: false,
 			stdio: ["ignore", "pipe", "pipe"],
-			env: process.env,
+			env: childEnvironment(environment),
 			windowsHide: true,
 		});
 		let stdout = "";
