@@ -1,0 +1,7 @@
+{
+  "package.json": "{\"name\":\"partial-certification-fixture\",\"private\":true,\"main\":\"valid.ts\"}\n",
+  "valid.ts": "export interface PublicType { value: string }\nexport function read(value: PublicType) { return value.value; }\n",
+  "broken.ts": "export function broken( {\n",
+  "tsconfig.valid.json": "{\"compilerOptions\":{\"noEmit\":true,\"strict\":true},\"files\":[\"valid.ts\"]}\n",
+  "tsconfig.broken.json": "{\"compilerOptions\":{\"noEmit\":true,\"strict\":true},\"files\":[\"broken.ts\"]}\n"
+}

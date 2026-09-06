@@ -1,6 +1,9 @@
 {
   "version": "3.21.0",
-  "inputSha256": "2272a5d687eeec2b258ca8dabac40adcd66f841d4deefd198f10f51f00396288",
+  "inputSha256": {
+    "base": "5a5426bfc0bde678d5be554684f958808cb95c7294ba07f1c610af057d1aa865",
+    "typeAwarePartial": "c63f7b237002649ad5073778b9b15ad3827bff41620201f262b19d85d9ac7caf"
+  },
   "reports": {
     "dead-code": {
       "args": [
@@ -140,6 +143,168 @@
         }
       }
     },
+    "dupes": {
+      "args": [
+        "dupes",
+        "--no-cache",
+        "--min-tokens",
+        "20",
+        "--min-lines",
+        "3",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "dupes",
+        "schema_version": 9,
+        "version": "3.21.0",
+        "elapsed_ms": 0,
+        "clone_groups": [
+          {
+            "instances": [
+              {
+                "file": "clone-a.js",
+                "start_line": 1,
+                "end_line": 7,
+                "start_col": 31,
+                "end_col": 41,
+                "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+              },
+              {
+                "file": "clone-b.js",
+                "start_line": 1,
+                "end_line": 7,
+                "start_col": 30,
+                "end_col": 41,
+                "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+              }
+            ],
+            "token_count": 102,
+            "line_count": 7,
+            "fingerprint": "dup:6f87acd9",
+            "spread": 0,
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "clone_families": [
+          {
+            "files": [
+              "clone-a.js",
+              "clone-b.js"
+            ],
+            "groups": [
+              {
+                "instances": [
+                  {
+                    "file": "clone-a.js",
+                    "start_line": 1,
+                    "end_line": 7,
+                    "start_col": 31,
+                    "end_col": 41,
+                    "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                  },
+                  {
+                    "file": "clone-b.js",
+                    "start_line": 1,
+                    "end_line": 7,
+                    "start_col": 30,
+                    "end_col": 41,
+                    "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                  }
+                ],
+                "token_count": 102,
+                "line_count": 7,
+                "fingerprint": "dup:6f87acd9",
+                "spread": 0,
+                "actions": [
+                  {
+                    "type": "extract-shared",
+                    "auto_fixable": false,
+                    "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+                  },
+                  {
+                    "type": "suppress-line",
+                    "auto_fixable": false,
+                    "description": "Suppress with an inline comment above the duplicated code",
+                    "comment": "// fallow-ignore-next-line code-duplication"
+                  }
+                ]
+              }
+            ],
+            "total_duplicated_lines": 7,
+            "total_duplicated_tokens": 102,
+            "suggestions": [
+              {
+                "kind": "ExtractFunction",
+                "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js",
+                "estimated_savings": 7
+              }
+            ],
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract 1 duplicated code block (7 lines) into a shared module",
+                "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+              },
+              {
+                "type": "apply-suggestion",
+                "auto_fixable": false,
+                "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "stats": {
+          "total_files": 4,
+          "files_with_clones": 2,
+          "total_lines": 23,
+          "duplicated_lines": 14,
+          "total_tokens": 274,
+          "duplicated_tokens": 102,
+          "clone_groups": 1,
+          "clone_instances": 2,
+          "duplication_percentage": 60.86956521739131
+        },
+        "next_steps": [
+          {
+            "id": "setup",
+            "command": "fallow schema",
+            "reason": "fallow has no config here; the manifest lists guided-setup commands (agent guide, commit gate) to offer the user"
+          },
+          {
+            "id": "trace-clone",
+            "command": "fallow dupes --trace dup:6f87acd9",
+            "reason": "see sibling locations and an extract-function suggestion"
+          }
+        ],
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
     "health": {
       "args": [
         "health",
@@ -156,15 +321,15 @@
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
-          "files_analyzed": 2,
-          "functions_analyzed": 2,
+          "files_analyzed": 5,
+          "functions_analyzed": 11,
           "functions_above_threshold": 0,
           "max_cyclomatic_threshold": 20,
           "max_cognitive_threshold": 15,
           "max_crap_threshold": 30,
           "max_unit_size_threshold": 60,
-          "files_scored": 1,
-          "average_maintainability": 88.8,
+          "files_scored": 4,
+          "average_maintainability": 95.9,
           "coverage_model": "static_estimated",
           "severity_critical_count": 0,
           "severity_high_count": 0,
@@ -172,27 +337,27 @@
         },
         "vital_signs": {
           "dead_file_pct": 0,
-          "dead_export_pct": 50,
+          "dead_export_pct": 20,
           "avg_cyclomatic": 1,
           "critical_complexity_pct": 0,
           "p90_cyclomatic": 1,
-          "duplication_pct": 0,
+          "duplication_pct": 87.5,
           "hotspot_count": 0,
           "hotspot_top_pct_count": 0,
-          "maintainability_avg": 88.8,
+          "maintainability_avg": 95.9,
           "maintainability_low_pct": 0,
           "unused_dep_count": 0,
           "unused_deps_per_k_files": 0,
           "circular_dep_count": 0,
           "circular_deps_per_k_files": 0,
           "counts": {
-            "total_files": 2,
-            "total_exports": 2,
+            "total_files": 5,
+            "total_exports": 5,
             "dead_files": 0,
             "dead_exports": 1,
-            "duplicated_lines": 0,
-            "total_lines": 6,
-            "files_scored": 1,
+            "duplicated_lines": 14,
+            "total_lines": 32,
+            "files_scored": 4,
             "total_deps": 0
           },
           "unit_size_profile": {
@@ -210,15 +375,15 @@
           },
           "p95_fan_in": 1,
           "coupling_high_pct": 0,
-          "total_loc": 6
+          "total_loc": 32
         },
         "health_score": {
           "formula_version": 2,
-          "score": 90,
+          "score": 86,
           "grade": "A",
           "penalties": {
             "dead_files": 0,
-            "dead_exports": 10,
+            "dead_exports": 4,
             "complexity": 0,
             "p90_complexity": 0,
             "maintainability": 0,
@@ -227,7 +392,7 @@
             "circular_deps": 0,
             "unit_size": 0,
             "coupling": 0,
-            "duplication": 0
+            "duplication": 10
           }
         },
         "file_scores": [
@@ -244,6 +409,48 @@
             "lines": 3,
             "crap_max": 2,
             "crap_above_threshold": 0
+          },
+          {
+            "path": "clone-a.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0,
+            "complexity_density": 0.44,
+            "maintainability_index": 97.6,
+            "total_cyclomatic": 4,
+            "total_cognitive": 0,
+            "function_count": 4,
+            "lines": 9,
+            "crap_max": 2,
+            "crap_above_threshold": 0
+          },
+          {
+            "path": "clone-b.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0,
+            "complexity_density": 0.44,
+            "maintainability_index": 97.6,
+            "total_cyclomatic": 4,
+            "total_cognitive": 0,
+            "function_count": 4,
+            "lines": 9,
+            "crap_max": 2,
+            "crap_above_threshold": 0
+          },
+          {
+            "path": "security.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0,
+            "complexity_density": 0.2,
+            "maintainability_index": 99.4,
+            "total_cyclomatic": 1,
+            "total_cognitive": 0,
+            "function_count": 1,
+            "lines": 5,
+            "crap_max": 2,
+            "crap_above_threshold": 0
           }
         ],
         "target_thresholds": {
@@ -253,6 +460,726 @@
           "fan_out_p90": 5
         },
         "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "security": {
+      "args": [
+        "security",
+        "--no-cache",
+        "--surface",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "security",
+        "schema_version": "8",
+        "version": "3.21.0",
+        "elapsed_ms": 0,
+        "config": {
+          "rules": {
+            "security_client_server_leak": {
+              "configured": "off",
+              "effective": "warn"
+            },
+            "security_sink": {
+              "configured": "off",
+              "effective": "warn"
+            }
+          },
+          "categories_include": null,
+          "categories_exclude": null
+        },
+        "security_findings": [
+          {
+            "finding_id": "6575a0a05f5fbdaf",
+            "kind": "tainted-sink",
+            "category": "command-injection",
+            "cwe": 78,
+            "path": "security.js",
+            "line": 3,
+            "col": 9,
+            "evidence": "Untrusted source reaches this sink (an argument traces to http request input). Non-literal command passed to exec(). Candidate for verification: confirm the command/args are not attacker-controlled.",
+            "source_backed": true,
+            "severity": "high",
+            "trace": [
+              {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "role": "sink"
+              }
+            ],
+            "actions": [
+              {
+                "type": "suppress-file",
+                "auto_fixable": false,
+                "description": "Suppress with a file-level comment at the top of the file",
+                "comment": "// fallow-ignore-file security-sink"
+              }
+            ],
+            "reachability": {
+              "reachable_from_entry": true,
+              "reachable_from_untrusted_source": true,
+              "taint_confidence": "arg-level",
+              "untrusted_source_hop_count": 0,
+              "untrusted_source_trace": [
+                {
+                  "path": "security.js",
+                  "line": 3,
+                  "col": 9,
+                  "role": "untrusted-source"
+                },
+                {
+                  "path": "security.js",
+                  "line": 3,
+                  "col": 9,
+                  "role": "sink"
+                }
+              ],
+              "blast_radius": 1,
+              "crosses_boundary": false
+            },
+            "candidate": {
+              "source_kind": "http-request-input",
+              "sink": {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "category": "command-injection",
+                "cwe": 78,
+                "callee": "exec"
+              },
+              "boundary": {
+                "client_server": false,
+                "cross_module": false
+              }
+            },
+            "taint_flow": {
+              "source": {
+                "path": "security.js",
+                "line": 3,
+                "col": 9
+              },
+              "sink": {
+                "path": "security.js",
+                "line": 3,
+                "col": 9
+              },
+              "path": {
+                "intra_module": true,
+                "cross_module_hops": 0
+              }
+            }
+          }
+        ],
+        "attack_surface": [
+          {
+            "source": {
+              "path": "security.js",
+              "line": 3,
+              "col": 9
+            },
+            "sink": {
+              "path": "security.js",
+              "line": 3,
+              "col": 9,
+              "category": "command-injection",
+              "cwe": 78,
+              "callee": "exec"
+            },
+            "path": [
+              {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "role": "untrusted-source"
+              },
+              {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "role": "sink"
+              }
+            ],
+            "defensive_boundary": {
+              "controls": [],
+              "verification_prompt": "No known control library was detected on this path. Should validation, sanitization, or auth be required before this sink?"
+            }
+          }
+        ],
+        "unresolved_edge_files": 0,
+        "unresolved_callee_sites": 0,
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "combined": {
+      "args": [
+        "--no-cache",
+        "--dupes-min-tokens",
+        "20",
+        "--dupes-min-lines",
+        "3",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "combined",
+        "schema_version": 11,
+        "version": "3.21.0",
+        "elapsed_ms": 0,
+        "check": {
+          "schema_version": 9,
+          "version": "3.21.0",
+          "elapsed_ms": 0,
+          "total_issues": 1,
+          "entry_points": {
+            "total": 1,
+            "sources": {
+              "package.json": 1
+            }
+          },
+          "summary": {
+            "total_issues": 1,
+            "unused_files": 0,
+            "unused_exports": 1,
+            "unused_types": 0,
+            "private_type_leaks": 0,
+            "unused_dependencies": 0,
+            "unused_enum_members": 0,
+            "unused_class_members": 0,
+            "unused_store_members": 0,
+            "unprovided_injects": 0,
+            "unrendered_components": 0,
+            "unused_component_props": 0,
+            "unused_component_emits": 0,
+            "unused_component_inputs": 0,
+            "unused_component_outputs": 0,
+            "unused_svelte_events": 0,
+            "unused_server_actions": 0,
+            "unused_load_data_keys": 0,
+            "unresolved_imports": 0,
+            "unlisted_dependencies": 0,
+            "duplicate_exports": 0,
+            "type_only_dependencies": 0,
+            "test_only_dependencies": 0,
+            "dev_dependencies_in_production": 0,
+            "circular_dependencies": 0,
+            "re_export_cycles": 0,
+            "boundary_violations": 0,
+            "boundary_coverage_violations": 0,
+            "boundary_call_violations": 0,
+            "policy_violations": 0,
+            "stale_suppressions": 0,
+            "unused_catalog_entries": 0,
+            "empty_catalog_groups": 0,
+            "unresolved_catalog_references": 0,
+            "unused_dependency_overrides": 0,
+            "misconfigured_dependency_overrides": 0,
+            "invalid_client_exports": 0,
+            "mixed_client_server_barrels": 0,
+            "misplaced_directives": 0,
+            "route_collisions": 0,
+            "dynamic_segment_name_conflicts": 0
+          },
+          "unused_files": [],
+          "unused_exports": [
+            {
+              "path": "lib.js",
+              "export_name": "unused",
+              "is_type_only": false,
+              "line": 2,
+              "col": 16,
+              "span_start": 66,
+              "is_re_export": false,
+              "actions": [
+                {
+                  "type": "remove-export",
+                  "auto_fixable": true,
+                  "description": "Remove the unused export from the public API"
+                },
+                {
+                  "type": "suppress-line",
+                  "auto_fixable": false,
+                  "description": "Suppress with an inline comment above the line",
+                  "comment": "// fallow-ignore-next-line unused-export"
+                }
+              ]
+            }
+          ],
+          "unused_types": [],
+          "private_type_leaks": [],
+          "unused_dependencies": [],
+          "unused_dev_dependencies": [],
+          "unused_optional_dependencies": [],
+          "unused_enum_members": [],
+          "unused_class_members": [],
+          "unresolved_imports": [],
+          "unlisted_dependencies": [],
+          "duplicate_exports": [],
+          "type_only_dependencies": [],
+          "test_only_dependencies": [],
+          "dev_dependencies_in_production": [],
+          "circular_dependencies": [],
+          "re_export_cycles": [],
+          "boundary_violations": [],
+          "boundary_coverage_violations": [],
+          "boundary_call_violations": [],
+          "policy_violations": [],
+          "stale_suppressions": [],
+          "unused_catalog_entries": [],
+          "empty_catalog_groups": [],
+          "unresolved_catalog_references": [],
+          "unused_dependency_overrides": [],
+          "misconfigured_dependency_overrides": [],
+          "invalid_client_exports": [],
+          "mixed_client_server_barrels": [],
+          "misplaced_directives": [],
+          "route_collisions": [],
+          "dynamic_segment_name_conflicts": []
+        },
+        "dupes": {
+          "clone_groups": [
+            {
+              "instances": [
+                {
+                  "file": "clone-a.js",
+                  "start_line": 1,
+                  "end_line": 7,
+                  "start_col": 31,
+                  "end_col": 41,
+                  "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                },
+                {
+                  "file": "clone-b.js",
+                  "start_line": 1,
+                  "end_line": 7,
+                  "start_col": 30,
+                  "end_col": 41,
+                  "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                }
+              ],
+              "token_count": 102,
+              "line_count": 7,
+              "fingerprint": "dup:6f87acd9",
+              "spread": 0,
+              "actions": [
+                {
+                  "type": "extract-shared",
+                  "auto_fixable": false,
+                  "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+                },
+                {
+                  "type": "suppress-line",
+                  "auto_fixable": false,
+                  "description": "Suppress with an inline comment above the duplicated code",
+                  "comment": "// fallow-ignore-next-line code-duplication"
+                }
+              ]
+            }
+          ],
+          "clone_families": [
+            {
+              "files": [
+                "clone-a.js",
+                "clone-b.js"
+              ],
+              "groups": [
+                {
+                  "instances": [
+                    {
+                      "file": "clone-a.js",
+                      "start_line": 1,
+                      "end_line": 7,
+                      "start_col": 31,
+                      "end_col": 41,
+                      "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                    },
+                    {
+                      "file": "clone-b.js",
+                      "start_line": 1,
+                      "end_line": 7,
+                      "start_col": 30,
+                      "end_col": 41,
+                      "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                    }
+                  ],
+                  "token_count": 102,
+                  "line_count": 7,
+                  "fingerprint": "dup:6f87acd9",
+                  "spread": 0,
+                  "actions": [
+                    {
+                      "type": "extract-shared",
+                      "auto_fixable": false,
+                      "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+                    },
+                    {
+                      "type": "suppress-line",
+                      "auto_fixable": false,
+                      "description": "Suppress with an inline comment above the duplicated code",
+                      "comment": "// fallow-ignore-next-line code-duplication"
+                    }
+                  ]
+                }
+              ],
+              "total_duplicated_lines": 7,
+              "total_duplicated_tokens": 102,
+              "suggestions": [
+                {
+                  "kind": "ExtractFunction",
+                  "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js",
+                  "estimated_savings": 7
+                }
+              ],
+              "actions": [
+                {
+                  "type": "extract-shared",
+                  "auto_fixable": false,
+                  "description": "Extract 1 duplicated code block (7 lines) into a shared module",
+                  "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+                },
+                {
+                  "type": "apply-suggestion",
+                  "auto_fixable": false,
+                  "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js"
+                },
+                {
+                  "type": "suppress-line",
+                  "auto_fixable": false,
+                  "description": "Suppress with an inline comment above the duplicated code",
+                  "comment": "// fallow-ignore-next-line code-duplication"
+                }
+              ]
+            }
+          ],
+          "stats": {
+            "total_files": 4,
+            "files_with_clones": 2,
+            "total_lines": 23,
+            "duplicated_lines": 14,
+            "total_tokens": 274,
+            "duplicated_tokens": 102,
+            "clone_groups": 1,
+            "clone_instances": 2,
+            "duplication_percentage": 60.86956521739131
+          }
+        },
+        "health": {
+          "findings": [],
+          "summary": {
+            "files_analyzed": 5,
+            "functions_analyzed": 11,
+            "functions_above_threshold": 0,
+            "max_cyclomatic_threshold": 20,
+            "max_cognitive_threshold": 15,
+            "max_crap_threshold": 30,
+            "max_unit_size_threshold": 60,
+            "files_scored": 4,
+            "average_maintainability": 95.9,
+            "coverage_model": "static_estimated",
+            "severity_critical_count": 0,
+            "severity_high_count": 0,
+            "severity_moderate_count": 0
+          },
+          "vital_signs": {
+            "dead_file_pct": 0,
+            "dead_export_pct": 20,
+            "avg_cyclomatic": 1,
+            "critical_complexity_pct": 0,
+            "p90_cyclomatic": 1,
+            "hotspot_count": 0,
+            "hotspot_top_pct_count": 0,
+            "maintainability_avg": 95.9,
+            "maintainability_low_pct": 0,
+            "unused_dep_count": 0,
+            "unused_deps_per_k_files": 0,
+            "circular_dep_count": 0,
+            "circular_deps_per_k_files": 0,
+            "counts": {
+              "total_files": 5,
+              "total_exports": 5,
+              "dead_files": 0,
+              "dead_exports": 1,
+              "total_lines": 32,
+              "files_scored": 4,
+              "total_deps": 0
+            },
+            "unit_size_profile": {
+              "low_risk": 100,
+              "medium_risk": 0,
+              "high_risk": 0,
+              "very_high_risk": 0
+            },
+            "functions_over_60_loc_per_k": 0,
+            "unit_interfacing_profile": {
+              "low_risk": 100,
+              "medium_risk": 0,
+              "high_risk": 0,
+              "very_high_risk": 0
+            },
+            "p95_fan_in": 1,
+            "coupling_high_pct": 0,
+            "total_loc": 32
+          },
+          "file_scores": [
+            {
+              "path": "lib.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0.5,
+              "complexity_density": 0.67,
+              "maintainability_index": 88.8,
+              "total_cyclomatic": 2,
+              "total_cognitive": 0,
+              "function_count": 2,
+              "lines": 3,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            },
+            {
+              "path": "clone-a.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0,
+              "complexity_density": 0.44,
+              "maintainability_index": 97.6,
+              "total_cyclomatic": 4,
+              "total_cognitive": 0,
+              "function_count": 4,
+              "lines": 9,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            },
+            {
+              "path": "clone-b.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0,
+              "complexity_density": 0.44,
+              "maintainability_index": 97.6,
+              "total_cyclomatic": 4,
+              "total_cognitive": 0,
+              "function_count": 4,
+              "lines": 9,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            },
+            {
+              "path": "security.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0,
+              "complexity_density": 0.2,
+              "maintainability_index": 99.4,
+              "total_cyclomatic": 1,
+              "total_cognitive": 0,
+              "function_count": 1,
+              "lines": 5,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            }
+          ],
+          "target_thresholds": {
+            "fan_in_p95": 5,
+            "fan_in_p75": 3,
+            "fan_out_p95": 8,
+            "fan_out_p90": 5
+          }
+        },
+        "next_steps": [
+          {
+            "id": "setup",
+            "command": "fallow schema",
+            "reason": "fallow has no config here; the manifest lists guided-setup commands (agent guide, commit gate) to offer the user"
+          },
+          {
+            "id": "trace-unused-export",
+            "command": "fallow dead-code --trace lib.js:unused",
+            "reason": "verify an export is truly unused before deleting"
+          },
+          {
+            "id": "trace-clone",
+            "command": "fallow dupes --trace dup:6f87acd9",
+            "reason": "see sibling locations and an extract-function suggestion"
+          }
+        ],
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "type-aware-unavailable": {
+      "args": [
+        "health",
+        "--no-cache",
+        "--type-aware",
+        "--type-aware-project",
+        "missing-tsconfig.json",
+        "--type-coupling",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "health",
+        "schema_version": 11,
+        "version": "3.21.0",
+        "elapsed_ms": 0,
+        "findings": [],
+        "summary": {
+          "files_analyzed": 5,
+          "functions_analyzed": 11,
+          "functions_above_threshold": 0,
+          "max_cyclomatic_threshold": 20,
+          "max_cognitive_threshold": 15,
+          "max_crap_threshold": 30,
+          "max_unit_size_threshold": 60,
+          "severity_critical_count": 0,
+          "severity_high_count": 0,
+          "severity_moderate_count": 0
+        },
+        "vital_signs": {
+          "dead_file_pct": 0,
+          "dead_export_pct": 20,
+          "avg_cyclomatic": 1,
+          "critical_complexity_pct": 0,
+          "p90_cyclomatic": 1,
+          "maintainability_avg": 95.9,
+          "maintainability_low_pct": 0,
+          "unused_dep_count": 0,
+          "unused_deps_per_k_files": 0,
+          "circular_dep_count": 0,
+          "circular_deps_per_k_files": 0,
+          "counts": {
+            "total_files": 5,
+            "total_exports": 5,
+            "dead_files": 0,
+            "dead_exports": 1,
+            "total_lines": 32,
+            "files_scored": 4,
+            "total_deps": 0
+          },
+          "unit_size_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "functions_over_60_loc_per_k": 0,
+          "unit_interfacing_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "p95_fan_in": 1,
+          "coupling_high_pct": 0,
+          "total_loc": 32
+        },
+        "_meta": {
+          "type_aware": {
+            "identity": {
+              "mode": "type-aware",
+              "semantic_schema_version": 3,
+              "capabilities": [
+                "type-coupling"
+              ],
+              "project_config_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "backend_family": "typescript-go",
+              "completeness": "unavailable"
+            },
+            "required_completeness": "best-effort",
+            "queries": [
+              {
+                "query_id": 0,
+                "capability": "type-coupling",
+                "assertion": "no-coupling-found",
+                "status": "unavailable",
+                "reason_code": "no-project",
+                "total_evidence_count": 0,
+                "truncated": false,
+                "omissions": [
+                  {
+                    "reason_code": "no-project",
+                    "count": 1
+                  }
+                ],
+                "actions": [
+                  "Pass an explicit tsconfig with --type-aware-project and retry."
+                ]
+              }
+            ],
+            "type_coupling": {
+              "identity": {
+                "mode": "type-aware",
+                "semantic_schema_version": 3,
+                "capabilities": [
+                  "type-coupling"
+                ],
+                "project_config_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "backend_family": "typescript-go",
+                "completeness": "unavailable"
+              },
+              "assertion": "no-coupling-found",
+              "status": "unavailable",
+              "files": [],
+              "omissions": [
+                {
+                  "reason_code": "no-project",
+                  "count": 1
+                }
+              ],
+              "actions": [
+                "Pass an explicit tsconfig with --type-aware-project and retry."
+              ]
+            },
+            "executed": true,
+            "protocol_version": 7,
+            "sidecar_version": "3.21.0",
+            "backend": "typescript-go",
+            "backend_version": "7.0.2",
+            "selected_tsconfigs": [],
+            "candidate_count": 0,
+            "confirmed_used_count": 0,
+            "contract_preserved_count": 0,
+            "no_static_references_count": 0,
+            "fix_eligible_count": 0,
+            "unresolved_count": 0,
+            "abstained_count": 0,
+            "abstention_reasons": {
+              "no_project": 0,
+              "ambiguous_project": 0,
+              "blocking_diagnostics": 0,
+              "svelte_virtual_module_exports": 0,
+              "unknown_symbol": 0,
+              "unsupported_syntax": 0,
+              "capacity": 0
+            },
+            "projects": [],
+            "warning_count": 0,
+            "warnings": [],
+            "elapsed_ms": 0,
+            "phase_timings_ms": {
+              "project_setup": 0,
+              "diagnostics": 0,
+              "symbol_scan": 0
+            }
+          },
           "telemetry": {
             "analysis_run_id": "<RUN_ID>"
           }
@@ -347,6 +1274,225 @@
         "error": true,
         "message": "error: the following required arguments were not provided:\n  --candidates <PATH>\n  --verdicts <PATH>\n\nUsage: fallow similar-code review --candidates <PATH> --verdicts <PATH> --format <FORMAT> --quiet\n\nFor more information, try '--help'.",
         "exit_code": 2
+      }
+    },
+    "type-aware-partial": {
+      "args": [
+        "health",
+        "--no-cache",
+        "--type-aware",
+        "--type-aware-project",
+        "tsconfig.valid.json",
+        "--type-aware-project",
+        "tsconfig.broken.json",
+        "--type-coupling",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "health",
+        "schema_version": 11,
+        "version": "3.21.0",
+        "elapsed_ms": 0,
+        "findings": [],
+        "summary": {
+          "files_analyzed": 2,
+          "functions_analyzed": 1,
+          "functions_above_threshold": 0,
+          "max_cyclomatic_threshold": 20,
+          "max_cognitive_threshold": 15,
+          "max_crap_threshold": 30,
+          "max_unit_size_threshold": 60,
+          "severity_critical_count": 0,
+          "severity_high_count": 0,
+          "severity_moderate_count": 0
+        },
+        "vital_signs": {
+          "dead_file_pct": 50,
+          "dead_export_pct": 0,
+          "avg_cyclomatic": 1,
+          "critical_complexity_pct": 0,
+          "p90_cyclomatic": 1,
+          "maintainability_avg": 99.4,
+          "maintainability_low_pct": 0,
+          "unused_dep_count": 0,
+          "unused_deps_per_k_files": 0,
+          "circular_dep_count": 0,
+          "circular_deps_per_k_files": 0,
+          "counts": {
+            "total_files": 2,
+            "total_exports": 2,
+            "dead_files": 1,
+            "dead_exports": 0,
+            "total_lines": 5,
+            "files_scored": 1,
+            "total_deps": 0
+          },
+          "unit_size_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "functions_over_60_loc_per_k": 0,
+          "unit_interfacing_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "p95_fan_in": 0,
+          "coupling_high_pct": 0,
+          "total_loc": 5
+        },
+        "_meta": {
+          "type_aware": {
+            "identity": {
+              "mode": "type-aware",
+              "semantic_schema_version": 3,
+              "capabilities": [
+                "type-coupling"
+              ],
+              "project_config_hash": "sha256:bc2575347694668c5559421596eeba33d2b239faeb572ff741d964e75947dce8",
+              "backend_family": "typescript-go",
+              "completeness": "partial"
+            },
+            "required_completeness": "best-effort",
+            "queries": [
+              {
+                "query_id": 0,
+                "capability": "type-coupling",
+                "assertion": "no-coupling-found",
+                "status": "partial",
+                "reason_code": "blocking-diagnostics",
+                "total_evidence_count": 0,
+                "truncated": false,
+                "omissions": [
+                  {
+                    "reason_code": "blocking-diagnostics",
+                    "count": 1
+                  }
+                ],
+                "actions": [
+                  "Repair structural TypeScript diagnostics in every selected project and retry."
+                ]
+              }
+            ],
+            "type_coupling": {
+              "identity": {
+                "mode": "type-aware",
+                "semantic_schema_version": 3,
+                "capabilities": [
+                  "type-coupling"
+                ],
+                "project_config_hash": "sha256:bc2575347694668c5559421596eeba33d2b239faeb572ff741d964e75947dce8",
+                "backend_family": "typescript-go",
+                "completeness": "partial"
+              },
+              "assertion": "no-coupling-found",
+              "status": "partial",
+              "summary": {
+                "scope": "project-local-public-signatures",
+                "direction": "directed",
+                "project_size": 1,
+                "files_analyzed": 1,
+                "distinct_coupled_files": 0,
+                "edge_count": 0,
+                "coupled_file_pct": 0,
+                "p50_distinct_connections": 0,
+                "p90_distinct_connections": 0,
+                "p95_public_types_used_by": 0,
+                "p95_public_api_depends_on": 0,
+                "high_coupling_pct": 0,
+                "concentration": 0,
+                "cycle_count": 0
+              },
+              "files": [],
+              "omissions": [
+                {
+                  "reason_code": "blocking-diagnostics",
+                  "count": 1
+                }
+              ],
+              "actions": [
+                "Repair structural TypeScript diagnostics in every selected project and retry."
+              ]
+            },
+            "executed": true,
+            "protocol_version": 7,
+            "sidecar_version": "3.21.0",
+            "backend": "typescript-go",
+            "backend_version": "7.0.2",
+            "selected_tsconfigs": [
+              "tsconfig.broken.json",
+              "tsconfig.valid.json"
+            ],
+            "candidate_count": 0,
+            "confirmed_used_count": 0,
+            "contract_preserved_count": 0,
+            "no_static_references_count": 0,
+            "fix_eligible_count": 0,
+            "unresolved_count": 0,
+            "abstained_count": 0,
+            "abstention_reasons": {
+              "no_project": 0,
+              "ambiguous_project": 0,
+              "blocking_diagnostics": 0,
+              "svelte_virtual_module_exports": 0,
+              "unknown_symbol": 0,
+              "unsupported_syntax": 0,
+              "capacity": 0
+            },
+            "projects": [
+              {
+                "config": "tsconfig.broken.json",
+                "source": "explicit",
+                "status": "unavailable",
+                "candidate_count": 0,
+                "confirmed_used_count": 0,
+                "contract_preserved_count": 0,
+                "no_static_references_count": 0,
+                "fix_eligible_count": 0,
+                "unresolved_count": 0,
+                "abstained_count": 0,
+                "blocking_diagnostic_count": 1,
+                "source_file_count": 83,
+                "program_reused": false,
+                "program_shared_across_queries": false,
+                "reason_code": "blocking-diagnostics"
+              },
+              {
+                "config": "tsconfig.valid.json",
+                "source": "explicit",
+                "status": "complete",
+                "candidate_count": 0,
+                "confirmed_used_count": 0,
+                "contract_preserved_count": 0,
+                "no_static_references_count": 0,
+                "fix_eligible_count": 0,
+                "unresolved_count": 0,
+                "abstained_count": 0,
+                "blocking_diagnostic_count": 0,
+                "source_file_count": 83,
+                "program_reused": false,
+                "program_shared_across_queries": false
+              }
+            ],
+            "warning_count": 0,
+            "warnings": [],
+            "elapsed_ms": 0,
+            "phase_timings_ms": {
+              "project_setup": 0,
+              "diagnostics": 0,
+              "symbol_scan": 0
+            }
+          },
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
       }
     }
   },

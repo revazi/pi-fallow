@@ -1,5 +1,8 @@
 {
   "package.json": "{\"name\":\"certification-fixture\",\"private\":true,\"type\":\"module\",\"main\":\"index.js\"}\n",
-  "index.js": "import { used } from './lib.js';\nconsole.log(used(2));\n",
-  "lib.js": "export function used(value) { return value + 1; }\nexport function unused(value) { return value - 1; }\n"
+  "index.js": "import { used } from './lib.js';\nimport { runCommand } from './security.js';\nimport { summarizeAlpha } from './clone-a.js';\nimport { summarizeBeta } from './clone-b.js';\nconsole.log(used(2), runCommand, summarizeAlpha([]), summarizeBeta([]));\n",
+  "lib.js": "export function used(value) { return value + 1; }\nexport function unused(value) { return value - 1; }\n",
+  "security.js": "import { exec } from 'node:child_process';\nexport function runCommand(req) {\n  return exec(req.query.command);\n}\n",
+  "clone-a.js": "export function summarizeAlpha(records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined };\n}\n",
+  "clone-b.js": "export function summarizeBeta(records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined };\n}\n"
 }

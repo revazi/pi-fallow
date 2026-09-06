@@ -10,13 +10,23 @@ const repository = fileURLToPath(new URL("../", import.meta.url));
 const fixtures = join(repository, "tests/fixtures/fallow");
 const reportCommands = {
 	"dead-code": ["dead-code", "--no-cache"],
+	"dupes": ["dupes", "--no-cache", "--min-tokens", "20", "--min-lines", "3"],
 	"health": ["health", "--no-cache"],
+	"security": ["security", "--no-cache", "--surface"],
+	"combined": ["--no-cache", "--dupes-min-tokens", "20", "--dupes-min-lines", "3"],
+	"type-aware-unavailable": ["health", "--no-cache", "--type-aware", "--type-aware-project", "missing-tsconfig.json", "--type-coupling"],
 	"similar-status": ["similar-code", "status"],
 	"similar-missing-model": ["similar-code", "--no-cache"],
 	"coverage-missing-value": ["coverage", "analyze", "--runtime-coverage"],
 	"inspect-missing-inputs": ["similar-code", "inspect"],
 	"review-missing-inputs": ["similar-code", "review"],
 };
+const typeAwarePartialCommand = [
+	"health", "--no-cache", "--type-aware",
+	"--type-aware-project", "tsconfig.valid.json",
+	"--type-aware-project", "tsconfig.broken.json",
+	"--type-coupling",
+];
 const helpCommands = {
 	"coverage-analyze": ["coverage", "analyze"],
 	"similar-discovery": ["similar-code"],
@@ -44,10 +54,21 @@ function execute(args, root) {
 function normalizeReport(report) {
 	// Only measured nondeterminism is replaced. Preserve all actionable and
 	// completeness fields, including unknown fields, in the frozen evidence.
-	if ("elapsed_ms" in report) report.elapsed_ms = 0;
+	normalizeNumericProperty(report, "elapsed_ms");
+	normalizeNumericProperty(report.check, "elapsed_ms");
+	normalizeTypeAwareTimings(report._meta?.type_aware);
 	normalizeRunIdentity(report._meta);
 	if (report.kind === "similar-code-status") report.cache_dir = "<ISOLATED_MODEL_CACHE>";
 	return report;
+}
+
+function normalizeNumericProperty(record, key) {
+	if (record && key in record) record[key] = 0;
+}
+
+function normalizeTypeAwareTimings(typeAware) {
+	normalizeNumericProperty(typeAware, "elapsed_ms");
+	for (const key of Object.keys(typeAware?.phase_timings_ms ?? {})) typeAware.phase_timings_ms[key] = 0;
 }
 
 function normalizeRunIdentity(meta) {
@@ -68,35 +89,50 @@ export function projectHelp(text) {
 
 export async function collectReportEvidence() {
 	const projectText = await readFile(join(fixtures, "report-project.json"), "utf8");
+	const partialProjectText = await readFile(join(fixtures, "report-partial-project.json"), "utf8");
 	const manifest = JSON.parse(await readFile(join(repository, "package.json"), "utf8"));
-	const root = await mkdtemp(join(tmpdir(), "pi-fallow-certification-"));
+	const container = await mkdtemp(join(tmpdir(), "pi-fallow-certification-"));
+	const root = join(container, "base");
+	const partialRoot = join(container, "type-aware-partial");
 	try {
-		await mkdir(join(root, "node_modules"));
-		for (const [name, content] of Object.entries(JSON.parse(projectText))) {
-			assert.equal(dirname(name), ".", "capture inputs must be flat project files");
-			await writeFile(join(root, name), content);
-		}
+		await mkdir(root);
+		await materializeProject(root, projectText);
+		await mkdir(partialRoot);
+		await materializeProject(partialRoot, partialProjectText);
 		const versionResult = execute(["--version"], root);
 		assert.equal(versionResult.status, 0, "pinned executable version check failed");
 		const version = versionResult.stdout.split("\n")[0].trim();
 		assert.equal(version, `fallow ${manifest.devDependencies.fallow}`, "capture requires the pinned Fallow target");
 		return {
 			version: manifest.devDependencies.fallow,
-			inputSha256: createHash("sha256").update(projectText).digest("hex"),
-			reports: captureReports(root),
+			inputSha256: {
+				base: createHash("sha256").update(projectText).digest("hex"),
+				typeAwarePartial: createHash("sha256").update(partialProjectText).digest("hex"),
+			},
+			reports: { ...captureReports(root), "type-aware-partial": captureReport(partialRoot, typeAwarePartialCommand) },
 			help: captureHelp(root),
 		};
 	} finally {
-		await rm(root, { recursive: true, force: true });
+		await rm(container, { recursive: true, force: true });
+	}
+}
+
+async function materializeProject(root, projectText) {
+	await mkdir(join(root, "node_modules"));
+	for (const [name, content] of Object.entries(JSON.parse(projectText))) {
+		assert.equal(dirname(name), ".", "capture inputs must be flat project files");
+		await writeFile(join(root, name), content);
 	}
 }
 
 function captureReports(root) {
-	return Object.fromEntries(Object.entries(reportCommands).map(([id, command]) => {
-		const args = [...command, "--format", "json", "--quiet"];
-		const result = execute(args, root);
-		return [id, { args, exitCode: result.status, report: normalizeReport(JSON.parse(result.stdout)) }];
-	}));
+	return Object.fromEntries(Object.entries(reportCommands).map(([id, command]) => [id, captureReport(root, command)]));
+}
+
+function captureReport(root, command) {
+	const args = [...command, "--format", "json", "--quiet"];
+	const result = execute(args, root);
+	return { args, exitCode: result.status, report: normalizeReport(JSON.parse(result.stdout)) };
 }
 
 function captureHelp(root) {

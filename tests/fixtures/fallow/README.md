@@ -60,13 +60,20 @@ user-facing installed-capability diagnostics remain separate work (#77).
 
 ## Captured report and nested-command evidence
 
-`reports-3.21.0.json` contains seven real CLI JSON reports and four projected help
-contracts. `report-project.json` holds the complete tiny input project; its SHA-256
-is recorded in the evidence. The capture script records the exact CLI tokens,
-exit status, and report for each case:
+`reports-3.21.0.json` contains twelve real CLI JSON reports and four projected
+help contracts. `report-project.json` and `report-partial-project.json` hold the
+complete tiny input projects; both SHA-256 digests are recorded in the evidence.
+The capture script records exact CLI tokens, exit status, and report for each case:
 
 - dead-code: one actionable unused export, exit 1 (findings, not a crash);
-- health: no threshold findings, with an informational file score;
+- duplication: one cross-file clone group under explicit tiny-fixture thresholds;
+- health: no threshold findings, with informational file scores;
+- security: one source-backed command-injection candidate and attack-surface path;
+- combined: deterministic dead-code/duplication findings and health context (bare
+  combined analysis intentionally does not include the separate security surface);
+- type-aware unavailable: advisory no-project evidence from the real companion;
+- type-aware partial: one complete and one structurally blocked TypeScript project,
+  preserving blocking-diagnostic omissions from the real companion;
 - similar-code status: pinned-model provenance with an isolated, missing model;
 - similar-code discovery: the real missing-model failure, without inference;
 - coverage analyze: missing runtime-coverage option value;
@@ -88,9 +95,10 @@ clear, fixes, or successful model inference. No optional companion installation
 is attempted. Signature verification by the npm executable wrapper may use its
 existing package-local verification marker.
 
-Normalization is explicit: top-level `elapsed_ms` becomes 0; telemetry
-`analysis_run_id` becomes `<RUN_ID>`; the status report's machine-specific model
-cache path becomes `<ISOLATED_MODEL_CACHE>`. No finding, source location, action,
+Normalization is explicit: top-level and combined-child `elapsed_ms` become 0;
+type-aware elapsed and phase timings become 0; telemetry `analysis_run_id` becomes
+`<RUN_ID>`; the status report's machine-specific model cache path becomes
+`<ISOLATED_MODEL_CACHE>`. No finding, source location, action,
 error, model identity, or completeness data is removed. Stderr is not archived;
 these fixtures certify JSON stdout and exit codes, not diagnostic logging.
 
@@ -102,8 +110,7 @@ schema parser or proof that all declared options execute successfully.
 
 `tests/report-certification.test.mjs` exercises JSON parsing, normalization,
 bounded output, and readable complete-report retention using these captures.
-It also injects **synthetic** partial type-aware metadata into the captured health
-report to test advisory-state retention; that test is not live semantic evidence.
+Real unavailable and partial companion reports test advisory-state retention.
 Mutation tests remove/change actionable fields, schema identity, required nested
 inputs, and option arity. Live smoke recaptures evidence and requires the known
 fields to match, allowing additive object fields. Array contents/counts are exact
@@ -111,9 +118,9 @@ for this fixed input, not a general comparison of arbitrary projects.
 
 ### Remaining #83 scope
 
-This is an initial slice, not closure of #83. Successful `coverage analyze` needs
+This remains short of full closure of #83. Successful `coverage analyze` needs
 the optional `fallow-cov` companion, which is not in the current development
 package. Model-backed discovery and successful source-grounded inspect/review
-are not certified here. Additional representative security, duplication,
-combined, and real partial reports also remain future coverage. These gaps must
-not be inferred as supported from help-only or failure-path checks.
+are not certified here. Audit/change-gate and other specialized report layouts
+remain future coverage. These gaps must not be inferred as supported from
+help-only or failure-path checks.

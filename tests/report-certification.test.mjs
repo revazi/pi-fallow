@@ -28,8 +28,10 @@ describe("captured report and nested-command certification", () => {
 	it("binds offline evidence to the pinned version and reproducible project input", async () => {
 		const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 		const project = await readFile(new URL("./fixtures/fallow/report-project.json", import.meta.url));
+		const partialProject = await readFile(new URL("./fixtures/fallow/report-partial-project.json", import.meta.url));
 		assert.equal(frozen.version, manifest.devDependencies.fallow);
-		assert.equal(frozen.inputSha256, createHash("sha256").update(project).digest("hex"));
+		assert.equal(frozen.inputSha256.base, createHash("sha256").update(project).digest("hex"));
+		assert.equal(frozen.inputSha256.typeAwarePartial, createHash("sha256").update(partialProject).digest("hex"));
 		assertEvidenceSubset(frozen, frozen);
 	});
 
@@ -68,8 +70,63 @@ describe("captured report and nested-command certification", () => {
 		const report = getNormalizedFallowReport(view);
 		assert.equal(view.status, "success");
 		assert.equal(report.findingCount, 0);
-		assert.equal(report.contextCount, 1);
-		assert.equal(allNormalizedFallowEntries(report)[0].role, "context");
+		assert.equal(report.contextCount, 4);
+		assert.ok(allNormalizedFallowEntries(report).every((entry) => entry.role === "context"));
+	});
+
+	it("normalizes real duplication and security candidates as advisory findings", () => {
+		const cases = [
+			["dupes", "clone-a.js", "clone #1", /clone-b\.js:1/],
+			["security", "security.js", "tainted-sink: command-injection", /file-level comment/],
+		];
+		for (const [id, path, subject, action] of cases) {
+			const view = overview(id);
+			const report = getNormalizedFallowReport(view);
+			assert.equal(view.status, "warning", id);
+			assert.equal(report.findingCount, 1, id);
+			const [entry] = allNormalizedFallowEntries(report);
+			assert.equal(entry.path, path, id);
+			assert.equal(entry.subject, subject, id);
+			assert.match(entry.action, action, id);
+		}
+		const candidate = frozen.reports.security.report.security_findings[0];
+		assert.equal(candidate.source_backed, true);
+		assert.equal(candidate.reachability.taint_confidence, "arg-level");
+		assert.equal(candidate.candidate.sink.cwe, 78);
+		assert.equal(candidate.taint_flow.path.intra_module, true);
+		assert.equal(frozen.reports.security.report.attack_surface.length, 1);
+	});
+
+	it("keeps combined child findings deterministic without folding security into bare analysis", () => {
+		const view = overview("combined");
+		const report = getNormalizedFallowReport(view);
+		const entries = allNormalizedFallowEntries(report);
+		assert.equal(view.title, "Fallow full analysis");
+		assert.equal(report.findingCount, 2);
+		assert.equal(report.contextCount, 4);
+		assert.deepEqual(entries.filter((entry) => entry.role === "finding").map((entry) => [entry.section, entry.path]), [
+			["Dead code · Unused exports", "lib.js"],
+			["Dupes · Clone groups", "clone-a.js"],
+		]);
+		assert.equal("security_findings" in frozen.reports.combined.report, false);
+	});
+
+	it("retains real unavailable type-aware evidence as explicitly advisory", async () => {
+		const evidence = frozen.reports["type-aware-unavailable"];
+		const typeAware = evidence.report._meta.type_aware;
+		assert.equal(typeAware.executed, true);
+		assert.equal(typeAware.identity.completeness, "unavailable");
+		assert.equal(typeAware.type_coupling.status, "unavailable");
+		assert.equal(typeAware.type_coupling.omissions[0].reason_code, "no-project");
+		const view = overview("type-aware-unavailable");
+		assert.match(view.notes.join("\n"), /advisory/);
+		assert.match(view.notes.join("\n"), /evidence is unavailable/);
+		const result = await formatToolOutput(parseJson(JSON.stringify(evidence.report), ""), "/fixture", 0, true, "findings");
+		try {
+			assert.deepEqual(JSON.parse(await readFile(result.fullOutputPath, "utf8")), evidence.report);
+		} finally {
+			await rm(dirname(result.fullOutputPath), { recursive: true, force: true });
+		}
 	});
 
 	it("retains pinned-model readiness and missing-input errors without proposing automatic setup", () => {
@@ -87,18 +144,19 @@ describe("captured report and nested-command certification", () => {
 		}
 	});
 
-	it("retains synthetic partial semantic evidence injected into a captured health report", async () => {
-		// Synthetic mutation, NOT evidence of a real companion/inference run.
-		const report = structuredClone(frozen.reports.health.report);
-		report._meta.type_aware = {
-			executed: true, identity: { completeness: "partial" },
-			type_coupling: { status: "partial", diagnostics: [{ message: "Fixture-only missing project" }] },
-		};
-		const result = await formatToolOutput(parseJson(JSON.stringify(report), ""), "/fixture", 0, true, "findings");
+	it("retains real partial type-aware evidence from one complete and one blocked project", async () => {
+		const evidence = frozen.reports["type-aware-partial"];
+		const typeAware = evidence.report._meta.type_aware;
+		assert.equal(typeAware.executed, true);
+		assert.equal(typeAware.identity.completeness, "partial");
+		assert.equal(typeAware.type_coupling.status, "partial");
+		assert.equal(typeAware.type_coupling.omissions[0].reason_code, "blocking-diagnostics");
+		assert.deepEqual(typeAware.projects.map((project) => project.status), ["unavailable", "complete"]);
+		const result = await formatToolOutput(parseJson(JSON.stringify(evidence.report), ""), "/fixture", 0, true, "findings");
 		try {
 			assert.match(result.overview.notes.join("\n"), /advisory/);
 			assert.match(result.overview.notes.join("\n"), /evidence is partial/);
-			assert.deepEqual(JSON.parse(await readFile(result.fullOutputPath, "utf8")), report);
+			assert.deepEqual(JSON.parse(await readFile(result.fullOutputPath, "utf8")), evidence.report);
 		} finally {
 			await rm(dirname(result.fullOutputPath), { recursive: true, force: true });
 		}
@@ -109,6 +167,10 @@ describe("captured report and nested-command certification", () => {
 			[(data) => { data.reports["dead-code"].report.schema_version = 99; }, /dead-code.report.schema_version/],
 			[(data) => { delete data.reports["dead-code"].report.unused_exports[0].path; }, /unused_exports.0.path/],
 			[(data) => { data.reports.health.report.findings = null; }, /health.report.findings/],
+			[(data) => { delete data.reports.dupes.report.clone_groups[0].instances[0].file; }, /dupes.report.clone_groups.0.instances.0.file/],
+			[(data) => { data.reports.security.report.security_findings[0].candidate.sink.cwe = 0; }, /security.report.security_findings.0.candidate.sink.cwe/],
+			[(data) => { data.reports["type-aware-unavailable"].report._meta.type_aware.identity.completeness = "complete"; }, /type-aware-unavailable.*completeness/],
+			[(data) => { data.reports["type-aware-partial"].report._meta.type_aware.projects[0].status = "complete"; }, /type-aware-partial.*projects.0.status/],
 			[(data) => { data.reports["similar-status"].report.model_ready = true; }, /similar-status.report.model_ready/],
 		]) assert.throws(() => assertEvidenceSubset(mutateEvidence(change), frozen), message);
 		const additive = mutateEvidence((data) => {
