@@ -1,5 +1,7 @@
 import { asRecord } from "./data";
 import { getNormalizedFallowReport, retainNormalizedFallowEntry } from "./normalized-report";
+import { appendContextSection } from "./overview-section";
+import { addRuntimeCoverageOverview, isRuntimeCoverageWarning } from "./runtime-coverage-report";
 import { addSimilarCodeOverview, isSimilarCodeWarning } from "./similar-code-report";
 import type { FallowIssueLine, FallowOverview, FallowOverviewSection } from "./types";
 
@@ -419,9 +421,9 @@ function symbolImpactTarget(target: Record<string, any>): string | undefined {
 }
 
 function addSymbolImpactSections(root: Record<string, any>, sections: FallowOverviewSection[], includeAllRaw: boolean): void {
-	appendSemanticContextSection(sections, "Direct consumers", asArray(root.direct_consumers), includeAllRaw, buildSymbolImpactEvidence);
-	appendSemanticContextSection(sections, "Affected files", asArray(root.affected_files), includeAllRaw, buildSymbolImpactEvidence);
-	appendSemanticContextSection(sections, "Targeted tests", asArray(root.targeted_tests), includeAllRaw, buildSymbolImpactEvidence);
+	appendContextSection(sections, "Direct consumers", asArray(root.direct_consumers), includeAllRaw, INLINE_RAW_DEFAULT, buildSymbolImpactEvidence);
+	appendContextSection(sections, "Affected files", asArray(root.affected_files), includeAllRaw, INLINE_RAW_DEFAULT, buildSymbolImpactEvidence);
+	appendContextSection(sections, "Targeted tests", asArray(root.targeted_tests), includeAllRaw, INLINE_RAW_DEFAULT, buildSymbolImpactEvidence);
 }
 
 function buildSymbolImpactEvidence(entry: unknown, includeRaw: boolean): FallowIssueLine {
@@ -447,23 +449,6 @@ function symbolImpactVia(evidence: Record<string, any>): string | undefined {
 	const via = asArray(evidence.via);
 	if (!via.length) return undefined;
 	return `via ${via.join(" → ")}`;
-}
-
-function appendSemanticContextSection(
-	sections: FallowOverviewSection[],
-	title: string,
-	entries: unknown[],
-	includeAllRaw: boolean,
-	buildItem: (entry: unknown, includeRaw: boolean) => FallowIssueLine,
-): void {
-	if (!entries.length) return;
-	sections.push({
-		title,
-		count: entries.length,
-		color: "accent",
-		role: "context",
-		items: entries.map((entry, index) => buildItem(entry, includeAllRaw || index < INLINE_RAW_DEFAULT)),
-	});
 }
 
 function addSymbolImpactWarning(status: unknown, notes: string[]): void {
@@ -512,7 +497,7 @@ function addTypeCouplingMetadata(
 	const files = asArray(coupling.files);
 	addIfDefinedStat(stats, "type coupling", coupling.status);
 	addIfDefinedStat(stats, "coupled files", files.length);
-	appendSemanticContextSection(sections, "Type coupling", files, includeAllRaw, buildTypeCouplingEvidence);
+	appendContextSection(sections, "Type coupling", files, includeAllRaw, INLINE_RAW_DEFAULT, buildTypeCouplingEvidence);
 	notes.push("Type-coupling evidence is advisory and does not change the health score.");
 }
 
@@ -819,6 +804,7 @@ export function buildFallowOverview(
 	addProjectIssuesMetadata(root, stats, title, notes);
 	addConfigStats(root, stats, title);
 	addOverviewSections(root, sections, title, includeAllRaw);
+	addRuntimeCoverageOverview(root, stats, sections, title, notes, includeAllRaw);
 	addSimilarCodeOverview(root, stats, sections, title, notes, includeAllRaw);
 	addSemanticEvidence(root, stats, sections, title, notes, includeAllRaw);
 	addFeatureFlags(root, sections, title, includeAllRaw);
@@ -872,6 +858,7 @@ function isFallowErrorState(root: Record<string, any>, exitCode: number): boolea
 
 function isFallowWarningState(root: Record<string, any>, sections: FallowOverviewSection[], exitCode: number): boolean {
 	return isSimilarCodeWarning(root)
+		|| isRuntimeCoverageWarning(root)
 		|| sections.some((section) => section.role !== "context" && section.items.length > 0)
 		|| exitCode === 1;
 }
