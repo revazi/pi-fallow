@@ -15,6 +15,9 @@ All notable changes to Pi Fallow are documented here.
 - Added frozen capability-schema certification and mutation tests for every tool registry prefix, managed output flags, positional targets, and selected type-aware flags; the live CLI smoke suite shares these checks without adding runtime version constraints.
 - Updated the pinned Fallow compatibility target to 3.21.0 and re-certified the current command/schema, MCP-resource, type-aware, quality, and packaged host surfaces, including the 3.20 strict-exit and project-reference resolution changes plus the 3.21 runtime-coverage and hidden-source diagnostic fixes.
 
+### Fixed
+- Normalized `coverage-analyze` runtime findings, uncertainty discriminators, capture quality, provenance, blast radius, and importance into bounded output and the navigator, keeping informational context out of finding counts and incomplete evidence explicitly non-authoritative.
+
 ## [0.5.1] - 2026-08-29
 
 ### Changed
