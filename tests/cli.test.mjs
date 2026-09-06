@@ -93,9 +93,9 @@ describe("fallowCli.buildFallowArgs", () => {
 		assert.deepEqual(build({ command: "similar-code", args: ["--file", "setup"] }), [
 			"similar-code", "--format", "json", "--quiet", "--file", "setup",
 		]);
-		assert.throws(() => build({ command: "similar-code", args: ["setup", "--local", "--yes"] }), /never downloads/);
-		assert.throws(() => build({ command: "similar-code", args: ["--threshold", "0.8", "setup", "--local"] }), /never downloads/);
-		assert.throws(() => build({ command: "similar-code", args: ["--", "setup"] }), /never downloads/);
+		assert.throws(() => build({ command: "similar-code", args: ["setup", "--local", "--yes"] }), /blocked in slash arguments and tools/);
+		assert.throws(() => build({ command: "similar-code", args: ["--threshold", "0.8", "setup", "--local"] }), /blocked in slash arguments and tools/);
+		assert.throws(() => build({ command: "similar-code", args: ["--", "setup"] }), /blocked in slash arguments and tools/);
 		assert.throws(() => build({ command: "similar-code", args: ["cache", "clear", "--yes"] }), /cache mutation/);
 	});
 

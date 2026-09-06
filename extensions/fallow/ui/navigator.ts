@@ -4,6 +4,7 @@ import {
 	type Component, type Focusable, type SelectItem,
 } from "@earendil-works/pi-tui";
 import { buildFallowNavigatorActions, type FallowNavigatorAction } from "../navigator-actions";
+import { OPTIONAL_ANALYSIS_COMMAND } from "../optional-analysis";
 import { allNormalizedFallowEntries, getNormalizedFallowReport, hydrateNormalizedFallowEntry, type NormalizedFallowEntry } from "../normalized-report";
 import { buildFallowOverview } from "../overview";
 import { buildFallowPrompt, type FallowPromptDetail, type FallowPromptFinding } from "../prompt";
@@ -67,6 +68,7 @@ interface FallowNavigatorOptions {
 	prSummary?: FallowPrSummary;
 	visibleRows?: number;
 	informationalMode?: boolean;
+	optionalAnalysis?: boolean;
 }
 
 interface FlatIssue {
@@ -127,6 +129,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			{ matches: (value) => value === "i", action: () => this.toggleInformational() },
 			{ matches: (value) => value === "d", action: () => this.togglePromptDetail() },
 			{ matches: (value) => value === "p", action: () => this.openActionPalette() },
+			{ matches: (value) => value === "o", action: () => this.finishWithOptionalAnalysis() },
 			{ matches: (value) => value === "e" || value === "a", action: () => this.finishWithPrompt() },
 			{ matches: (value) => value === "t", action: () => this.finishWithTrace() },
 			{ matches: (value) => matchesKey(value, "enter") || matchesKey(value, "space") || matchesKey(value, "right") || value === "l", action: () => this.toggleExpanded() },
@@ -366,6 +369,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			);
 			return;
 		}
+		if (this.options.optionalAnalysis) lines.push(this.frame(this.optionalAnalysisLine(), frameWidth));
 		if (this.isInformationalMode()) {
 			this.appendWrappedFooter(this.informationalImplicationLine(), frameWidth, innerWidth, lines);
 			return;
@@ -384,6 +388,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private appendWrappedFooter(text: string, frameWidth: number, innerWidth: number, lines: string[]): void {
 		for (const line of wrapTextWithAnsi(text, innerWidth)) lines.push(this.frame(line, frameWidth));
+	}
+
+	private optionalAnalysisLine(): string {
+		return `${pill("o optional analysis", violet)} ${this.theme.fg("muted", "visible Status / Setup / Run controls; opening them never installs")}`;
 	}
 
 	private footerSelectionLine(): string {
@@ -691,6 +699,21 @@ export class FallowIssueNavigator implements Component, Focusable {
 		});
 	}
 
+	private finishWithOptionalAnalysis(): void {
+		if (!this.options.optionalAnalysis) return;
+		if (!this.options.commandArgs?.length) {
+			this.actionNotice = "The originating command is unavailable; rerun /fallow before opening optional analysis.";
+			this.changed();
+			return;
+		}
+		this.onDone({
+			type: "action",
+			label: "Optional analysis",
+			commandArgs: [OPTIONAL_ANALYSIS_COMMAND],
+			returnTo: { commandArgs: [...this.options.commandArgs], state: this.snapshotState() },
+		});
+	}
+
 	private finishWithTrace(): void {
 		if (this.isInformationalMode()) return;
 		const current = this.currentIssue();
@@ -775,7 +798,8 @@ export class FallowIssueNavigator implements Component, Focusable {
 			`${key("v")} ${this.theme.fg("muted", "severity")}`,
 			`${key("x")} ${this.theme.fg("muted", "reset filters")}`,
 		];
-		if (this.isInformationalMode()) return [...common, `${key("q")} ${this.theme.fg("muted", "close")}`].join("  ");
+		const optional = this.options.optionalAnalysis ? [`${key("o")} ${this.theme.fg("muted", "optional analysis")}`] : [];
+		if (this.isInformationalMode()) return [...common, ...optional, `${key("q")} ${this.theme.fg("muted", "close")}`].join("  ");
 		return [
 			common[0],
 			`${key("enter")} ${this.theme.fg("muted", "expand")}`,
@@ -786,6 +810,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			`${key("i")} ${this.theme.fg("muted", "informational files")}`,
 			`${key("d")} ${this.theme.fg("muted", "prompt detail")}`,
 			`${key("p")} ${this.theme.fg("muted", "actions")}`,
+			...optional,
 			`${key("e/a")} ${this.theme.fg("muted", "load")}`,
 			`${key("t")} ${this.theme.fg("muted", "quick trace")}`,
 			`${key("q")} ${this.theme.fg("muted", "close")}`,

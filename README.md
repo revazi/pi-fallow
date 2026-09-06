@@ -29,7 +29,7 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 - **Safe defaults:** JSON and quiet output are added when appropriate; complete output is saved to a temp file whenever transcript or navigator data omits fields, and released from retained engine state after formatting. Pi Fallow never automatically deletes saved reports.
 - **Cached CLI lookup:** resolves `FALLOW_BIN`, `fallow` from `PATH`, or a package-local installation once per project/session before falling back to `npx -y fallow`.
 - **Stable type-aware reports:** Fallow semantic symbol impact and advisory public-signature coupling can be requested through both Pi surfaces, with completeness and advisory status kept visible.
-- **Opt-in semantic similarity:** `/fallow similar-code` and `fallow_run(command: "similar-code")` expose Fallow's pinned local-model workflow without adding candidates to default checks or downloading model artifacts.
+- **Opt-in semantic similarity:** `/fallow similar-code` and `fallow_run(command: "similar-code")` expose Fallow's pinned local-model workflow without adding candidates to default checks; TUI setup remains a separate previewed and explicitly confirmed action.
 
 ## Installation
 
@@ -130,11 +130,17 @@ When `fallow_run` is active, its compact Pi prompt guidance tells the model to i
 
 `--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
 
+### Optional analysis controls
+
+In TUI mode, run `/fallow` and press `o` to open visible **Status**, **Setup**, and **Run** actions for Similar Code and Runtime Coverage. Opening the panel, selecting Status, changing finding selection, or choosing Run never installs anything. Setup first shows source, pinned version/revision, license, expected size, destination, exact command, and side effects, then requires a distinct confirmation. Setup progress is cancellable, complete setup output is saved under the OS temporary directory, and readiness is rechecked afterward. Similar Code Run visibly collects optional project-file scope, threshold, and result-limit controls before rechecking readiness. RPC, print, JSON, and `fallow_run` remain non-interactive and cannot install optional components.
+
+Runtime Coverage setup installs the exact `@fallow-cli/fallow-cov@0.4.1` with scripts disabled into Pi Fallow's user-global managed tools directory, not the project manifest or lockfile. The panel first reads `fallow coverage setup --json` and discloses—but does not execute—the plan's beacon, credential, project-file, or cloud steps. Run accepts only an explicitly selected local V8/Istanbul artifact, previews its resolved path, rechecks sidecar readiness after confirmation, passes the verified managed sidecar only to that child analysis process, and removes cloud-source/API credential variables from that child's environment. Continuous/cloud coverage and credentials remain excluded.
+
 ### Opt-in similar-code analysis
 
 `/fallow similar-code` and `fallow_run` with `command: "similar-code"` expose Fallow's semantic similar-code workflow explicitly. It is never part of `/fallow`, `/fallow issues`, audits, security checks, or automatic fixes. Raw candidates are unverified advisory leads—not deterministic clone findings or proof that a consolidation is safe. Check `completion.status`, phase skips, diagnostics, model provenance, both source locations, and enrichment availability before drawing conclusions. Only `completion.status: "complete"` makes an empty result conclusive for the admitted scope.
 
-Start with `/fallow similar-code status`. This reads no project source and reports the exact companion, pinned model identifier/revision, license, integrity state, download size, cache directory, and readiness. Pi Fallow never runs `similar-code setup` or cache mutation and never downloads a model or sidecar. After reviewing those details, a user who chooses to install the pinned model must run `fallow similar-code setup --local` directly outside Pi Fallow.
+Start with `/fallow similar-code status`, or use the TUI Optional Analysis Status action. This reads no project source and reports the exact companion, pinned model identifier/revision, license, integrity state, download size, cache directory, and readiness. Slash arguments and tools cannot run setup or cache mutation. Only the TUI Setup action may delegate to `fallow similar-code setup --local --yes`, after showing the exact pinned preview and receiving direct user confirmation.
 
 Inference uses Fallow's version-pinned local companion and reports whether source left the machine; the current contract requires local-only source processing. Model vectors live in Fallow's user-local, project-namespaced cache, while saved candidate reports remain independent JSON documents for reproducible inspect/review steps. Cold inference can take minutes and currently requires roughly the download size reported by `similar-code status` (about 310 MiB for Fallow 3.21); warm cached runs should be faster but remain project- and hardware-dependent. Pi Fallow allows up to 15 minutes by default for this explicit command, while cancellation and `FALLOW_TIMEOUT_SECS` or tool `timeoutSecs` overrides remain available.
 

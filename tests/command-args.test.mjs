@@ -101,7 +101,7 @@ describe("normalizeFallowArgs", () => {
 		]).result, [
 			"similar-code", "review", "--candidates=reports/candidates.json", "--verdicts", "reports/verdicts.json",
 		]);
-		assert.throws(() => normalize(["similar-code", "setup", "--local"]), /never downloads/);
+		assert.throws(() => normalize(["similar-code", "setup", "--local"]), /blocked in slash arguments and tools/);
 		assert.throws(() => normalize(["similar-code", "cache", "clear", "--yes"]), /cache mutation/);
 	});
 

@@ -22,9 +22,10 @@ export function resolveFallowNavigatorVisibleRows(terminalRows: number, informat
 	return Math.max(MIN_VISIBLE_ROWS, Math.min(MAX_VISIBLE_ROWS, overlayRows - staticRows));
 }
 
-export function resolveFallowNavigatorMode(overview: FallowOverview | undefined): FallowNavigatorMode {
+export function resolveFallowNavigatorMode(overview: FallowOverview | undefined, optionalAnalysis = false): FallowNavigatorMode {
 	if (!overview) return "none";
 	const report = getNormalizedFallowReport(overview);
-	if (!report.entryCount) return "none";
-	return report.findingCount ? "actionable" : "informational";
+	if (![report.entryCount > 0, optionalAnalysis].some(Boolean)) return "none";
+	if (report.findingCount > 0) return "actionable";
+	return "informational";
 }

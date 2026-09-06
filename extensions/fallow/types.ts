@@ -89,4 +89,5 @@ export interface FallowNavigatorReturnTarget {
 
 export type FallowNavigatorResult =
 	| { type: "prompt"; prompt: string; issueCount: number; detail: "compact" | "full" }
-	| { type: "action"; label: string; commandArgs: string[]; returnTo: FallowNavigatorReturnTarget };
+	| { type: "action"; label: string; commandArgs: string[]; returnTo: FallowNavigatorReturnTarget }
+	| { type: "forward"; label: string; commandArgs: string[]; executionEnvironment?: NodeJS.ProcessEnv };

@@ -34,7 +34,8 @@ The long measurement history belongs in the benchmark documentation rather than 
 - a typed command registry shared by tool, slash, autocomplete, and smoke-test surfaces, including architecture-to-`guard` support;
 - authoritative normalized-report selection shared across output and prompts, with complete-report hydration and drift protection;
 - bounded, project-isolated session history with digest-validated report reopening and conservative compatible-run comparison;
-- explicit opt-in semantic similar-code status, discovery, inspect, and review flows with local-model provenance, advisory completion, and mutation guards; and
+- explicit opt-in semantic similar-code status, discovery, inspect, and review flows with local-model provenance and advisory completion, plus TUI-only previewed and confirmed model setup;
+- visible Optional Analysis Status / Setup / Run controls for Similar Code and selected local runtime-coverage artifacts, with verified user-global sidecars and no project or cloud mutation; and
 - an issue-focused default that combines actionable dead-code, duplication, health, and security candidates without flooding the navigator with informational file scores or hotspots.
 
 See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.md`](./benchmarks/PERFORMANCE.md), [`CHANGELOG.md`](./CHANGELOG.md), and the [README compatibility section](./README.md#tested-compatibility) for authoritative detail.

@@ -5,6 +5,7 @@ export type FallowNavigatorRunOnce = (
 	rememberLast: boolean,
 	initialState?: FallowNavigatorState,
 	protectedHistoryIds?: string[],
+	executionEnvironment?: NodeJS.ProcessEnv,
 ) => Promise<FallowNavigatorResult | null | undefined>;
 
 export async function runFallowNavigatorLoop(
@@ -23,6 +24,7 @@ async function continueNavigatorLoop(
 	runOnce: FallowNavigatorRunOnce,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (isActionResult(result)) return runAction(result, returnStack, runOnce);
+	if (isForwardResult(result)) return runForward(result, returnStack, runOnce);
 	if (isPromptResult(result)) return result;
 	return returnToPreviousNavigator(result, returnStack, runOnce);
 }
@@ -35,6 +37,15 @@ async function runAction(
 	const nextStack = [...returnStack, result.returnTo];
 	const actionResult = await runOnce(result.commandArgs, false, undefined, protectedHistoryIds(nextStack));
 	return continueNavigatorLoop(actionResult, nextStack, runOnce);
+}
+
+async function runForward(
+	result: Extract<FallowNavigatorResult, { type: "forward" }>,
+	returnStack: FallowNavigatorReturnTarget[],
+	runOnce: FallowNavigatorRunOnce,
+): Promise<FallowNavigatorResult | null | undefined> {
+	const forwarded = await runOnce(result.commandArgs, false, undefined, protectedHistoryIds(returnStack), result.executionEnvironment);
+	return continueNavigatorLoop(forwarded, returnStack, runOnce);
 }
 
 async function returnToPreviousNavigator(
@@ -52,6 +63,12 @@ function isActionResult(
 	result: FallowNavigatorResult | null | undefined,
 ): result is Extract<FallowNavigatorResult, { type: "action" }> {
 	return result?.type === "action";
+}
+
+function isForwardResult(
+	result: FallowNavigatorResult | null | undefined,
+): result is Extract<FallowNavigatorResult, { type: "forward" }> {
+	return result?.type === "forward";
 }
 
 function isPromptResult(

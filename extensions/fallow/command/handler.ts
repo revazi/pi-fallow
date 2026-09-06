@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { recordFallowHistory } from "../history";
+import { OPTIONAL_ANALYSIS_COMMAND } from "../optional-analysis";
 import { detectFallowBaseRef } from "../project/git";
 import type { FallowNavigatorResult, FallowNavigatorState } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
@@ -9,6 +10,7 @@ import { resolveFallowCommandBaseRef } from "./base";
 import { executeFallowHistoryCommand } from "./history";
 import { isFallowTuiMode } from "./mode";
 import { runFallowNavigatorLoop } from "./navigator-loop";
+import { runOptionalAnalysisWorkflow } from "./optional-analysis";
 import { executeFallowResult } from "./result-flow";
 import type { FallowCommandContext, FallowCommandState } from "./types";
 
@@ -75,8 +77,8 @@ async function executeFallowCommandLoop(
 	commandState: FallowCommandState,
 	initialArgs: string[],
 ): Promise<FallowNavigatorResult | null | undefined> {
-	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState, protectedHistoryIds) => (
-		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState, protectedHistoryIds)
+	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState, protectedHistoryIds, executionEnvironment) => (
+		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState, protectedHistoryIds, executionEnvironment)
 	));
 }
 
@@ -88,7 +90,9 @@ function runFallowCommandOnce(
 	rememberLast: boolean,
 	initialNavigatorState?: FallowNavigatorState,
 	protectedHistoryIds?: string[],
+	executionEnvironment?: NodeJS.ProcessEnv,
 ): Promise<FallowNavigatorResult | null | undefined> {
+	if (args[0] === OPTIONAL_ANALYSIS_COMMAND) return runOptionalAnalysisWorkflow(pi, ctx, commandState.optionalAnalysis);
 	if (args[0] === "history") {
 		return executeFallowHistoryCommand(pi, ctx, commandState.history, args, initialNavigatorState);
 	}
@@ -96,7 +100,7 @@ function runFallowCommandOnce(
 		commandState.lastArgs = updated;
 	}, initialNavigatorState, initialNavigatorState ? undefined : (result, commandArgs) => (
 		recordFallowHistory(pi, commandState.history, ctx.cwd, result, protectedHistoryIds, commandArgs)
-	));
+	), executionEnvironment);
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {

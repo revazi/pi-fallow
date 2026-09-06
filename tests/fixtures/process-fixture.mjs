@@ -11,6 +11,11 @@ if (mode === "success") {
 	process.exit(0);
 }
 
+if (mode === "environment") {
+	process.stdout.write(JSON.stringify({ fallowCovBin: process.env.FALLOW_COV_BIN ?? null, apiKey: process.env.FALLOW_API_KEY ?? null }));
+	process.exit(0);
+}
+
 if (mode === "findings") {
 	process.stdout.write(JSON.stringify({ kind: "dead-code", schema_version: 7, version: "fixture", elapsed_ms: 1, total_issues: 1, unused_files: ["unused.ts"], unused_exports: [] }));
 	process.exit(1);

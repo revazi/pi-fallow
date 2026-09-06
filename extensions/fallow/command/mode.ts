@@ -6,7 +6,7 @@ export function isFallowTuiMode(mode: FallowRunMode): boolean {
 	return mode === "tui";
 }
 
-export function hasFallowNavigator(mode: FallowRunMode, overview: FallowOverview | undefined): boolean {
+export function hasFallowNavigator(mode: FallowRunMode, overview: FallowOverview | undefined, optionalAnalysis = false): boolean {
 	if (!isFallowTuiMode(mode)) return false;
-	return resolveFallowNavigatorMode(overview) !== "none";
+	return resolveFallowNavigatorMode(overview, optionalAnalysis) !== "none";
 }

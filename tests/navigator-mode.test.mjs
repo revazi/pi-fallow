@@ -12,7 +12,7 @@ const { hasFallowNavigator } = await jiti.import("../extensions/fallow/command/m
 const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 
 describe("navigator command mode", () => {
-	it("does not open a finding navigator for type-aware status", () => {
+	it("does not open a finding navigator for type-aware status unless optional controls are requested", () => {
 		const status = buildFallowOverview({
 			kind: "type-aware-status",
 			available: true,
@@ -22,6 +22,9 @@ describe("navigator command mode", () => {
 
 		assert.equal(resolveFallowNavigatorMode(status), "none");
 		assert.equal(hasFallowNavigator("tui", status), false);
+		assert.equal(resolveFallowNavigatorMode(status, true), "informational");
+		assert.equal(hasFallowNavigator("tui", status, true), true);
+		assert.equal(hasFallowNavigator("rpc", status, true), false);
 	});
 
 	it("opens advisory similar-code candidates but not readiness status", () => {
