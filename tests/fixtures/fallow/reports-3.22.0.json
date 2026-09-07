@@ -1,5 +1,5 @@
 {
-  "version": "3.21.0",
+  "version": "3.22.0",
   "inputSha256": {
     "base": "5a5426bfc0bde678d5be554684f958808cb95c7294ba07f1c610af057d1aa865",
     "typeAwarePartial": "c63f7b237002649ad5073778b9b15ad3827bff41620201f262b19d85d9ac7caf"
@@ -17,7 +17,7 @@
       "report": {
         "kind": "dead-code",
         "schema_version": 9,
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "total_issues": 1,
         "entry_points": {
@@ -159,7 +159,7 @@
       "report": {
         "kind": "dupes",
         "schema_version": 9,
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "clone_groups": [
           {
@@ -317,7 +317,7 @@
       "report": {
         "kind": "health",
         "schema_version": 11,
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -479,7 +479,7 @@
       "report": {
         "kind": "security",
         "schema_version": "8",
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "config": {
           "rules": {
@@ -637,11 +637,11 @@
       "report": {
         "kind": "combined",
         "schema_version": 11,
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "check": {
           "schema_version": 9,
-          "version": "3.21.0",
+          "version": "3.22.0",
           "elapsed_ms": 0,
           "total_issues": 1,
           "entry_points": {
@@ -1038,7 +1038,7 @@
       "report": {
         "kind": "health",
         "schema_version": 11,
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -1150,7 +1150,7 @@
             },
             "executed": true,
             "protocol_version": 7,
-            "sidecar_version": "3.21.0",
+            "sidecar_version": "3.22.0",
             "backend": "typescript-go",
             "backend_version": "7.0.2",
             "selected_tsconfigs": [],
@@ -1198,10 +1198,10 @@
       "report": {
         "kind": "similar-code-status",
         "schema_version": "1",
-        "version": "3.21.0",
+        "version": "3.22.0",
         "protocol_version": 2,
         "embedding_semantics_version": 1,
-        "companion_version": "3.21.0",
+        "companion_version": "3.22.0",
         "model_ready": false,
         "model_id": "jinaai/jina-embeddings-v2-base-code",
         "model_revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
@@ -1294,7 +1294,7 @@
       "report": {
         "kind": "health",
         "schema_version": 11,
-        "version": "3.21.0",
+        "version": "3.22.0",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -1422,7 +1422,7 @@
             },
             "executed": true,
             "protocol_version": 7,
-            "sidecar_version": "3.21.0",
+            "sidecar_version": "3.22.0",
             "backend": "typescript-go",
             "backend_version": "7.0.2",
             "selected_tsconfigs": [

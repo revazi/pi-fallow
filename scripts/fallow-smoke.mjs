@@ -96,7 +96,7 @@ function assertModeledArgs() {
 function assertCurrentFallowSchema(data) {
 	assertRegistrySchema(data, fallowToolCommands.map(getFallowToolCommandSpec));
 	assert.equal(data.name, "fallow");
-	assert.equal(data.version, "3.21.0");
+	assert.equal(data.version, "3.22.0");
 	assert.equal(data.manifest_version, "1");
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
@@ -184,7 +184,7 @@ function assertCliSurfaces() {
 	assertFallowJson(["similar-code", "status"], (data) => {
 		assert.equal(data.kind, "similar-code-status");
 		assert.equal(data.schema_version, "1");
-		assert.equal(data.version, "3.21.0");
+		assert.equal(data.version, "3.22.0");
 		assert.equal(data.protocol_version, 2);
 		assert.equal(data.analysis_offline, true);
 		assert.equal(typeof data.model_ready, "boolean");
@@ -231,7 +231,7 @@ function assertCliSurfaces() {
 }
 
 assertModeledArgs();
-const frozenReports = JSON.parse(await readFile(new URL("../tests/fixtures/fallow/reports-3.21.0.json", import.meta.url), "utf8"));
+const frozenReports = JSON.parse(await readFile(new URL("../tests/fixtures/fallow/reports-3.22.0.json", import.meta.url), "utf8"));
 assertEvidenceSubset(await collectReportEvidence(), frozenReports);
 assertCliSurfaces();
 console.log("Fallow CLI smoke checks passed.");

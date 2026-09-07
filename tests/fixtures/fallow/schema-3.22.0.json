@@ -1,6 +1,6 @@
 {
   "name": "fallow",
-  "version": "3.21.0",
+  "version": "3.22.0",
   "manifest_version": "1",
   "default_command": null,
   "output_formats": [

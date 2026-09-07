@@ -142,7 +142,7 @@ Runtime Coverage setup installs the exact `@fallow-cli/fallow-cov@0.4.1` with sc
 
 Start with `/fallow similar-code status`, or use the TUI Optional Analysis Status action. This reads no project source and reports the exact companion, pinned model identifier/revision, license, integrity state, download size, cache directory, and readiness. Slash arguments and tools cannot run setup or cache mutation. Only the TUI Setup action may delegate to `fallow similar-code setup --local --yes`, after showing the exact pinned preview and receiving direct user confirmation.
 
-Inference uses Fallow's version-pinned local companion and reports whether source left the machine; the current contract requires local-only source processing. Model vectors live in Fallow's user-local, project-namespaced cache, while saved candidate reports remain independent JSON documents for reproducible inspect/review steps. Cold inference can take minutes and currently requires roughly the download size reported by `similar-code status` (about 310 MiB for Fallow 3.21); warm cached runs should be faster but remain project- and hardware-dependent. Pi Fallow allows up to 15 minutes by default for this explicit command, while cancellation and `FALLOW_TIMEOUT_SECS` or tool `timeoutSecs` overrides remain available.
+Inference uses Fallow's version-pinned local companion and reports whether source left the machine; the current contract requires local-only source processing. Model vectors live in Fallow's user-local, project-namespaced cache, while saved candidate reports remain independent JSON documents for reproducible inspect/review steps. Cold inference can take minutes and currently requires roughly the download size reported by `similar-code status` (about 310 MiB for Fallow 3.22); warm cached runs should be faster but remain project- and hardware-dependent. Pi Fallow allows up to 15 minutes by default for this explicit command, while cancellation and `FALLOW_TIMEOUT_SECS` or tool `timeoutSecs` overrides remain available.
 
 Use discovery once and preserve its complete JSON report. `similar-code inspect` validates one candidate against that saved report and current source hashes; `similar-code review` joins the unchanged candidates with a separate verdict document. Missing setup, partial/provider failures, stale inspection evidence, verdict-join failures, cancellation, and timeout remain distinct result states. A separate review verdict should abstain whenever source-grounded evidence is incomplete.
 
@@ -196,7 +196,7 @@ The current `0.5.x` development line is certified with this host matrix:
 
 | Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
 |---|---|---|---|
-| 0.84.4 | 0.84.4 | 22.19 and 24 | 3.21.0 |
+| 0.84.4 | 0.84.4 | 22.19 and 24 | 3.22.0 |
 
 Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` and session history over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 
@@ -206,7 +206,7 @@ This matrix records tested compatibility; it is not an installation constraint o
 
 - Node.js 22.19+
 - Pi coding agent
-- Fallow 3.21.0 is the validated development/compatibility target; runtime resolution remains tolerant of separately installed versions.
+- Fallow 3.22.0 is the validated development/compatibility target; runtime resolution remains tolerant of separately installed versions.
 - Fallow available through one of:
   - `FALLOW_BIN=/path/to/fallow`
   - `fallow` on `PATH`
