@@ -12,7 +12,7 @@ const { getNormalizedFallowReport, allNormalizedFallowEntries } = await jiti.imp
 const { formatToolOutput } = await jiti.import("../extensions/fallow/output.ts");
 const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 const { buildFallowPrompt } = await jiti.import("../extensions/fallow/prompt.ts");
-const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.21.0.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.22.0.json", import.meta.url), "utf8"));
 
 function changedEvidence(change) {
 	const evidence = structuredClone(frozen);

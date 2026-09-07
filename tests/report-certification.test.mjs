@@ -11,7 +11,7 @@ const { parseJson } = await jiti.import("../extensions/fallow/json.ts");
 const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 const { getNormalizedFallowReport, allNormalizedFallowEntries } = await jiti.import("../extensions/fallow/normalized-report.ts");
 const { formatToolOutput } = await jiti.import("../extensions/fallow/output.ts");
-const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.21.0.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.22.0.json", import.meta.url), "utf8"));
 
 function overview(id) {
 	const evidence = frozen.reports[id];

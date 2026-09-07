@@ -1,14 +1,14 @@
 # Fallow capability certification fixture
 
-`schema-3.21.0.json` is a deterministic projection of the repository-pinned
-Fallow 3.21.0 `schema --format json --quiet` output. It retains command names,
+`schema-3.22.0.json` is a deterministic projection of the repository-pinned
+Fallow 3.22.0 `schema --format json --quiet` output. It retains command names,
 global/local flag names, short aliases, types, requiredness, allowed values,
 output formats, and manifest/default-command identity. Descriptions and unrelated
 resources are intentionally omitted; this is not a complete capability manifest
 or a report-schema fixture.
 
 The original single-line stdout has SHA-256
-`ca397e67666058ccb74068811576baef6bdfbeb80579589d093242b7e1e6ec53`.
+`f0850e8498cfcfaa8e80cf77fe1e7b5f2620039f66955216e470f28918d258ed`.
 
 ## Regeneration
 
@@ -60,7 +60,7 @@ user-facing installed-capability diagnostics remain separate work (#77).
 
 ## Captured report and nested-command evidence
 
-`reports-3.21.0.json` contains twelve real CLI JSON reports and four projected
+`reports-3.22.0.json` contains twelve real CLI JSON reports and four projected
 help contracts. `report-project.json` and `report-partial-project.json` hold the
 complete tiny input projects; both SHA-256 digests are recorded in the evidence.
 The capture script records exact CLI tokens, exit status, and report for each case:
@@ -118,9 +118,9 @@ for this fixed input, not a general comparison of arbitrary projects.
 
 ## Optional signed `fallow-cov` evidence
 
-`coverage-report-3.21.0.json` is a successful local `coverage analyze` capture
+`coverage-report-3.22.0.json` is a successful local `coverage analyze` capture
 from `coverage-project.json`. Node 24 executes one function under native V8
-coverage while leaving one tracked function cold; Fallow 3.21.0 and the signed
+coverage while leaving one tracked function cold; Fallow 3.22.0 and the signed
 `@fallow-cli/fallow-cov` 0.4.1 sidecar then emit one non-auto-fixable cold-code
 finding, blast-radius and importance context, capture-quality discriminators,
 and explicit local/unknown-production provenance.
