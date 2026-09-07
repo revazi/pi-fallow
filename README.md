@@ -196,7 +196,7 @@ The current `0.5.x` development line is certified with this host matrix:
 
 | Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
 |---|---|---|---|
-| 0.84.3 | 0.84.3 | 22.19 and 24 | 3.21.0 |
+| 0.84.4 | 0.84.4 | 22.19 and 24 | 3.21.0 |
 
 Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` and session history over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 

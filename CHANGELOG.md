@@ -11,6 +11,7 @@ All notable changes to Pi Fallow are documented here.
 - Added explicit opt-in semantic similar-code analysis across `/fallow` and `fallow_run`, with read-only status/discovery/inspect/review flows, reproducible model and input provenance, advisory source-grounded rendering, partial-phase and skip diagnostics, distinct cancellation/timeout metadata, a cold-run timeout allowance, and hard guards against model downloads or cache mutation.
 
 ### Changed
+- Updated the coordinated Pi development lock and package-boundary certification to 0.84.4 while retaining host-provided wildcard Pi peer dependencies.
 - Added an isolated opt-in certification lane for successful local runtime coverage using a real Node 24 V8 capture and the exact signed `@fallow-cli/fallow-cov` 0.4.1 sidecar, fetched ephemerally with install scripts disabled and never added to normal dependencies.
 - Extended development certification with reproducible dead-code, duplication, health, security, combined, and real unavailable/partial type-aware CLI reports; added nested help and missing-input contracts, new-required-argument checks, and parsing/normalization/complete-output regressions while keeping optional coverage and model-backed semantic analysis explicitly uncertified.
 - Added frozen capability-schema certification and mutation tests for every tool registry prefix, managed output flags, positional targets, and selected type-aware flags; the live CLI smoke suite shares these checks without adding runtime version constraints.

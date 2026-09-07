@@ -28,9 +28,9 @@ describe("package and automation metadata", () => {
 		];
 		for (const name of piPackages) {
 			assert.equal(manifest.peerDependencies[name], "*");
-			assert.equal(lockfile.packages[`node_modules/${name}`].version, "0.84.3");
+			assert.equal(lockfile.packages[`node_modules/${name}`].version, "0.84.4");
 		}
-		assert.match(readme, /\| 0\.84\.3 \| 0\.84\.3 \| 22\.19 and 24 \| 3\.21\.0 \|/);
+		assert.match(readme, /\| 0\.84\.4 \| 0\.84\.4 \| 22\.19 and 24 \| 3\.21\.0 \|/);
 		assert.match(readme, /tested compatibility; it is not an installation constraint/);
 		assert.match(readme, /wildcard peer dependencies/);
 	});
