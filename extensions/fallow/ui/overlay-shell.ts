@@ -1,4 +1,4 @@
-import { CURSOR_MARKER, matchesKey, Text, type Component, type Focusable } from "@earendil-works/pi-tui";
+import { matchesKey, Text, type Component, type Focusable } from "@earendil-works/pi-tui";
 import type { ReadinessCheck, ReadinessView } from "../readiness-report";
 import type { FallowNavigatorResult, FallowOverlayState } from "../types";
 import type { OverlayAnalysisRun } from "../command/overlay-analysis";
@@ -8,6 +8,7 @@ import { RuntimeCoverageForm } from "./runtime-coverage-form";
 import type { FallowIssueNavigator } from "./navigator";
 import { ReadinessState } from "./readiness-state";
 import { OverlaySetup, type OverlaySetupRun } from "./overlay-setup";
+import { overlayFrame, overlayRows } from "./overlay-layout";
 
 const VIEW_LABELS = ["Findings", "Similar Code", "Runtime Coverage"];
 const OPTIONAL_TEXT = [
@@ -30,6 +31,10 @@ export class FallowOverlayShell implements Component, Focusable {
 	private pageRows = 10;
 	private contentRows = 0;
 	private _focused = false;
+	private tooSmall = false;
+	private paste?: string;
+	private followFindings = true;
+	private size = "";
 	private readiness: ReadinessState;
 	private setup: OverlaySetup;
 	private analysis: OverlayAnalysis;
@@ -74,17 +79,57 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	handleInput(data: string): void {
+		const input = this.collectPaste(data);
+		if (input === undefined) return;
+		this.handleCollectedInput(input);
+	}
+
+	private collectPaste(data: string): string | undefined {
+		if (data.includes("\x1b[200~")) this.paste = "";
+		if (this.paste === undefined) return data;
+		this.paste = (this.paste + data).slice(0, 12_000);
+		if (!data.includes("\x1b[201~")) return undefined;
+		const value = this.paste;
+		this.paste = undefined;
+		return `${value.replace(/\x1b\[201~.*$/su, "")}\x1b[201~`;
+	}
+
+	private handleCollectedInput(data: string): void {
+		if (this.handleSmallInput(data)) return;
 		// Findings modals and form editing own text, including digits and shell shortcut letters.
 		if (this.handleModalInput(data)) return;
-		if (["1", "2", "3"].includes(data)) {
-			this.switchView(Number(data) - 1);
-			return;
-		}
-		if (this.view === 0) {
-			this.findings.handleInput(data);
-			return;
-		}
+		this.handleViewInput(data);
+	}
+
+	private handleViewInput(data: string): void {
+		if (this.handleViewKeys(data)) return;
+		if (this.view === 0) { this.handleFindingsInput(data); return; }
 		this.handleOptionalInput(data);
+	}
+
+	private handleViewKeys(data: string): boolean {
+		if (data === "o") { this.switchView(1); return true; }
+		if (!["1", "2", "3"].includes(data)) return false;
+		this.switchView(Number(data) - 1);
+		return true;
+	}
+
+	private handleSmallInput(data: string): boolean {
+		if (!this.tooSmall) return false;
+		if (["q", "\x1b", "\x03"].includes(data)) this.cancelVisible();
+		return true;
+	}
+
+	private cancelVisible(): void {
+		if (this.setup.active) this.setup.handleInput("\x1b");
+		else if (this.analysis.active) this.analysis.handleInput("\x1b");
+		else this.findings.handleInput("\x1b");
+	}
+
+	private handleFindingsInput(data: string): void {
+		if (matchesKey(data, "pageUp") || matchesKey(data, "pageDown")) { this.followFindings = false; this.scrollOptional(data); return; }
+		this.followFindings = true;
+		this.findings.handleInput(data);
 	}
 
 	private handleModalInput(data: string): boolean {
@@ -115,8 +160,7 @@ export class FallowOverlayShell implements Component, Focusable {
 			this.switchView(0);
 			return;
 		}
-		// Compatibility only: these are the existing explicit close/legacy actions.
-		if (["q", "o"].includes(data)) {
+		if (data === "q") {
 			this.findings.handleInput(data);
 			return;
 		}
@@ -124,10 +168,9 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private handleViewControls(data: string): void {
-		if (data === "R") { this.analysis.show(this.optionalView()); return; }
+		if (data === "R") { this.cancelFormTasks(); this.analysis.show(this.optionalView()); return; }
 		if (data === "S") {
-			this.similarCode.cancelPending();
-			this.runtimeCoverage.cancelPending();
+			this.cancelFormTasks();
 			this.setup.start(this.optionalView());
 			return;
 		}
@@ -157,12 +200,16 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private switchView(view: number): void {
 		this.analysis.hide();
-		this.similarCode.cancelPending();
-		this.runtimeCoverage.cancelPending();
+		this.cancelFormTasks();
 		this.view = view;
 		if (view !== 0) this.readiness.enter(this.optionalView());
 		this.syncFocus();
 		this.requestRender();
+	}
+
+	private cancelFormTasks(): void {
+		this.similarCode.cancelPending();
+		this.runtimeCoverage.cancelPending();
 	}
 
 	private optionalView(): ReadinessView {
@@ -195,15 +242,29 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	render(width: number): string[] {
 		if (width < 1) return [];
-		if (this.analysis.active) return this.analysis.render(width, Math.max(1, Math.floor(this.terminalRows() * 0.95)));
-		if (this.setup.active) return this.setup.render(width, Math.max(1, Math.floor(this.terminalRows() * 0.95)), this.readiness.lines(this.optionalView()));
-		return this.renderView(width);
+		const rows = overlayRows(this.terminalRows());
+		this.tooSmall = width < 40 || rows < 11;
+		if (this.tooSmall) return new Text("Resize to at least 40 columns / 12 rows. Esc/q cancels or closes; editing and confirmation paused.", 0, 0).render(width).slice(0, rows);
+		return this.renderSized(width, rows);
 	}
 
-	private renderView(width: number): string[] {
-		const header = this.headerLines(width);
-		if (this.view === 0) return [...header, ...this.findings.render(width)];
-		return [...header, ...this.renderOptional(width, header.length)];
+	private renderSized(width: number, rows: number): string[] {
+		const size = `${width}:${rows}`;
+		if (this.size !== size) { this.followFindings = true; this.size = size; }
+		if (this.analysis.active) return this.analysis.render(width, rows);
+		if (this.setup.active) return this.setup.render(width, rows, this.readiness.lines(this.optionalView()));
+		return this.renderView(width, rows);
+	}
+
+	private renderView(width: number, rows: number): string[] {
+		const content = this.view === 0 ? this.findings.render(width) : this.optionalContent(width);
+		const anchor = this.view === 0 && this.followFindings ? this.findings.viewportAnchor : undefined;
+		const frame = overlayFrame(width, rows, this.headerLines(width), content, this.footerLines(width), this.scroll[this.view]!, anchor);
+		this.pageRows = frame.pageRows;
+		this.contentRows = frame.contentRows;
+		this.scroll[this.view] = frame.start;
+		this.followFindings = false;
+		return frame.lines;
 	}
 
 	private headerLines(width: number): string[] {
@@ -211,39 +272,29 @@ export class FallowOverlayShell implements Component, Focusable {
 			index === this.view ? "accent" : "muted",
 			index === this.view ? `[${index + 1} ${label}]` : `${index + 1} ${label}`,
 		));
-		const navigation = new Text(tabs.join(width < 64 ? "\n" : "   "), 0, 0).render(width);
+		const navigation = new Text(width < 64 ? "1 Findings · 2 Similar · 3 Coverage" : tabs.join("   "), 0, 0).render(width);
 		const helpText = this.isFormEditing() ? "Esc finishes editing (retains values); then 1/2/3 switch view" : "1/2/3 switch view · q close";
 		const help = new Text(this.theme.fg("dim", helpText), 0, 0).render(width);
 		return [...navigation, ...help];
 	}
 
-	private renderOptional(width: number, headerRows: number): string[] {
-		const footerText = this.isFormEditing() ? "Tab/Shift+Tab field · Enter finish & validate · Esc finish editing" : "S Setup · R last result · r refresh · i details · ↑↓ scroll · Esc/Backspace findings · o existing dialogs";
-		const footer = new Text(this.theme.fg("dim", footerText), 0, 0).render(width);
-		const rows = this.terminalRows();
-		const available = Number.isFinite(rows) && rows > 0 ? Math.floor(rows * 0.95) : 24;
-		this.pageRows = Math.max(1, available - headerRows - footer.length - 1);
-		const content = this.optionalContent(width);
-		this.contentRows = content.length;
-		const start = this.visibleStart(content);
-		this.scroll[this.view] = start;
-		return [...content.slice(start, start + this.pageRows), ...footer];
+	private footerLines(width: number): string[] {
+		if (this.view === 0) return new Text(this.findingsFooter(), 0, 0).render(width);
+		const help = this.isFormEditing() ? "Tab/Shift+Tab field · Enter validate · Esc finish editing" : "S Setup · R result · r refresh · i details · ↑↓ scroll · Esc findings";
+		return new Text(this.theme.fg("dim", help), 0, 0).render(width);
+	}
+
+	private findingsFooter(): string {
+		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "↑↓ findings · PgUp/PgDn viewport · 2/3 optional views · q close";
 	}
 
 	private optionalContent(width: number): string[] {
 		const body = [OPTIONAL_TEXT[this.view - 1]!, ...this.readiness.lines(this.optionalView()),
 			"", "Checks never install, download models, or change setup state.",
-			"Press S for Setup preview (never confirms installation). Run and results stay here; R reopens the last result. o opens legacy dialogs.",
+			"S previews Setup (never confirms installation). Run and results stay here; R reopens the last result. o opens Similar Code.",
 		].join("\n");
 		const form = this.currentForm()?.render(width) ?? [];
 		return [...form, ...new Text(this.theme.fg("text", body), 0, 0).render(width)];
-	}
-
-	private visibleStart(content: string[]): number {
-		const cursor = content.findIndex((line) => line.includes(CURSOR_MARKER));
-		const start = Math.min(this.scroll[this.view]!, Math.max(0, content.length - this.pageRows));
-		if (cursor < 0) return start;
-		return Math.max(0, Math.min(cursor, Math.max(start, cursor - this.pageRows + 1)));
 	}
 
 	invalidate(): void {

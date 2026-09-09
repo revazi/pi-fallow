@@ -1,10 +1,11 @@
-import { CURSOR_MARKER, matchesKey, Text, truncateToWidth, type Focusable } from "@earendil-works/pi-tui";
+import { matchesKey, Text, truncateToWidth, type Focusable } from "@earendil-works/pi-tui";
 import type { OverlayAnalysisRequest, OverlayAnalysisRun } from "../command/overlay-analysis";
 import type { FallowCommandResult } from "../command/loader";
 import { resolveFallowNavigatorMode, resolveFallowNavigatorVisibleRows } from "../command/navigator";
 import type { ReadinessView } from "../readiness-report";
 import type { FallowNavigatorResult, FallowOverview } from "../types";
 import { FallowIssueNavigator } from "./navigator";
+import { overlayFrame } from "./overlay-layout";
 
 interface AnalysisView {
 	request: OverlayAnalysisRequest;
@@ -16,6 +17,8 @@ interface AnalysisView {
 	layout?: { visibleRows: number };
 	details: boolean;
 	scroll: number;
+	follow?: boolean;
+	width?: number;
 }
 
 /** One process owner, at most one retained result per optional view, no detached completions. */
@@ -33,7 +36,7 @@ export class OverlayAnalysis implements Focusable {
 
 	start(request: OverlayAnalysisRequest): void {
 		if (this.pending || this.disposed) return;
-		const entry: AnalysisView = { request: structuredClone(request), controller: new AbortController(), label: "Preparing local analysis…", output: "", details: false, scroll: 0 };
+		const entry: AnalysisView = { request: structuredClone(request), controller: new AbortController(), label: "Preparing local analysis…", output: "", details: false, scroll: 0, follow: true };
 		this.views.set(requestView(request), entry);
 		this.current = entry;
 		this.active = this.pending = true;
@@ -128,7 +131,7 @@ export class OverlayAnalysis implements Focusable {
 
 	private handleResultControls(data: string, entry: AnalysisView): void {
 		if (data === "r") { this.start(entry.request); return; }
-		if (data === "I") { entry.details = !entry.details; entry.scroll = 0; return; }
+		if (data === "I") { entry.details = !entry.details; entry.scroll = 0; entry.follow = true; return; }
 		if (this.movePage(data, entry)) return;
 		this.handleNavigatorInput(data, entry);
 	}
@@ -136,13 +139,14 @@ export class OverlayAnalysis implements Focusable {
 	private handleNavigatorInput(data: string, entry: AnalysisView): void {
 		if (entry.details) return;
 		entry.navigator?.handleInput(data);
-		entry.scroll = 0;
+		entry.follow = true;
 	}
 
 	private movePage(data: string, entry: AnalysisView): boolean {
 		const moves: Array<[string, number]> = [["pageDown", this.pageRows], ["pageUp", -this.pageRows]];
 		const move = moves.find(([key]) => matchesKey(data, key));
 		if (!move) return false;
+		entry.follow = false;
 		entry.scroll = Math.max(0, Math.min(Math.max(0, this.contentRows - this.pageRows), entry.scroll + move[1]));
 		return true;
 	}
@@ -151,12 +155,23 @@ export class OverlayAnalysis implements Focusable {
 		const entry = this.current;
 		if (!entry || width < 1) return [];
 		const heading = new Text(`${clean(entry.label).slice(0, 180)}\n${advisory(entry.request)}`, 0, 0).render(width);
-		const footer = new Text(this.pending ? "Esc/b/q/Ctrl+C cancel & wait · PgUp/PgDn output" : "Esc/b form · R reopens result from form · r retry (fresh checks) · I details/output · q close · 1/2/3 views · PgUp/PgDn scroll", 0, 0).render(width);
-		this.pageRows = Math.max(1, rows - heading.length - footer.length);
+		const footer = new Text(this.footerHelp(entry), 0, 0).render(width);
 		const content = this.content(entry, width, rows);
-		this.contentRows = content.length;
-		entry.scroll = visibleStart(content, entry.scroll, this.pageRows);
-		return [...heading, ...content.slice(entry.scroll, entry.scroll + this.pageRows), ...footer];
+		const frame = overlayFrame(width, rows, heading, content, footer, entry.scroll, this.resultAnchor(entry));
+		this.pageRows = frame.pageRows;
+		this.contentRows = frame.contentRows;
+		entry.scroll = frame.start;
+		entry.follow = false;
+		return frame.lines;
+	}
+
+	private footerHelp(entry: AnalysisView): string {
+		if (this.pending) return "Esc/b/q/Ctrl+C cancel & wait · PgUp/PgDn output";
+		return entry.navigator?.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "Esc/b form · r retry · I details/output · q close · 1/2/3 views · PgUp/PgDn scroll";
+	}
+
+	private resultAnchor(entry: AnalysisView): number | undefined {
+		return entry.follow && !entry.details ? entry.navigator?.viewportAnchor : undefined;
 	}
 
 	private content(entry: AnalysisView, width: number, rows: number): string[] {
@@ -166,8 +181,9 @@ export class OverlayAnalysis implements Focusable {
 
 	private renderNavigator(entry: AnalysisView, width: number, rows: number): string[] {
 		entry.navigator!.focused = this.focused;
+		if (entry.width !== width) { entry.width = width; entry.follow = true; }
 		const count = resolveFallowNavigatorVisibleRows(rows - 5, false);
-		if (entry.layout && entry.layout.visibleRows !== count) { entry.layout.visibleRows = count; entry.navigator!.invalidate(); }
+		if (entry.layout && entry.layout.visibleRows !== count) { entry.layout.visibleRows = count; entry.follow = true; entry.navigator!.invalidate(); }
 		return entry.navigator!.render(width).map((line) => truncateToWidth(line, width));
 	}
 
@@ -177,11 +193,6 @@ export class OverlayAnalysis implements Focusable {
 	dispose(): void { this.disposed = true; this.current?.controller.abort(); this.views.clear(); }
 }
 
-function visibleStart(content: string[], scroll: number, pageRows: number): number {
-	const start = Math.min(scroll, Math.max(0, content.length - pageRows));
-	const cursor = content.findIndex((line) => line.includes(CURSOR_MARKER));
-	return cursor < 0 ? start : Math.max(0, Math.min(cursor, Math.max(start, cursor - pageRows + 1)));
-}
 function analysisError(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 function requestView(request: OverlayAnalysisRequest): ReadinessView { return "sidecar" in request ? "runtime-coverage" : "similar-code"; }
 function isBack(data: string): boolean { return data === "b" || matchesKey(data, "escape") || matchesKey(data, "backspace"); }

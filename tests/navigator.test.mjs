@@ -95,17 +95,16 @@ function loadEndFindingPrompt(overview, fullOutputPath, includeFullDetails) {
 }
 
 describe("FallowIssueNavigator prompt generation", () => {
-	it("opens visible optional-analysis controls without changing finding selection", () => {
+	it("advertises persistent views without dispatching a legacy dialog action", () => {
 		let result = null;
 		const navigator = new FallowIssueNavigator(createOverview(), theme, (value) => { result = value; }, () => {}, {
 			commandArgs: ["issues"], optionalAnalysis: true,
 		});
-		assert.match(navigator.render(100).join("\n"), /o optional analysis.*Status \/ Setup \/ Run controls/);
+		assert.match(navigator.render(100).join("\n"), /2 Similar Code.*3 Runtime Coverage.*Status \/ Setup \/ Run/);
+		const state = navigator.snapshotState();
 		navigator.handleInput("o");
-		assert.equal(result?.type, "action");
-		assert.deepEqual(result?.commandArgs, ["__pi-fallow-optional-analysis"]);
-		assert.deepEqual(result?.returnTo.commandArgs, ["issues"]);
-		assert.deepEqual(result?.returnTo.state.markedReportIndices, []);
+		assert.equal(result, null);
+		assert.deepEqual(navigator.snapshotState(), state);
 	});
 
 	it("builds an editable prompt for selected findings", () => {

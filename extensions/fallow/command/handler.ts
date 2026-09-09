@@ -1,7 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { recordFallowHistory } from "../history";
-import { OPTIONAL_ANALYSIS_COMMAND } from "../optional-analysis";
 import { detectFallowBaseRef } from "../project/git";
 import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorState } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
@@ -10,7 +9,6 @@ import { resolveFallowCommandBaseRef } from "./base";
 import { executeFallowHistoryCommand } from "./history";
 import { isFallowTuiMode } from "./mode";
 import { runFallowNavigatorLoop } from "./navigator-loop";
-import { runOptionalAnalysisWorkflow } from "./optional-analysis";
 import { executeFallowResult } from "./result-flow";
 import type { FallowCommandContext, FallowCommandState } from "./types";
 
@@ -92,7 +90,6 @@ function runFallowCommandOnce(
 	protectedHistoryIds?: string[],
 	executionOptions?: FallowExecutionOptions,
 ): Promise<FallowNavigatorResult | null | undefined> {
-	if (args[0] === OPTIONAL_ANALYSIS_COMMAND) return runOptionalAnalysisWorkflow(pi, ctx, commandState.optionalAnalysis);
 	if (args[0] === "history") {
 		return executeFallowHistoryCommand(pi, ctx, commandState.history, args, initialNavigatorState);
 	}

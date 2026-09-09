@@ -3,7 +3,6 @@ import { fallowCompletions } from "./autocomplete";
 import { fallowCli } from "./cli";
 import type { FallowCommandState } from "./command/types";
 import { resetFallowHistory } from "./history";
-import { resetOptionalAnalysisState } from "./optional-analysis";
 import { scheduleFallowUpdateNotice } from "./update-notice";
 
 export function registerFallowSessionStart(pi: ExtensionAPI, commandState?: FallowCommandState): void {
@@ -11,7 +10,6 @@ export function registerFallowSessionStart(pi: ExtensionAPI, commandState?: Fall
 		fallowCli.clearRunnerCache(pi);
 		if (commandState) {
 			resetFallowHistory(commandState.history);
-			if (commandState.optionalAnalysis) resetOptionalAnalysisState(commandState.optionalAnalysis);
 		}
 		if (ctx.mode !== "tui") return;
 		void fallowCompletions.preloadGitReferences(pi, ctx.cwd);

@@ -1,12 +1,10 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { FallowHistoryState } from "../history";
-import type { OptionalAnalysisState } from "../optional-analysis";
 
 export type FallowCommandState = {
 	lastArgs: string[] | null;
 	baseRefs: Map<string, string>;
 	history: FallowHistoryState;
-	optionalAnalysis: OptionalAnalysisState;
 };
 export type FallowRunMode = ExtensionContext["mode"];
 

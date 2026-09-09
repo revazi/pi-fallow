@@ -13,7 +13,7 @@ export interface ReadinessReport {
 export type ReadinessCheck = (view: ReadinessView, signal: AbortSignal) => Promise<ReadinessReport>;
 
 export function readinessNext(phase: CapabilityPhase): string {
-	if (phase === "ready") return "Use the inline Similar Code controls, or o for legacy dialogs. No analysis has run here.";
+	if (phase === "ready") return "Use the inline Similar Code controls. No analysis has run here.";
 	if (phase === "missing") return "Inspect details/location; press S for an in-overlay setup preview (explicit confirmation required), or refresh after external setup.";
 	return "Inspect details, verify the configured installation, then press r to retry. No reinstall is performed automatically.";
 }

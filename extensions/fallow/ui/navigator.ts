@@ -4,7 +4,6 @@ import {
 	type Component, type Focusable, type SelectItem,
 } from "@earendil-works/pi-tui";
 import { buildFallowNavigatorActions, type FallowNavigatorAction } from "../navigator-actions";
-import { OPTIONAL_ANALYSIS_COMMAND } from "../optional-analysis";
 import { allNormalizedFallowEntries, getNormalizedFallowReport, hydrateNormalizedFallowEntry, type NormalizedFallowEntry } from "../normalized-report";
 import { buildFallowOverview } from "../overview";
 import { buildFallowPrompt, type FallowPromptDetail, type FallowPromptFinding } from "../prompt";
@@ -96,6 +95,9 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private preparingPrompt = false;
 	private actionPalette?: { list: SelectList };
 	private actionNotice?: string;
+	private selectedRow = 0;
+	get viewportAnchor(): number { return this.selectedRow; }
+
 	private cachedWidth?: number;
 	private cachedLines?: string[];
 
@@ -169,6 +171,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		const visible = this.visibleIssues();
 		const lines: string[] = [];
 
+		this.selectedRow = 0;
 		this.renderHeader(frameWidth, innerWidth, visible, lines);
 		this.renderBody(frameWidth, innerWidth, visible, lines);
 		this.renderFooter(frameWidth, lines);
@@ -331,7 +334,9 @@ export class FallowIssueNavigator implements Component, Focusable {
 		const start = this.scrollStart;
 		const end = Math.min(visible.length, start + visibleRows);
 		if (start > 0) lines.push(this.frame(this.theme.fg("dim", `… ${start} earlier items`), frameWidth));
-		for (const row of this.renderIssueRows(start, end, innerWidth, visible)) lines.push(this.frame(row, frameWidth));
+		const rendered = this.renderIssueRows(start, end, innerWidth, visible);
+		this.selectedRow += lines.length;
+		for (const row of rendered) lines.push(this.frame(row, frameWidth));
 		if (end < visible.length) lines.push(this.frame(this.theme.fg("dim", `… ${visible.length - end} later items`), frameWidth));
 	}
 
@@ -344,6 +349,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 				rows.push(this.sectionHeaderLine(entry));
 				lastSection = entry.sectionIndex;
 			}
+			this.recordAnchor(index, rows.length);
 			rows.push(this.issueLine(entry, index, innerWidth));
 			if (this.expanded.has(entry.id)) rows.push(...this.detailLines(entry, innerWidth));
 		}
@@ -353,6 +359,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private sectionHeaderLine(entry: FlatIssue): string {
 		const count = entry.section.count !== undefined ? this.theme.fg("dim", ` (${entry.section.count})`) : "";
 		return `  ${violet("●")} ${this.theme.fg(entry.section.color ?? "accent", this.theme.bold(entry.section.title))}${count}`;
+	}
+
+	private recordAnchor(index: number, row: number): void {
+		if (index === this.selected) this.selectedRow = row;
 	}
 
 	private renderFooter(frameWidth: number, lines: string[]): void {
@@ -395,7 +405,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private optionalAnalysisLine(): string {
-		return `${pill("o optional analysis", violet)} ${this.theme.fg("muted", "visible Status / Setup / Run controls; opening them never installs")}`;
+		return `${pill("2 Similar Code · 3 Runtime Coverage", violet)} ${this.theme.fg("muted", "in-overlay Status / Setup / Run; opening never installs")}`;
 	}
 
 	private footerSelectionLine(): string {
@@ -617,7 +627,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		}));
 		const list = new SelectList(items, Math.min(items.length, 10), {
 			selectedPrefix: (text) => this.theme.fg("accent", text),
-			selectedText: (text) => this.theme.fg("accent", text),
+			selectedText: (text) => `${this.focused ? CURSOR_MARKER : ""}${this.theme.fg("accent", text)}`,
 			description: (text) => this.theme.fg("muted", text),
 			scrollInfo: (text) => this.theme.fg("dim", text),
 			noMatch: (text) => this.theme.fg("warning", text),
@@ -705,17 +715,8 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private finishWithOptionalAnalysis(): void {
 		if (!this.options.optionalAnalysis) return;
-		if (!this.options.commandArgs?.length) {
-			this.actionNotice = "The originating command is unavailable; rerun /fallow before opening optional analysis.";
-			this.changed();
-			return;
-		}
-		this.onDone({
-			type: "action",
-			label: "Optional analysis",
-			commandArgs: [OPTIONAL_ANALYSIS_COMMAND],
-			returnTo: { commandArgs: [...this.options.commandArgs], state: this.snapshotState() },
-		});
+		this.actionNotice = "Use the persistent overlay's 2/3 view keys for configuration, setup, and Run.";
+		this.changed();
 	}
 
 	private finishWithTrace(): void {

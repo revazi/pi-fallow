@@ -70,7 +70,7 @@ function versionReport(version: string, details: string[], binaryPath: string, d
 		runtime: { binaryPath, fingerprint: createHash("sha256").update(JSON.stringify([binaryPath, version, digest])).digest("hex") },
 		phase, summary: phase === "ready" ? "Certified signed sidecar is installed. This does not certify a coverage artifact or license." : "Installed sidecar version differs from the certified version (or is unrecognized).",
 		details: [...details, `Package-declared version: ${version}`, "Integrity: Ed25519 signature verified against Fallow 3.22.0's binary-signing key. Version comes from adjacent package metadata, not a sidecar handshake."],
-		next: phase === "ready" ? "Select and preview a local artifact in the inline form. Run rechecks the artifact and signed sidecar; legacy o Run still uses the managed sidecar." : readinessNext(phase),
+		next: phase === "ready" ? "Select and preview a local artifact in the inline form. Run rechecks the artifact and signed sidecar." : readinessNext(phase),
 	};
 }
 

@@ -54,7 +54,7 @@ describe("persistent Fallow overlay shell", () => {
 	}
 
 	it("preserves filters, selected/expanded/marked findings, scroll, and prompt detail", () => {
-		const { shell, results } = create();
+		const { shell, findings, results } = create();
 		for (const key of ["/", "h", "e", "l", "p", "e", "r", "\r", "f", "v", "\x1b[F", "s", "\r", "d"]) shell.handleInput(key);
 		const original = text(shell);
 		assert.match(original, /earlier items/);
@@ -65,8 +65,8 @@ describe("persistent Fallow overlay shell", () => {
 		for (const key of ["2", "3", "1"]) shell.handleInput(key);
 		assert.equal(text(shell), original);
 		shell.handleInput("o");
-		assert.equal(results.length, 1);
-		const state = results[0].returnTo.state;
+		assert.equal(results.length, 0);
+		const state = findings.snapshotState();
 		assert.equal(state.selectedReportIndex, 39);
 		assert.equal(state.scrollStart, 37);
 		assert.deepEqual(state.markedReportIndices, [39]);
@@ -137,7 +137,7 @@ describe("persistent Fallow overlay shell", () => {
 		assert.deepEqual(results, []);
 	});
 
-	it("does not run finding actions from optional views and keeps the existing workflow explicit", () => {
+	it("does not run finding actions from optional views; o stays in the mounted shell", () => {
 		const { shell, results } = create();
 		shell.handleInput("2");
 		assert.match(text(shell), /Readiness: loading/);
@@ -145,8 +145,8 @@ describe("persistent Fallow overlay shell", () => {
 		for (const key of ["e", "a", "p"]) shell.handleInput(key);
 		assert.deepEqual(results, []);
 		shell.handleInput("o");
-		assert.deepEqual(results[0].commandArgs, ["__pi-fallow-optional-analysis"]);
-		assert.deepEqual(results[0].returnTo.commandArgs, ["issues"]);
+		assert.deepEqual(results, []);
+		assert.equal(shell.snapshotState().view, 1);
 	});
 
 	it("checks, refreshes, and expands details inside the same shell without dispatching legacy actions", async () => {

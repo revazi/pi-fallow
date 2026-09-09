@@ -1,5 +1,6 @@
 import { matchesKey, Text } from "@earendil-works/pi-tui";
 import type { ReadinessView } from "../readiness-report";
+import { overlayFrame } from "./overlay-layout";
 
 export type OverlaySetupRun = (
 	view: ReadinessView, signal: AbortSignal,
@@ -52,9 +53,13 @@ export class OverlaySetup {
 
 	private progress(label: string | undefined, output: string | undefined): void {
 		if (this.disposed) return;
-		if (label) this.title = label;
+		this.updateTitle(label);
 		if (output) this.output = (this.output + output).slice(-12_000);
 		this.changed();
+	}
+
+	private updateTitle(label: string | undefined): void {
+		if (label && !this.controller?.signal.aborted) this.title = label;
 	}
 
 	private finish(view: ReadinessView, cancelled: boolean): void {
@@ -76,6 +81,7 @@ export class OverlaySetup {
 	}
 
 	handleInput(data: string): void {
+		if (this.disposed) return;
 		if (this.answerConfirmation(data)) return;
 		if (isBack(data)) this.back();
 		else this.moveScroll(data);
@@ -113,12 +119,13 @@ export class OverlaySetup {
 	render(width: number, rows: number, readiness: string[]): string[] {
 		const heading = new Text(clean(this.title), 0, 0).render(width);
 		const footer = new Text(this.help(), 0, 0).render(width);
-		const body = [this.preview, this.notice, ...(this.pending ? [] : readiness), this.output ? `Output (last 12000 characters):\n${this.output}` : ""].filter(Boolean).join("\n\n");
+		const body = [this.title, this.preview, this.notice, ...(this.pending ? [] : readiness), this.output ? `Output (last 12000 characters):\n${this.output}` : ""].filter(Boolean).join("\n\n");
 		const content = new Text(clean(body), 0, 0).render(width);
-		this.pageRows = Math.max(1, rows - heading.length - footer.length);
-		this.contentRows = content.length;
-		this.scroll = Math.min(this.scroll, Math.max(0, content.length - this.pageRows));
-		return [...heading, ...content.slice(this.scroll, this.scroll + this.pageRows), ...footer];
+		const frame = overlayFrame(width, rows, heading, content, footer, this.scroll);
+		this.pageRows = frame.pageRows;
+		this.contentRows = frame.contentRows;
+		this.scroll = frame.start;
+		return frame.lines;
 	}
 
 	private help(): string {
