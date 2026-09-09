@@ -1,5 +1,6 @@
-import { Input, matchesKey, Text, truncateToWidth, type Component, type Focusable } from "@earendil-works/pi-tui";
+import { matchesKey, Text, type Component, type Focusable } from "@earendil-works/pi-tui";
 import { boundedReadinessText } from "../readiness-report";
+import { InlineTextEditor } from "./inline-text-editor";
 import { emptySimilarCodeValues, validateSimilarCodeOptions, type SimilarCodeField, type SimilarCodeFormValues, type SimilarCodeRunRequest, type SimilarCodeValidation } from "../similar-code-options";
 
 const FIELDS: SimilarCodeField[] = ["scope", "threshold", "top"];
@@ -15,10 +16,9 @@ interface FormOptions {
 
 /** Session-local values; editing owns text input, never shell commands or configuration files. */
 export class SimilarCodeForm implements Component, Focusable {
-	private input = new Input();
+	private input: InlineTextEditor;
 	private values: SimilarCodeFormValues;
 	private editing?: SimilarCodeField;
-	private pasting = false;
 	private errors: Partial<Record<SimilarCodeField, string>> = {};
 	private notice = "";
 	private revision = 0;
@@ -28,6 +28,10 @@ export class SimilarCodeForm implements Component, Focusable {
 
 	constructor(private options: FormOptions, private requestRender: () => void) {
 		this.values = { ...emptySimilarCodeValues(), ...options.initialValues };
+		this.input = new InlineTextEditor((value) => this.editText(value), (validate) => {
+			this.endEditing();
+			if (validate) this.validate(false);
+		}, (delta) => this.edit(FIELDS[(FIELDS.indexOf(this.editing!) + delta + FIELDS.length) % FIELDS.length]!));
 	}
 
 	get focused(): boolean { return this._focused; }
@@ -38,7 +42,7 @@ export class SimilarCodeForm implements Component, Focusable {
 
 	handleInput(data: string): boolean {
 		if (this.disposed) return false;
-		if (this.editing) { this.handleEditorInput(data); return true; }
+		if (this.editing) { this.input.handleInput(data); return true; }
 		return this.handleControls(data);
 	}
 
@@ -56,36 +60,12 @@ export class SimilarCodeForm implements Component, Focusable {
 	private edit(field: SimilarCodeField): void {
 		this.cancelPending();
 		this.editing = field;
-		// Do not carry undo/kill-ring/paste state from one field into another.
-		this.input = new Input();
-		this.pasting = false;
-		this.input.setValue(this.values[field]);
-		this.input.handleInput("\x1b[F");
+		this.input.start(this.values[field]);
 		this.focused = this._focused;
 		this.changed();
 	}
 
-	private handleEditorInput(data: string): void {
-		if (data.includes("\x1b[200~")) this.pasting = true;
-		if (!this.pasting) { this.handleEditing(data); return; }
-		// Paste chunks are text, never field navigation or Run keystrokes. Keep protocol markers only.
-		const safe = data.replace(/(\x1b\[200~|\x1b\[201~)|[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/gu, (_match, marker) => marker ?? "�");
-		this.editText(safe);
-		if (data.includes("\x1b[201~")) this.pasting = false;
-	}
-
-	private handleEditing(data: string): void {
-		if (matchesKey(data, "escape")) { this.endEditing(); return; }
-		if (matchesKey(data, "enter")) { this.endEditing(); this.validate(false); return; }
-		const movement = [["tab", 1], ["shift+tab", -1]] as const;
-		const step = movement.find(([key]) => matchesKey(data, key));
-		if (step) { this.edit(FIELDS[(FIELDS.indexOf(this.editing!) + step[1] + FIELDS.length) % FIELDS.length]!); return; }
-		this.editText(data);
-	}
-
-	private editText(data: string): void {
-		this.input.handleInput(data);
-		const value = this.input.getValue();
+	private editText(value: string): void {
 		if (value !== this.values[this.editing!]) {
 			this.cancelPending();
 			this.values[this.editing!] = value;
@@ -98,7 +78,7 @@ export class SimilarCodeForm implements Component, Focusable {
 	private endEditing(): void {
 		this.cancelPending();
 		this.editing = undefined;
-		this.input.focused = false;
+		this.input.stop();
 		this.changed();
 	}
 
@@ -161,7 +141,7 @@ export class SimilarCodeForm implements Component, Focusable {
 		const value = displayedValue(this.values[field]);
 		const text = field === this.editing ? LABELS[field] : `${LABELS[field]}: ${value}`;
 		const lines = new Text(text, 0, 0).render(width);
-		if (field === this.editing) lines.push(...this.input.render(Math.max(4, width)).map((line) => truncateToWidth(line, width)));
+		if (field === this.editing) lines.push(...this.input.render(width));
 		if (this.errors[field]) lines.push(...new Text(`Error: ${this.errors[field]}`, 0, 0).render(width));
 		return lines;
 	}

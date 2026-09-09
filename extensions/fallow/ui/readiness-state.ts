@@ -38,6 +38,11 @@ export class ReadinessState {
 		);
 	}
 
+	currentReport(view: ReadinessView): ReadinessReport | undefined {
+		if (this.disposed || this.pending.has(view)) return undefined;
+		return this.reports.get(view);
+	}
+
 	isReady(view: ReadinessView): boolean {
 		return [!this.disposed, !this.pending.has(view), this.reports.get(view)?.phase === "ready"].every(Boolean);
 	}

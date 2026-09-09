@@ -1,12 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { fallowCli } from "../cli";
 import { createReadinessCheck, resolveReadinessRoot } from "../readiness";
 import type { ReadinessCheck } from "../readiness-report";
 import type { SimilarCodeRunRequest } from "../similar-code-options";
+import type { RuntimeCoverageRunRequest } from "../runtime-coverage-options";
+import { runtimeCoverageExecutor } from "./runtime-coverage";
 import { formatFallowProjectStateText } from "../project/text";
 import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
-import type { FallowNavigatorResult, FallowNavigatorState, FallowPrSummary, FallowProjectState } from "../types";
+import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorState, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
 import { FallowOverlayShell } from "../ui/overlay-shell";
 import { fallowProjectIssues } from "./issues";
@@ -26,7 +27,7 @@ export async function executeFallowResult(
 	setLastFallowArgs: (args: string[] | null) => void,
 	initialNavigatorState?: FallowNavigatorState,
 	onCompleted?: FallowCommandCompleted,
-	executionEnvironment?: NodeJS.ProcessEnv,
+	executionOptions?: FallowExecutionOptions,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (rawCommandArgs[0] === "issues") {
 		return executeFallowProjectIssuesResult(
@@ -36,8 +37,12 @@ export async function executeFallowResult(
 	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
 	if (rememberLast) setLastFallowArgs([...finalArgs]);
 	return runFallowResultFlow(
-		pi, ctx, finalArgs, buildFallowExecutor(pi, ctx, finalArgs, fallowCli.execFallow, executionEnvironment), initialNavigatorState, onCompleted,
+		pi, ctx, finalArgs, resultExecutor(pi, ctx, finalArgs, executionOptions), initialNavigatorState, onCompleted,
 	);
+}
+
+function resultExecutor(pi: ExtensionAPI, ctx: FallowCommandContext, args: string[], options: FallowExecutionOptions = {}): FallowCommandExecutor {
+	return buildFallowExecutor(pi, ctx, args, runtimeCoverageExecutor(options.runtimeCoverage), options.environment);
 }
 
 function executeFallowProjectIssuesResult(
@@ -202,7 +207,8 @@ export function openFallowOverviewNavigator(
 		if (!options.optionalAnalysis) return navigator;
 		shell = new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows, options.checkReadiness, {
 			projectRoot: resolveReadinessRoot(ctx.cwd, options.commandArgs), initialState: options.initialState?.overlay,
-			onSimilarCodeRun: similarCodeRunCallback(options.commandArgs, navigator, finish),
+			onSimilarCodeRun: optionalRunCallback(options.commandArgs, navigator, finish, "Run Similar Code"),
+			onRuntimeCoverageRun: optionalRunCallback(options.commandArgs, navigator, finish, "Run Runtime Coverage"),
 		});
 		return shell;
 	}, {
@@ -211,12 +217,13 @@ export function openFallowOverviewNavigator(
 	}).finally(() => shell?.dispose());
 }
 
-function similarCodeRunCallback(
-	commandArgs: string[], navigator: FallowIssueNavigator, finish: (result: FallowNavigatorResult | null) => void,
-): ((request: SimilarCodeRunRequest) => void) | undefined {
+function optionalRunCallback(
+	commandArgs: string[], navigator: FallowIssueNavigator, finish: (result: FallowNavigatorResult | null) => void, label: string,
+): ((request: SimilarCodeRunRequest | RuntimeCoverageRunRequest) => void) | undefined {
 	if (!commandArgs.length) return undefined;
 	return (request) => finish({
-		type: "action", label: "Run Similar Code", commandArgs: [...request.commandArgs],
+		type: "action", label, commandArgs: [...request.commandArgs],
+		...("sidecar" in request ? { runtimeCoverage: request } : {}),
 		returnTo: { commandArgs: [...commandArgs], state: navigator.snapshotState() },
 	});
 }

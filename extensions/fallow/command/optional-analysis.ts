@@ -23,6 +23,7 @@ import {
 	type SimilarCodeCapability,
 } from "../optional-analysis";
 import { SIMILAR_CODE_DEFAULT_TIMEOUT_SECS } from "../similar-code";
+import { localCoverageEnvironment } from "../runtime-coverage-options";
 import type { FallowNavigatorResult } from "../types";
 import { runFallowTaskWithLoader } from "./loader";
 import type { FallowCommandContext } from "./types";
@@ -497,17 +498,6 @@ function sameRuntimeRunStatus(
 	return current?.phase === "ready"
 		&& current.fingerprint === preview.fingerprint
 		&& current.binaryPath === preview.binaryPath;
-}
-
-function localCoverageEnvironment(binaryPath: string): NodeJS.ProcessEnv {
-	return {
-		FALLOW_COV_BIN: binaryPath,
-		FALLOW_RUNTIME_COVERAGE_SOURCE: undefined,
-		FALLOW_API_KEY: undefined,
-		FALLOW_API_URL: undefined,
-		FALLOW_REPO: undefined,
-		FALLOW_CA_BUNDLE: undefined,
-	};
 }
 
 async function readyRuntimeCoverageStatus(

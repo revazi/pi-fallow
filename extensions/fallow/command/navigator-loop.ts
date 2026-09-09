@@ -1,3 +1,4 @@
+import type { RuntimeCoverageRunRequest } from "../runtime-coverage-options";
 import type { FallowNavigatorResult, FallowNavigatorReturnTarget, FallowNavigatorState } from "../types";
 
 export type FallowNavigatorRunOnce = (
@@ -6,6 +7,7 @@ export type FallowNavigatorRunOnce = (
 	initialState?: FallowNavigatorState,
 	protectedHistoryIds?: string[],
 	executionEnvironment?: NodeJS.ProcessEnv,
+	runtimeCoverage?: RuntimeCoverageRunRequest,
 ) => Promise<FallowNavigatorResult | null | undefined>;
 
 export async function runFallowNavigatorLoop(
@@ -35,7 +37,7 @@ async function runAction(
 	runOnce: FallowNavigatorRunOnce,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	const nextStack = [...returnStack, result.returnTo];
-	const actionResult = await runOnce(result.commandArgs, false, undefined, protectedHistoryIds(nextStack));
+	const actionResult = await runOnce(result.commandArgs, false, undefined, protectedHistoryIds(nextStack), undefined, result.runtimeCoverage);
 	return continueNavigatorLoop(actionResult, nextStack, runOnce);
 }
 

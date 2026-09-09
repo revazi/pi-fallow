@@ -1,4 +1,4 @@
-import { createPublicKey, verify } from "node:crypto";
+import { createHash, createPublicKey, verify } from "node:crypto";
 import { readdir, realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
@@ -46,8 +46,9 @@ async function managedCandidate(inspectManaged: typeof inspectRuntimeCoverageCap
 async function inspectCandidate(candidate: Candidate, signal: AbortSignal, verifyBinary: typeof verifySignedBinary): Promise<ReadinessReport> {
 	const details = [`Resolution: ${candidate.source}`, `Location: ${candidate.path}`, `Certified version: ${FALLOW_COV_VERSION}`];
 	signal.throwIfAborted();
+	let digest: string;
 	try {
-		await verifyBinary(candidate.path);
+		digest = await verifyBinary(candidate.path);
 	} catch (error) {
 		return { phase: "corrupt", summary: `Corrupt/unverified: ${error instanceof Error ? error.message : String(error)}`, details, next: readinessNext("corrupt") };
 	}
@@ -60,15 +61,16 @@ async function inspectCandidate(candidate: Candidate, signal: AbortSignal, verif
 		details: [...details, "Integrity: valid Ed25519 signature; package version unknown."],
 		next: "Point FALLOW_COV_BIN at the signed binary inside an existing certified platform package, then refresh. No reinstall is required by this check.",
 	};
-	return versionReport(version, details);
+	return versionReport(version, details, candidate.path, digest);
 }
 
-function versionReport(version: string, details: string[]): ReadinessReport {
+function versionReport(version: string, details: string[], binaryPath: string, digest: string): ReadinessReport {
 	const phase = version === FALLOW_COV_VERSION ? "ready" : "incompatible";
 	return {
+		runtime: { binaryPath, fingerprint: createHash("sha256").update(JSON.stringify([binaryPath, version, digest])).digest("hex") },
 		phase, summary: phase === "ready" ? "Certified signed sidecar is installed. This does not certify a coverage artifact or license." : "Installed sidecar version differs from the certified version (or is unrecognized).",
 		details: [...details, `Package-declared version: ${version}`, "Integrity: Ed25519 signature verified against Fallow 3.22.0's binary-signing key. Version comes from adjacent package metadata, not a sidecar handshake."],
-		next: phase === "ready" ? "Readiness only; existing o Run currently uses the Pi-managed sidecar. External installation use in the inline run flow is follow-up work." : readinessNext(phase),
+		next: phase === "ready" ? "Select and preview a local artifact in the inline form. Run rechecks the artifact and signed sidecar; legacy o Run still uses the managed sidecar." : readinessNext(phase),
 	};
 }
 
@@ -95,12 +97,13 @@ async function optionalPackageContents(path: string): Promise<Buffer | undefined
 	}
 }
 
-async function verifySignedBinary(path: string): Promise<void> {
+async function verifySignedBinary(path: string): Promise<string> {
 	const [binary, signature] = await Promise.all([
 		readSizedFile(path, { minimum: 1, maximum: 64 * 1024 * 1024, executable: true }),
 		readSizedFile(`${path}.sig`, { minimum: 64, maximum: 64 }),
 	]);
 	if (!verify(null, binary, SIGNING_KEY, signature)) throw new Error("Detached signature does not verify. This binary was not executed.");
+	return createHash("sha256").update(binary).update(signature).digest("hex");
 }
 
 /** Bounded supported lookup paths only; never scan arbitrary home/cache directories or invoke package managers. */

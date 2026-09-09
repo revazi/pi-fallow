@@ -475,6 +475,7 @@ describe("optional analysis overlay workflow", () => {
 		assert.match(uiCalls.confirmations[0].message, /Resolved artifact: v8 \(\/resolved\/coverage\/v8\)/);
 		assert.deepEqual(result.executionEnvironment, {
 			FALLOW_COV_BIN: "/managed/fallow-cov",
+			FALLOW_COV_BINARY_PATH: undefined,
 			FALLOW_RUNTIME_COVERAGE_SOURCE: undefined,
 			FALLOW_API_KEY: undefined,
 			FALLOW_API_URL: undefined,

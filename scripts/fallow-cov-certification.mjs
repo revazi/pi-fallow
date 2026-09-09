@@ -60,13 +60,18 @@ function normalize(report) {
 	return report;
 }
 
-async function verifyOverlayReadiness(root, binary) {
-	const { inspectRuntimeReadiness } = await createJiti(import.meta.url).import("../extensions/fallow/runtime-readiness.ts");
+async function verifyOverlayReadiness(root, binary, artifact) {
+	const jiti = createJiti(import.meta.url);
+	const { inspectRuntimeReadiness } = await jiti.import("../extensions/fallow/runtime-readiness.ts");
 	const status = await inspectRuntimeReadiness(root, new AbortController().signal, {
 		environment: { FALLOW_COV_BIN: binary, PATH: "" }, home: root,
 	});
 	assert.equal(status.phase, "ready", status.summary);
 	assert.ok(status.details.some((line) => line.includes("Ed25519 signature verified")));
+	assert.match(status.runtime.fingerprint, /^[a-f0-9]{64}$/);
+	const { inspectCoverageArtifact, buildRuntimeCoverageRequest, revalidateRuntimeCoverageRequest } = await jiti.import("../extensions/fallow/runtime-coverage-options.ts");
+	const request = buildRuntimeCoverageRequest(await inspectCoverageArtifact(root, artifact), status.runtime);
+	await revalidateRuntimeCoverageRequest(request, new AbortController().signal);
 }
 
 export async function collectCoverageEvidence() {
@@ -81,7 +86,6 @@ export async function collectCoverageEvidence() {
 		await mkdir(root);
 		await mkdir(coverage);
 		await materialize(root, projectText);
-		await verifyOverlayReadiness(root, sidecar.binary);
 		const nodeResult = run(process.execPath, [join(root, "runner.js")], {
 			cwd: root,
 			env: { PATH: dirname(process.execPath), HOME: join(container, "home"), NODE_V8_COVERAGE: coverage, NO_COLOR: "1" },
@@ -89,6 +93,7 @@ export async function collectCoverageEvidence() {
 		assert.equal(nodeResult.status, 0, "fixture runtime capture failed");
 		assert.equal(nodeResult.stdout.trim(), "CERTIFICATION");
 		assert.ok(readdirSync(coverage).some((name) => extname(name) === ".json"), "Node did not emit V8 coverage");
+		await verifyOverlayReadiness(root, sidecar.binary, coverage);
 		const args = ["coverage", "analyze", "--runtime-coverage", coverage, "--format", "json", "--quiet", "--no-cache"];
 		const result = run(join(repository, "node_modules/.bin/fallow"), args, {
 			cwd: root,
