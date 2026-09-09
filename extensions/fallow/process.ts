@@ -110,6 +110,7 @@ export async function execFallowProcess(
 	signal: AbortSignal | undefined,
 	timeoutSecs: number,
 	environment?: NodeJS.ProcessEnv,
+	onOutput?: (text: string) => void,
 ): Promise<FallowProcessResult> {
 	if (signal?.aborted) {
 		return { stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled" };
@@ -156,8 +157,8 @@ export async function execFallowProcess(
 		const cancelProcess = () => terminateProcess("cancelled");
 		const timeoutProcess = () => terminateProcess("timed-out");
 
-		proc.stdout?.on("data", (data) => { stdout += data.toString(); });
-		proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+		proc.stdout?.on("data", (data) => { stdout += data.toString(); onOutput?.(data.toString()); });
+		proc.stderr?.on("data", (data) => { stderr += data.toString(); onOutput?.(data.toString()); });
 		proc.on("spawn", () => { launched = true; });
 		proc.on("error", (error: NodeJS.ErrnoException) => {
 			finish({

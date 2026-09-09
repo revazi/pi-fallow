@@ -173,7 +173,7 @@ export async function inspectRuntimeCoverageCapability(
 	}
 }
 
-async function canonicalDestination(path: string): Promise<string> {
+export async function canonicalDestination(path: string): Promise<string> {
 	const destination = resolve(path);
 	try {
 		return await realpath(destination);

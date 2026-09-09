@@ -4,6 +4,7 @@ import { fallowCli } from "../cli";
 import { parseJson } from "../json";
 import {
 	artifactDisplayName,
+	canonicalDestination,
 	capabilityLabel,
 	createOptionalAnalysisState,
 	inspectRuntimeCoverageCapability,
@@ -52,6 +53,18 @@ export interface OptionalAnalysisDependencies {
 	inspectRuntime(plan?: unknown): Promise<RuntimeCoverageCapability>;
 	resolveArtifact(path: string): Promise<string>;
 	saveSetupOutput(stdout: string, stderr: string): Promise<string>;
+}
+
+type SetupContext = { cwd: string; ui: Pick<FallowCommandContext["ui"], "confirm"> };
+
+/** Shared safety workflow; the caller owns confirmation presentation, never the tool. */
+export async function runOptionalSetup(
+	view: "similar-code" | "runtime-coverage", mode: string, ctx: SetupContext,
+	state: OptionalAnalysisState, dependencies: OptionalAnalysisDependencies,
+): Promise<void> {
+	if (mode !== "tui") throw new Error("Optional setup requires an interactive TUI command.");
+	if (view === "similar-code") await setupSimilarCode(ctx, state, dependencies);
+	else await setupRuntimeCoverage(ctx, state, dependencies);
 }
 
 interface OptionalChoice {
@@ -171,13 +184,13 @@ async function refreshSimilarCode(
 	}
 	const parsed = parseJson(execution.result.stdout, execution.result.stderr);
 	state.similarCode = parseSimilarCodeCapability(parsed.parsed ? parsed.data : undefined);
-	if (execution.result.code >= 2) state.similarCode = { ...state.similarCode, phase: "error", problem: commandFailure(execution.result) };
+	if (setupCommandFailed(execution.result)) state.similarCode = { ...state.similarCode, phase: "error", problem: commandFailure(execution.result) };
 	state.notice = `Similar Code status: ${state.similarCode.phase}.`;
 	return state.similarCode;
 }
 
 async function setupSimilarCode(
-	ctx: FallowCommandContext,
+	ctx: SetupContext,
 	state: OptionalAnalysisState,
 	dependencies: OptionalAnalysisDependencies,
 ): Promise<void> {
@@ -186,16 +199,18 @@ async function setupSimilarCode(
 	if (!preview) return;
 	const current = await refreshSimilarCode(state, dependencies);
 	if (!sameSimilarCodePreview(preview, current)) return setNotice(state, "Similar Code status changed after preview; setup was stopped. Review Status and preview again.");
+	if (!await safeModelDestination(ctx.cwd, preview, state)) return;
 	await executeSimilarCodeSetup(state, dependencies);
 }
 
 async function confirmedSimilarCodePreview(
-	ctx: FallowCommandContext,
+	ctx: SetupContext,
 	state: OptionalAnalysisState,
 	dependencies: OptionalAnalysisDependencies,
 ): Promise<SimilarCodeCapability | undefined> {
 	const preview = await eligibleSimilarCodePreview(state, dependencies);
 	if (!preview) return undefined;
+	if (!await safeModelDestination(ctx.cwd, preview, state)) return undefined;
 	const confirmed = await ctx.ui.confirm("Set up Similar Code?", similarCodeSetupPreview(preview));
 	return confirmed ? preview : setNotice(state, "Similar Code setup declined; no download was started.");
 }
@@ -211,8 +226,16 @@ async function eligibleSimilarCodePreview(
 	return preview;
 }
 
+async function safeModelDestination(root: string, preview: SimilarCodeCapability, state: OptionalAnalysisState): Promise<boolean> {
+	if (!isAbsolute(preview.cacheDir) || isPathWithin(await canonicalDestination(root), await canonicalDestination(preview.cacheDir))) {
+		setNotice(state, "Similar Code setup blocked: model destination must be outside the project in the user-local Fallow cache.");
+		return false;
+	}
+	return true;
+}
+
 function sameSimilarCodePreview(preview: SimilarCodeCapability, current: SimilarCodeCapability | undefined): boolean {
-	return current?.fingerprint === preview.fingerprint;
+	return current?.phase === preview.phase && current?.fingerprint === preview.fingerprint;
 }
 
 async function executeSimilarCodeSetup(
@@ -227,7 +250,7 @@ async function executeSimilarCodeSetup(
 	await persistSetupOutput(setup, state, dependencies);
 	await refreshSimilarCode(state, dependencies);
 	if (!setup) return setNotice(state, "Similar Code setup was cancelled; Status was rechecked for partial state.");
-	if (setup.result.code >= 2) return setNotice(state, `Similar Code setup failed: ${commandFailure(setup.result)}`);
+	if (setupCommandFailed(setup.result)) return setNotice(state, `Similar Code setup failed: ${commandFailure(setup.result)}`);
 	if (!similarCodeIsReady(state)) return setNotice(state, "Similar Code setup completed without verified readiness. Review Status remediation.");
 	setNotice(state, "Similar Code setup completed and pinned model integrity was verified.");
 }
@@ -352,13 +375,13 @@ async function applyRuntimeCoverageStatus(
 }
 
 function runtimePlanFromExecution(execution: RawCommandResult): unknown {
-	if (execution.result.code >= 2) throw new Error(commandFailure(execution.result));
+	if (setupCommandFailed(execution.result)) throw new Error(commandFailure(execution.result));
 	const parsed = parseJson(execution.result.stdout, execution.result.stderr);
 	return parseCoverageSetupPlan(parsed.parsed ? parsed.data : undefined);
 }
 
 async function setupRuntimeCoverage(
-	ctx: FallowCommandContext,
+	ctx: SetupContext,
 	state: OptionalAnalysisState,
 	dependencies: OptionalAnalysisDependencies,
 ): Promise<void> {
@@ -367,11 +390,12 @@ async function setupRuntimeCoverage(
 	if (!preview) return;
 	const current = await refreshRuntimeCoverage(state, dependencies);
 	if (!sameRuntimePreview(preview, current)) return setNotice(state, "Runtime Coverage status or Fallow setup plan changed after preview; installation was stopped. Review Status and preview again.");
+	if (runtimeSetupBlocked(await canonicalDestination(ctx.cwd), current!, state)) return;
 	await executeRuntimeCoverageSetup(preview, state, dependencies);
 }
 
 async function confirmedRuntimeCoveragePreview(
-	ctx: FallowCommandContext,
+	ctx: SetupContext,
 	state: OptionalAnalysisState,
 	dependencies: OptionalAnalysisDependencies,
 ): Promise<RuntimeCoverageCapability | undefined> {
@@ -389,7 +413,7 @@ async function eligibleRuntimeCoveragePreview(
 	const preview = await refreshRuntimeCoverage(state, dependencies);
 	if (!preview) return undefined;
 	if (preview.phase === "ready") return setNotice(state, "Runtime Coverage sidecar is already ready; setup did not run.");
-	if (runtimeSetupBlocked(projectRoot, preview, state)) return undefined;
+	if (runtimeSetupBlocked(await canonicalDestination(projectRoot), preview, state)) return undefined;
 	return preview;
 }
 
@@ -423,7 +447,7 @@ async function executeRuntimeCoverageSetup(
 	await persistSetupOutput(wrapProcessResult(install), state, dependencies);
 	await refreshRuntimeCoverage(state, dependencies);
 	if (!install) return setNotice(state, "Runtime Coverage setup was cancelled; Status was rechecked for partial state.");
-	if (install.code !== 0) return setNotice(state, `Runtime Coverage setup failed: ${commandFailure(install)}`);
+	if (setupCommandFailed(install)) return setNotice(state, `Runtime Coverage setup failed: ${commandFailure(install)}`);
 	if (!runtimeCoverageIsReady(state)) return setNotice(state, "Runtime Coverage setup completed without verified package/signature readiness. Review Status remediation.");
 	setNotice(state, "Runtime Coverage sidecar installed in the managed cache; exact package metadata and detached signature presence were verified.");
 }
@@ -564,6 +588,10 @@ function isPathWithin(parent: string, child: string): boolean {
 function setNotice(state: OptionalAnalysisState, notice: string): undefined {
 	state.notice = notice.replace(/[\u0000-\u001f\u007f-\u009f]/gu, "�");
 	return undefined;
+}
+
+function setupCommandFailed(result: ProcessResult): boolean {
+	return result.code !== 0 || result.killed === true;
 }
 
 function commandFailure(result: { stderr: string; stdout: string; code: number; terminationReason?: string }): string {

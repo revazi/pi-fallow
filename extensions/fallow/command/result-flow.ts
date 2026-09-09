@@ -10,6 +10,8 @@ import { commandDisplay, fallowExitLabel } from "../tool-render";
 import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorState, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
 import { FallowOverlayShell } from "../ui/overlay-shell";
+import type { OverlaySetupRun } from "../ui/overlay-setup";
+import { createOverlaySetupRun } from "./overlay-setup";
 import { fallowProjectIssues } from "./issues";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import { hasFallowNavigator, isFallowTuiMode } from "./mode";
@@ -156,6 +158,8 @@ function openFallowNavigator(
 	prSummary: FallowPrSummary | undefined,
 	initialState?: FallowNavigatorState,
 ): Promise<FallowNavigatorResult | null> {
+	const root = resolveReadinessRoot(ctx.cwd, originCommandArgs);
+	const checkReadiness = createReadinessCheck(pi, root);
 	return openFallowOverviewNavigator(ctx, result.formatted.overview, {
 		command: commandDisplay(binary, executedArgs),
 		commandArgs: originCommandArgs,
@@ -165,7 +169,8 @@ function openFallowNavigator(
 		projectState,
 		prSummary,
 		optionalAnalysis: true,
-		checkReadiness: createReadinessCheck(pi, resolveReadinessRoot(ctx.cwd, originCommandArgs)),
+		checkReadiness,
+		runSetup: createOverlaySetupRun(pi, ctx.mode, root, checkReadiness),
 	});
 }
 
@@ -179,6 +184,7 @@ interface FallowOverviewNavigatorOptions {
 	prSummary?: FallowPrSummary;
 	optionalAnalysis?: boolean;
 	checkReadiness?: ReadinessCheck;
+	runSetup?: OverlaySetupRun;
 }
 
 export function openFallowOverviewNavigator(
@@ -207,6 +213,7 @@ export function openFallowOverviewNavigator(
 		if (!options.optionalAnalysis) return navigator;
 		shell = new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows, options.checkReadiness, {
 			projectRoot: resolveReadinessRoot(ctx.cwd, options.commandArgs), initialState: options.initialState?.overlay,
+			runSetup: options.runSetup,
 			onSimilarCodeRun: optionalRunCallback(options.commandArgs, navigator, finish, "Run Similar Code"),
 			onRuntimeCoverageRun: optionalRunCallback(options.commandArgs, navigator, finish, "Run Runtime Coverage"),
 		});
