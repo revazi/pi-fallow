@@ -744,7 +744,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		});
 	}
 
-	private snapshotState(): FallowNavigatorState {
+	snapshotState(): FallowNavigatorState {
 		return {
 			selectedReportIndex: this.currentIssue()?.id,
 			scrollStart: this.scrollStart,

@@ -38,6 +38,10 @@ export class ReadinessState {
 		);
 	}
 
+	isReady(view: ReadinessView): boolean {
+		return [!this.disposed, !this.pending.has(view), this.reports.get(view)?.phase === "ready"].every(Boolean);
+	}
+
 	toggleDetails(view: ReadinessView): void {
 		if (this.expanded.has(view)) this.expanded.delete(view);
 		else this.expanded.add(view);
