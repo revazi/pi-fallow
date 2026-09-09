@@ -3,7 +3,7 @@ import { boundedReadinessText, readinessFailure, type ReadinessCheck, type Readi
 interface PendingCheck { controller: AbortController; timer: ReturnType<typeof setTimeout> }
 const PHASE_LABELS = { error: "check failed", corrupt: "corrupt/unverified", ready: "ready", missing: "missing", incompatible: "incompatible", unknown: "unknown" };
 
-/** Per-mount read-only state, intentionally separate from the legacy setup/workflow state. */
+/** Per-mount read-only state, separate from each explicit setup attempt. */
 export class ReadinessState {
 	private reports = new Map<ReadinessView, ReadinessReport>();
 	private pending = new Map<ReadinessView, PendingCheck>();

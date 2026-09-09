@@ -5,7 +5,6 @@ import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, parse, resolve } from "node:path";
 import { asRecord } from "./data";
 
-export const OPTIONAL_ANALYSIS_COMMAND = "__pi-fallow-optional-analysis";
 const SIMILAR_CODE_MODEL_ID = "jinaai/jina-embeddings-v2-base-code";
 const SIMILAR_CODE_MODEL_REVISION = "516f4baf13dec4ddddda8631e019b5737c8bc250";
 const SIMILAR_CODE_LICENSE = "Apache-2.0";
@@ -72,18 +71,12 @@ export interface RuntimeCoverageCapability {
 export interface OptionalAnalysisState {
 	similarCode?: SimilarCodeCapability;
 	runtimeCoverage?: RuntimeCoverageCapability;
-	artifactPath?: string;
-	similarCodeArgs?: string[];
 	completeSetupOutputPath?: string;
 	notice?: string;
 }
 
 export function createOptionalAnalysisState(): OptionalAnalysisState {
 	return {};
-}
-
-export function resetOptionalAnalysisState(state: OptionalAnalysisState): void {
-	for (const key of Object.keys(state) as Array<keyof OptionalAnalysisState>) delete state[key];
 }
 
 export function parseSimilarCodeCapability(value: unknown): SimilarCodeCapability {
@@ -375,15 +368,6 @@ export function similarCodeStatusLines(status: SimilarCodeCapability | undefined
 	], status.problem);
 }
 
-export function runtimeCoverageStatusLines(status: RuntimeCoverageCapability | undefined): string[] {
-	if (!status) return ["Runtime Coverage: status not checked."];
-	return withProblem([
-		`Runtime Coverage: ${status.phase}; ${display(status.packageName)}@${display(stringOr(status.installedVersion, "not installed"))}; package metadata ${verificationLabel(status.packageMetadataVerified)}; detached signature ${presenceLabel(status.signaturePresent)}.`,
-		`  Source: npm registry; certified ${display(status.certifiedVersion)}; ${display(status.license)}; ${installedSizeLabel(status.installedBytes)}; ${display(status.destination)}`,
-		...coveragePlanStatusLines(status.plan),
-	], status.problem);
-}
-
 export function runtimeCoverageInstallArgs(destination: string): string[] {
 	return [
 		"install", "--prefix", destination, "--registry", "https://registry.npmjs.org", "--ignore-scripts", "--no-save",
@@ -397,14 +381,6 @@ function formatBytes(bytes: number): string {
 	return `${Math.round(bytes / 1024)} KiB`;
 }
 
-export function capabilityLabel(phase: CapabilityPhase | undefined): string {
-	return phase ?? "unchecked";
-}
-
-function coveragePlanStatusLines(plan: CoveragePlanDisclosure | undefined): string[] {
-	return plan ? [`  ${coveragePlanDisclosure(plan)}`] : [];
-}
-
 function withProblem(lines: string[], problem: string | undefined): string[] {
 	if (problem) lines.push(`  ${display(problem)}`);
 	return lines;
@@ -412,14 +388,6 @@ function withProblem(lines: string[], problem: string | undefined): string[] {
 
 function verificationLabel(verified: boolean): string {
 	return verified ? "verified" : "not verified";
-}
-
-function presenceLabel(present: boolean): string {
-	return present ? "present" : "not verified";
-}
-
-function installedSizeLabel(bytes: number | undefined): string {
-	return bytes === undefined ? `expected ${formatBytes(FALLOW_COV_EXPECTED_INSTALLED_BYTES)}` : formatBytes(bytes);
 }
 
 function valueOr(value: string | number | undefined, fallback: string): string | number {
@@ -480,16 +448,4 @@ export async function saveOptionalSetupOutput(stdout: string, stderr: string): P
 	const path = join(directory, "setup-output.txt");
 	await writeFile(path, [`stdout:\n${stdout}`, `stderr:\n${stderr}`].join("\n\n"), "utf8");
 	return path;
-}
-
-export async function resolveLocalArtifact(path: string): Promise<string> {
-	if (/^[a-z][a-z0-9+.-]*:\/\//iu.test(path)) throw new Error("Cloud and URL artifacts are not supported; select a local path.");
-	const resolved = await realpath(path);
-	const info = await stat(resolved);
-	if (![info.isFile(), info.isDirectory()].some(Boolean)) throw new Error("The selected artifact must be a file or directory.");
-	return resolved;
-}
-
-export function artifactDisplayName(path: string | undefined): string {
-	return path ? `${display(basename(path))} (${display(path)})` : "not selected";
 }

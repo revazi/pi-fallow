@@ -66,7 +66,7 @@ function runFallowWithLoader(
 	return runFallowTaskWithLoader(ctx, `Running fallow ${displayArgs}...`, executeCommand);
 }
 
-export function runFallowTaskWithLoader<T>(
+function runFallowTaskWithLoader<T>(
 	ctx: FallowCommandContext,
 	label: string,
 	execute: (signal: AbortSignal) => Promise<T>,

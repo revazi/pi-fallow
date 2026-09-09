@@ -55,7 +55,7 @@ function workflow(view, { drift = false, fail = false, ready = false, destinatio
 		async saveSetupOutput() { return "/tmp/fake-setup-output.txt"; },
 	};
 	const run = async (_view, _signal, confirm) => {
-		await runOptionalSetup(view, "tui", { cwd: "/project", ui: { confirm } }, state, dependencies);
+		await runOptionalSetup(view, "tui", { cwd: "/project", confirm }, state, dependencies);
 		return state.notice;
 	};
 	let refreshes = 0;

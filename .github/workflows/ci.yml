@@ -40,6 +40,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Native overlay keyboard and resize probe (fixture callbacks)
+        run: npm run probe:overlay
+
       - name: Token benchmark against 0.2.0
         if: matrix.node == 24
         run: |

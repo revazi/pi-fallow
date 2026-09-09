@@ -1,7 +1,7 @@
 import { fallowCli } from "../cli";
 import { buildRuntimeCoverageRequest, localCoverageEnvironment, revalidateRuntimeCoverageRequest, type RuntimeCoverageRunRequest } from "../runtime-coverage-options";
 
-/** Execution-time gate for inline requests. Ordinary commands and the legacy workflow keep their existing path. */
+/** Execution-time gate for inline requests. Ordinary commands keep their existing path. */
 export function runtimeCoverageExecutor(
 	request: RuntimeCoverageRunRequest | undefined,
 	execute = fallowCli.execFallow,

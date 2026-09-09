@@ -6,7 +6,6 @@ import { runFallowCommandHandler } from "./fallow/command/handler";
 import { fallowArgumentHint } from "./fallow/registry";
 import type { FallowCommandState } from "./fallow/command/types";
 import { createFallowHistoryState } from "./fallow/history";
-import { createOptionalAnalysisState } from "./fallow/optional-analysis";
 import { registerFallowSessionStart } from "./fallow/session";
 import { renderFallowMessageRenderer, renderFallowToolCall, renderFallowToolResult } from "./fallow/tool-render";
 import { renderFallowAboutMessage } from "./fallow/update-notice";
@@ -16,7 +15,6 @@ export default function (pi: ExtensionAPI) {
 		lastArgs: null,
 		baseRefs: new Map(),
 		history: createFallowHistoryState(),
-		optionalAnalysis: createOptionalAnalysisState(),
 	};
 	registerFallowTool(pi);
 	registerFallowCommand(pi, commandState);

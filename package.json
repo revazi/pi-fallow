@@ -40,6 +40,7 @@
     "bench:performance:compare": "node scripts/performance-benchmark-compare.mjs",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "smoke:fallow-cov": "npm exec --yes --ignore-scripts --package=@fallow-cli/fallow-cov@0.4.1 -- node scripts/fallow-cov-certification.mjs",
+    "probe:overlay": "python3 scripts/overlay-pty-probe.py",
     "pack:check": "npm pack --dry-run",
     "package:smoke": "node scripts/package-smoke.mjs",
     "publish:public": "npm run check:publish && npm publish --access public --provenance"

@@ -67,6 +67,10 @@ What these cover:
 - `npm run bench:performance` and `npm run bench:performance:compare` measure runner, processing, Git, memory, and cold/warm behavior against the performance baseline.
 - `npm run pack:check` verifies the npm package contents.
 
+### Overlay UX changes
+
+Run `npm run probe:overlay` on macOS/Linux with Python 3 for the native Pi TUI PTY keyboard/resize probe. It uses fixture callbacks only: no optional downloads, installation, or inference. JSON frame evidence and terminal bytes are saved in the printed temporary directory. See [the validation matrix and human review checklist](docs/overlay-ux-validation.md); the probe does not replace user review or #83 model-backed certification. If the optional sidecar is already installed, reuse its existing executable for the sidecar smoke test instead of the installing npm-exec wrapper.
+
 ## Pull requests
 
 A good PR should include:
