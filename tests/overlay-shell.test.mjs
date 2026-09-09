@@ -124,7 +124,7 @@ describe("persistent Fallow overlay shell", () => {
 		const scrolled = text(shell, 50);
 		assert.notEqual(scrolled, first);
 		shell.handleInput("3");
-		assert.match(text(shell, 50), /Local runtime evidence/);
+		assert.match(text(shell, 50), /Local\/unknown-production/);
 		shell.handleInput("2");
 		assert.equal(text(shell, 50), scrolled);
 		for (const width of [1, 20, 50, 80, 120]) {

@@ -3,7 +3,7 @@ import { fallowCli } from "../cli";
 import { recordFallowHistory } from "../history";
 import { OPTIONAL_ANALYSIS_COMMAND } from "../optional-analysis";
 import { detectFallowBaseRef } from "../project/git";
-import type { FallowNavigatorResult, FallowNavigatorState } from "../types";
+import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorState } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs, resolveFallowRunArgs } from "./args";
 import { resolveFallowCommandBaseRef } from "./base";
@@ -77,8 +77,8 @@ async function executeFallowCommandLoop(
 	commandState: FallowCommandState,
 	initialArgs: string[],
 ): Promise<FallowNavigatorResult | null | undefined> {
-	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState, protectedHistoryIds, executionEnvironment) => (
-		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState, protectedHistoryIds, executionEnvironment)
+	return runFallowNavigatorLoop(initialArgs, isFallowTuiMode(ctx.mode), (args, rememberLast, initialState, protectedHistoryIds, environment, runtimeCoverage) => (
+		runFallowCommandOnce(pi, ctx, commandState, args, rememberLast, initialState, protectedHistoryIds, { environment, runtimeCoverage })
 	));
 }
 
@@ -90,7 +90,7 @@ function runFallowCommandOnce(
 	rememberLast: boolean,
 	initialNavigatorState?: FallowNavigatorState,
 	protectedHistoryIds?: string[],
-	executionEnvironment?: NodeJS.ProcessEnv,
+	executionOptions?: FallowExecutionOptions,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (args[0] === OPTIONAL_ANALYSIS_COMMAND) return runOptionalAnalysisWorkflow(pi, ctx, commandState.optionalAnalysis);
 	if (args[0] === "history") {
@@ -100,7 +100,7 @@ function runFallowCommandOnce(
 		commandState.lastArgs = updated;
 	}, initialNavigatorState, initialNavigatorState ? undefined : (result, commandArgs) => (
 		recordFallowHistory(pi, commandState.history, ctx.cwd, result, protectedHistoryIds, commandArgs)
-	), executionEnvironment);
+	), executionOptions);
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {

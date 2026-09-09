@@ -1,7 +1,10 @@
 import type { CapabilityPhase } from "./optional-analysis";
 
 export type ReadinessView = "similar-code" | "runtime-coverage";
+export interface RuntimeSidecarBinding { binaryPath: string; fingerprint: string }
+
 export interface ReadinessReport {
+	runtime?: RuntimeSidecarBinding;
 	phase: CapabilityPhase;
 	summary: string;
 	details: string[];

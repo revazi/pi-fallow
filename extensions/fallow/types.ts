@@ -1,5 +1,6 @@
 import type { FallowTerminationReason } from "./process";
 import type { SimilarCodeFormValues } from "./similar-code-options";
+import type { RuntimeCoverageFormState, RuntimeCoverageRunRequest } from "./runtime-coverage-options";
 
 export type FallowOutputDetail = "summary" | "findings" | "raw";
 
@@ -74,6 +75,7 @@ export interface FallowOverview {
 export interface FallowOverlayState {
 	view: number;
 	similarCode: SimilarCodeFormValues;
+	runtimeCoverage?: RuntimeCoverageFormState;
 }
 
 export interface FallowNavigatorState {
@@ -94,7 +96,12 @@ export interface FallowNavigatorReturnTarget {
 	state: FallowNavigatorState;
 }
 
+export interface FallowExecutionOptions {
+	environment?: NodeJS.ProcessEnv;
+	runtimeCoverage?: RuntimeCoverageRunRequest;
+}
+
 export type FallowNavigatorResult =
 	| { type: "prompt"; prompt: string; issueCount: number; detail: "compact" | "full" }
-	| { type: "action"; label: string; commandArgs: string[]; returnTo: FallowNavigatorReturnTarget }
+	| { type: "action"; label: string; commandArgs: string[]; returnTo: FallowNavigatorReturnTarget; runtimeCoverage?: RuntimeCoverageRunRequest }
 	| { type: "forward"; label: string; commandArgs: string[]; executionEnvironment?: NodeJS.ProcessEnv };
