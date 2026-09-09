@@ -7,6 +7,7 @@ import { RuntimeCoverageForm } from "./runtime-coverage-form";
 import type { RuntimeCoverageRunRequest } from "../runtime-coverage-options";
 import type { FallowIssueNavigator } from "./navigator";
 import { ReadinessState } from "./readiness-state";
+import { OverlaySetup, type OverlaySetupRun } from "./overlay-setup";
 
 const VIEW_LABELS = ["Findings", "Similar Code", "Runtime Coverage"];
 const OPTIONAL_TEXT = [
@@ -15,6 +16,7 @@ const OPTIONAL_TEXT = [
 ];
 
 interface ShellOptions {
+	runSetup?: OverlaySetupRun;
 	projectRoot?: string;
 	initialState?: FallowOverlayState;
 	onSimilarCodeRun?: (request: SimilarCodeRunRequest) => void;
@@ -29,6 +31,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	private contentRows = 0;
 	private _focused = false;
 	private readiness: ReadinessState;
+	private setup: OverlaySetup;
 	private similarCode: SimilarCodeForm;
 	private runtimeCoverage: RuntimeCoverageForm;
 
@@ -41,6 +44,7 @@ export class FallowOverlayShell implements Component, Focusable {
 		options: ShellOptions = {},
 	) {
 		this.readiness = new ReadinessState(checkReadiness, requestRender);
+		this.setup = new OverlaySetup(options.runSetup, requestRender, (view) => this.readiness.refresh(view));
 		this.similarCode = new SimilarCodeForm({
 			root: options.projectRoot ?? process.cwd(), initialValues: options.initialState?.similarCode,
 			isReady: () => this.readiness.isReady("similar-code"), onRun: options.onSimilarCodeRun,
@@ -78,6 +82,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private handleModalInput(data: string): boolean {
+		if (this.setup.active) { this.setup.handleInput(data); return true; }
 		if (this.findings.hasModalInput) { this.findings.handleInput(data); return true; }
 		if (this.isFormEditing()) { this.currentForm()!.handleInput(data); return true; }
 		return false;
@@ -108,6 +113,12 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private handleViewControls(data: string): void {
+		if (data === "s") {
+			this.similarCode.cancelPending();
+			this.runtimeCoverage.cancelPending();
+			this.setup.start(this.optionalView());
+			return;
+		}
 		if (this.currentForm()?.handleInput(data)) { this.scroll[this.view] = 0; return; }
 		this.handleReadinessInput(data);
 	}
@@ -153,6 +164,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	dispose(): void {
+		this.setup.dispose();
 		this.readiness.dispose();
 		this.similarCode.dispose();
 		this.runtimeCoverage.dispose();
@@ -168,6 +180,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	render(width: number): string[] {
 		if (width < 1) return [];
 		const header = this.headerLines(width);
+		if (this.setup.active) return this.setup.render(width, Math.max(1, Math.floor(this.terminalRows() * 0.95)), this.readiness.lines(this.optionalView()));
 		if (this.view === 0) return [...header, ...this.findings.render(width)];
 		return [...header, ...this.renderOptional(width, header.length)];
 	}
@@ -184,7 +197,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private renderOptional(width: number, headerRows: number): string[] {
-		const footerText = this.isFormEditing() ? "Tab/Shift+Tab field · Enter finish & validate · Esc finish editing" : "r refresh · i details · ↑↓ scroll · Esc/Backspace findings · o existing dialogs";
+		const footerText = this.isFormEditing() ? "Tab/Shift+Tab field · Enter finish & validate · Esc finish editing" : "s Setup · r refresh · i details · ↑↓ scroll · Esc/Backspace findings · o existing dialogs";
 		const footer = new Text(this.theme.fg("dim", footerText), 0, 0).render(width);
 		const rows = this.terminalRows();
 		const available = Number.isFinite(rows) && rows > 0 ? Math.floor(rows * 0.95) : 24;
@@ -199,7 +212,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	private optionalContent(width: number): string[] {
 		const body = [OPTIONAL_TEXT[this.view - 1]!, ...this.readiness.lines(this.optionalView()),
 			"", "Checks never install, download models, or change setup state.",
-			"Inline setup and shared in-overlay execution are follow-up work. Press o for existing dialogs (leaves this overlay).",
+			"Press s for Setup preview (never confirms installation). Shared in-overlay analysis execution is follow-up work; o opens existing dialogs.",
 		].join("\n");
 		const form = this.currentForm()?.render(width) ?? [];
 		return [...form, ...new Text(this.theme.fg("text", body), 0, 0).render(width)];
