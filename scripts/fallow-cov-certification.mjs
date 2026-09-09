@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { basename, delimiter, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertEvidenceSubset } from "./report-certification.mjs";
+import { createJiti } from "jiti";
 
 const repository = fileURLToPath(new URL("../", import.meta.url));
 const fixtures = join(repository, "tests/fixtures/fallow");
@@ -59,6 +60,15 @@ function normalize(report) {
 	return report;
 }
 
+async function verifyOverlayReadiness(root, binary) {
+	const { inspectRuntimeReadiness } = await createJiti(import.meta.url).import("../extensions/fallow/runtime-readiness.ts");
+	const status = await inspectRuntimeReadiness(root, new AbortController().signal, {
+		environment: { FALLOW_COV_BIN: binary, PATH: "" }, home: root,
+	});
+	assert.equal(status.phase, "ready", status.summary);
+	assert.ok(status.details.some((line) => line.includes("Ed25519 signature verified")));
+}
+
 export async function collectCoverageEvidence() {
 	assert.equal(Number(process.versions.node.split(".")[0]), 24, "coverage certification is pinned to Node 24");
 	const projectText = await readFile(join(fixtures, "coverage-project.json"), "utf8");
@@ -71,6 +81,7 @@ export async function collectCoverageEvidence() {
 		await mkdir(root);
 		await mkdir(coverage);
 		await materialize(root, projectText);
+		await verifyOverlayReadiness(root, sidecar.binary);
 		const nodeResult = run(process.execPath, [join(root, "runner.js")], {
 			cwd: root,
 			env: { PATH: dirname(process.execPath), HOME: join(container, "home"), NODE_V8_COVERAGE: coverage, NO_COLOR: "1" },

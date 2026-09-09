@@ -60,6 +60,8 @@ interface RunnerOptions {
 	now?: () => number;
 	packageRoot?: string | null;
 	resolveNpxPackage?: boolean;
+	/** Read-only callers must not resolve or execute an installing npx fallback. */
+	allowNpxFallback?: boolean;
 }
 
 interface FallowRunnerExecution {
@@ -75,6 +77,7 @@ export function createFallowRunner({
 	now = Date.now,
 	packageRoot = PACKAGE_ROOT,
 	resolveNpxPackage = true,
+	allowNpxFallback = true,
 }: RunnerOptions = {}) {
 	const sessionCaches = new WeakMap<ExtensionAPI, Map<string, RunnerCacheEntry>>();
 
@@ -150,8 +153,8 @@ export function createFallowRunner({
 		const cached = usableCachedRoute(entry.route, now());
 		if (cached) return cached;
 		if (entry.resolving) return entry.resolving;
-		const pending = discoverRoute(entry.environment, request, new Set(), true)
-			.then((route) => resolvedRouteOrFallback(route, now(), fallbackCacheTtlMs));
+		const pending = discoverRoute(entry.environment, request, new Set(), allowNpxFallback)
+			.then((route) => resolvedRouteOrFallback(route, now(), fallbackCacheTtlMs, allowNpxFallback));
 		entry.resolving = pending;
 		try {
 			const route = await pending;
@@ -164,7 +167,7 @@ export function createFallowRunner({
 
 	async function resolveRetryRoute(pi: ExtensionAPI, request: RunnerRequest, failed: RunnerRoute): Promise<RunnerRoute | undefined> {
 		const entry = cacheEntry(pi, request.cwd);
-		const route = await discoverRoute(entry.environment, request, new Set([failed.command]), failed.source !== "npx");
+		const route = await discoverRoute(entry.environment, request, new Set([failed.command]), allowNpxFallback && failed.source !== "npx");
 		if (route) entry.route = route;
 		return route;
 	}
@@ -321,7 +324,8 @@ function usableCachedRoute(route: RunnerRoute | undefined, now: number): RunnerR
 	return route;
 }
 
-function resolvedRouteOrFallback(route: RunnerRoute | undefined, now: number, ttlMs: number): RunnerRoute {
+function resolvedRouteOrFallback(route: RunnerRoute | undefined, now: number, ttlMs: number, allowNpx: boolean): RunnerRoute {
+	if (!route && !allowNpx) throw new Error("Readiness check unavailable: install Fallow separately or set FALLOW_BIN. Automatic installation is disabled for status checks.");
 	return route ?? npxRoute("npx", now, ttlMs);
 }
 
