@@ -1,10 +1,10 @@
 import { createPublicKey, verify } from "node:crypto";
-import { constants } from "node:fs";
-import { access, readFile, readdir, realpath, stat } from "node:fs/promises";
+import { readdir, realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { FALLOW_COV_VERSION, inspectRuntimeCoverageCapability } from "./optional-analysis";
 import { readinessNext, type ReadinessReport } from "./readiness-report";
+import { readSizedFile } from "./read-sized-file";
 
 // Fallow v3.22.0 crates/cli/src/health/coverage.rs BINARY_SIGNING_VERIFY_KEY.
 // Binary-signing key, NOT the license key. Readiness never executes sidecar candidates.
@@ -74,9 +74,9 @@ function versionReport(version: string, details: string[]): ReadinessReport {
 
 async function packageVersion(binary: string): Promise<string | undefined> {
 	const path = join(dirname(binary), "package.json");
-	if (!await existingFile(path)) return undefined;
-	await requireSizedFile(path, 1, 64 * 1024);
-	const metadata = JSON.parse(await readFile(path, "utf8"));
+	const contents = await optionalPackageContents(path);
+	if (!contents) return undefined;
+	const metadata = JSON.parse(contents.toString("utf8"));
 	if (!platformPackageNames().includes(metadata.name)) return undefined;
 	return typeof metadata.version === "string" ? metadata.version : undefined;
 }
@@ -87,17 +87,19 @@ function platformPackageNames(): string[] {
 	return [process.platform === "win32" ? `${prefix}-msvc` : prefix];
 }
 
-async function requireSizedFile(path: string, minimum: number, maximum: number): Promise<void> {
-	const info = await stat(path);
-	if (!info.isFile()) throw new Error(`Expected a regular file: ${path}`);
-	if (info.size < minimum || info.size > maximum) throw new Error(`Expected file size ${minimum}–${maximum} bytes: ${path}`);
+async function optionalPackageContents(path: string): Promise<Buffer | undefined> {
+	try { return await readSizedFile(path, { minimum: 1, maximum: 64 * 1024 }); }
+	catch (error) {
+		if (isMissingFile(error)) return undefined;
+		throw error;
+	}
 }
 
 async function verifySignedBinary(path: string): Promise<void> {
-	await requireSizedFile(path, 1, 64 * 1024 * 1024);
-	await access(path, process.platform === "win32" ? constants.F_OK : constants.X_OK);
-	await requireSizedFile(`${path}.sig`, 64, 64);
-	const [binary, signature] = await Promise.all([readFile(path), readFile(`${path}.sig`)]);
+	const [binary, signature] = await Promise.all([
+		readSizedFile(path, { minimum: 1, maximum: 64 * 1024 * 1024, executable: true }),
+		readSizedFile(`${path}.sig`, { minimum: 64, maximum: 64 }),
+	]);
 	if (!verify(null, binary, SIGNING_KEY, signature)) throw new Error("Detached signature does not verify. This binary was not executed.");
 }
 
