@@ -1,10 +1,12 @@
 import { matchesKey, Text, type Component, type Focusable } from "@earendil-works/pi-tui";
+import type { ReadinessCheck, ReadinessView } from "../readiness-report";
 import type { FallowIssueNavigator } from "./navigator";
+import { ReadinessState } from "./readiness-state";
 
 const VIEW_LABELS = ["Findings", "Similar Code", "Runtime Coverage"];
 const OPTIONAL_TEXT = [
-	"Similar Code\n\nOpt-in semantic similarity; candidates are advisory, not proof that code can be consolidated.\n\nInline readiness, configuration, setup, and execution controls are not available in this view yet.\n\nNo installation status has been checked by opening this view.\n\nPress o for the existing Status / Setup / Run dialog workflow. It leaves this overlay; opening it never installs anything.",
-	"Runtime Coverage\n\nLocal runtime evidence is limited to the selected capture; cold code is not proof of safe deletion.\n\nInline readiness, artifact selection, setup, and execution controls are not available in this view yet.\n\nNo installation status has been checked by opening this view.\n\nPress o for the existing Status / Setup / Run dialog workflow. It leaves this overlay; opening it never installs anything.",
+	"Similar Code\n\nOpt-in semantic similarity; candidates are advisory, not proof that code can be consolidated.",
+	"Runtime Coverage\n\nLocal runtime evidence is limited to the selected capture; cold code is not proof of safe deletion.",
 ];
 
 /** One mounted shell owns its children until the enclosing custom UI completes. */
@@ -14,13 +16,17 @@ export class FallowOverlayShell implements Component, Focusable {
 	private pageRows = 10;
 	private contentRows = 0;
 	private _focused = false;
+	private readiness: ReadinessState;
 
 	constructor(
 		private findings: FallowIssueNavigator,
 		private theme: any,
 		private requestRender: () => void,
 		private terminalRows: () => number,
-	) {}
+		checkReadiness?: ReadinessCheck,
+	) {
+		this.readiness = new ReadinessState(checkReadiness, requestRender);
+	}
 
 	get focused(): boolean { return this._focused; }
 	set focused(value: boolean) {
@@ -55,7 +61,13 @@ export class FallowOverlayShell implements Component, Focusable {
 			this.findings.handleInput(data);
 			return;
 		}
-		this.scrollOptional(data);
+		this.handleReadinessInput(data);
+	}
+
+	private handleReadinessInput(data: string): void {
+		if (data === "r") this.readiness.refresh(this.optionalView());
+		else if (data === "i") this.readiness.toggleDetails(this.optionalView());
+		else this.scrollOptional(data);
 	}
 
 	private scrollOptional(data: string): void {
@@ -74,8 +86,17 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private switchView(view: number): void {
 		this.view = view;
+		if (view !== 0) this.readiness.enter(this.optionalView());
 		this.syncFocus();
 		this.requestRender();
+	}
+
+	private optionalView(): ReadinessView {
+		return this.view === 1 ? "similar-code" : "runtime-coverage";
+	}
+
+	dispose(): void {
+		this.readiness.dispose();
 	}
 
 	private syncFocus(): void {
@@ -97,11 +118,15 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private renderOptional(width: number, headerRows: number): string[] {
-		const footer = new Text(this.theme.fg("dim", "↑↓ scroll · Esc/Backspace findings · o existing dialogs"), 0, 0).render(width);
+		const footer = new Text(this.theme.fg("dim", "r refresh · i details · ↑↓ scroll · Esc/Backspace findings · o existing dialogs"), 0, 0).render(width);
 		const rows = this.terminalRows();
 		const available = Number.isFinite(rows) && rows > 0 ? Math.floor(rows * 0.95) : 24;
 		this.pageRows = Math.max(1, available - headerRows - footer.length - 1);
-		const content = new Text(this.theme.fg("text", OPTIONAL_TEXT[this.view - 1]!), 0, 0).render(width);
+		const body = [OPTIONAL_TEXT[this.view - 1]!, ...this.readiness.lines(this.optionalView()),
+			"", "Checks never install, download models, or change setup state.",
+			"Inline configuration, setup, and execution are follow-up work. Press o for existing dialogs (leaves this overlay).",
+		].join("\n");
+		const content = new Text(this.theme.fg("text", body), 0, 0).render(width);
 		this.contentRows = content.length;
 		const start = Math.min(this.scroll[this.view]!, Math.max(0, content.length - this.pageRows));
 		this.scroll[this.view] = start;

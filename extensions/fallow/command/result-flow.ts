@@ -1,5 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
+import { createReadinessCheck, resolveReadinessRoot } from "../readiness";
+import type { ReadinessCheck } from "../readiness-report";
 import { formatFallowProjectStateText } from "../project/text";
 import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
@@ -74,6 +76,7 @@ async function runFallowResultFlow(
 	renderFallowResultMessage(pi, ctx, commandResult, resultPrefix);
 	await onCompleted?.(commandResult, finalArgs);
 	return openFallowNavigator(
+		pi,
 		ctx,
 		commandResult,
 		binary,
@@ -137,6 +140,7 @@ function renderFallowResultMessage(
 }
 
 function openFallowNavigator(
+	pi: ExtensionAPI,
 	ctx: FallowCommandContext,
 	result: FallowCommandResult,
 	binary: string,
@@ -155,6 +159,7 @@ function openFallowNavigator(
 		projectState,
 		prSummary,
 		optionalAnalysis: true,
+		checkReadiness: createReadinessCheck(pi, resolveReadinessRoot(ctx.cwd, originCommandArgs)),
 	});
 }
 
@@ -167,6 +172,7 @@ interface FallowOverviewNavigatorOptions {
 	projectState?: FallowProjectState;
 	prSummary?: FallowPrSummary;
 	optionalAnalysis?: boolean;
+	checkReadiness?: ReadinessCheck;
 }
 
 export function openFallowOverviewNavigator(
@@ -178,19 +184,21 @@ export function openFallowOverviewNavigator(
 	const navigatorMode = resolveFallowNavigatorMode(overview, options.optionalAnalysis);
 	if (navigatorMode === "none") return Promise.resolve(null);
 	const informationalMode = navigatorMode === "informational";
+	let shell: FallowOverlayShell | undefined;
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
-		const navigator = new FallowIssueNavigator(overview, theme, done, () => tui.requestRender(), {
+		const finish = (result: FallowNavigatorResult | null) => { shell?.dispose(); done(result); };
+		const navigator = new FallowIssueNavigator(overview, theme, finish, () => tui.requestRender(), {
 			...options,
 			commandArgs: [...options.commandArgs],
 			visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows - (options.optionalAnalysis ? 4 : 0), informationalMode),
 			informationalMode,
 			optionalAnalysis: options.optionalAnalysis,
 		});
-		return options.optionalAnalysis
-			? new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows)
-			: navigator;
+		if (!options.optionalAnalysis) return navigator;
+		shell = new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows, options.checkReadiness);
+		return shell;
 	}, {
 		overlay: true,
 		overlayOptions: FALLOW_NAVIGATOR_OVERLAY_OPTIONS,
-	});
+	}).finally(() => shell?.dispose());
 }

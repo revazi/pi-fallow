@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { setImmediate as tick } from "node:timers/promises";
 import { CURSOR_MARKER, visibleWidth } from "@earendil-works/pi-tui";
 import { createJiti } from "jiti";
 
@@ -19,14 +20,14 @@ function overview(role = "finding", count = 40) {
 	};
 }
 
-function create(role = "finding", count = 40) {
+function create(role = "finding", count = 40, checkReadiness) {
 	const results = [];
 	let renders = 0;
 	let rows = 24;
 	const findings = new FallowIssueNavigator(overview(role, count), theme, (result) => results.push(result), () => { renders++; }, {
 		optionalAnalysis: true, commandArgs: ["issues"], visibleRows: 3, informationalMode: role === "context",
 	});
-	const shell = new FallowOverlayShell(findings, theme, () => { renders++; }, () => rows);
+	const shell = new FallowOverlayShell(findings, theme, () => { renders++; }, () => rows, checkReadiness);
 	shell.focused = true;
 	return { shell, findings, results, renders: () => renders, resize: (value) => { rows = value; } };
 }
@@ -48,7 +49,7 @@ describe("persistent Fallow overlay shell", () => {
 			assert.equal(findings.focused, true);
 			assert.equal(text(shell), original);
 			assert.deepEqual(results, []);
-			assert.equal(renders(), 3);
+			assert.equal(renders(), 5);
 		});
 	}
 
@@ -139,8 +140,8 @@ describe("persistent Fallow overlay shell", () => {
 	it("does not run finding actions from optional views and keeps the existing workflow explicit", () => {
 		const { shell, results } = create();
 		shell.handleInput("2");
-		assert.match(text(shell), /not available in this view yet/);
-		assert.match(text(shell), /No installation status has been checked/);
+		assert.match(text(shell), /Readiness: loading/);
+		assert.match(text(shell), /Checks never install/);
 		for (const key of ["e", "a", "t", "p", "\r", "s", "\t"]) shell.handleInput(key);
 		assert.deepEqual(results, []);
 		shell.handleInput("o");
@@ -148,7 +149,45 @@ describe("persistent Fallow overlay shell", () => {
 		assert.deepEqual(results[0].returnTo.commandArgs, ["issues"]);
 	});
 
-	it("mounts one custom UI and never dispatches a dialog or execution on view changes", async () => {
+	it("checks, refreshes, and expands details inside the same shell without dispatching legacy actions", async () => {
+		const calls = [];
+		const { shell, results } = create("finding", 0, async (view) => {
+			calls.push(view);
+			return { phase: "ready", summary: "Installed and verified", details: ["Location: /installed/model"], next: "No analysis run." };
+		});
+		assert.deepEqual(calls, []);
+		shell.handleInput("2"); await tick();
+		assert.match(text(shell), /Readiness: ready/);
+		assert.doesNotMatch(text(shell), /Location:/);
+		shell.handleInput("i");
+		assert.match(text(shell), /Location: \/installed\/model/);
+		shell.handleInput("r");
+		assert.match(text(shell), /Readiness: loading/);
+		await tick();
+		for (const key of ["3", "1", "2"]) shell.handleInput(key);
+		await tick();
+		assert.match(text(shell), /Location:/);
+		assert.deepEqual(calls, ["similar-code", "similar-code", "runtime-coverage"]);
+		assert.deepEqual(results, []);
+		shell.dispose();
+	});
+
+	it("aborts pending readiness synchronously when the custom UI completes", async () => {
+		let signal;
+		const ctx = { mode: "tui", ui: { custom: async (factory) => {
+			let result;
+			const shell = factory({ terminal: { rows: 40 }, requestRender() {} }, theme, {}, (value) => { result = value; });
+			shell.handleInput("2"); await tick();
+			shell.handleInput("q");
+			assert.equal(signal.aborted, true);
+			return result;
+		} } };
+		await openFallowOverviewNavigator(ctx, overview(), { commandArgs: ["issues"], optionalAnalysis: true,
+			checkReadiness: (_view, abort) => { signal = abort; return new Promise(() => {}); },
+		});
+	});
+
+	it("mounts one custom UI and never dispatches a dialog or analysis on view changes", async () => {
 		let mounts = 0;
 		const ctx = { mode: "tui", ui: { custom: async (factory, options) => {
 			mounts++;

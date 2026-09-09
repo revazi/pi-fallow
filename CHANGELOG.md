@@ -5,6 +5,7 @@ All notable changes to Pi Fallow are documented here.
 ## [Unreleased]
 
 ### Added
+- Added read-only optional-component readiness inside the overlay, with refresh, expandable installation details, supported external sidecar discovery, signature verification, bounded failures, and cancellation/stale-response protection. Status never installs components or changes setup state.
 - Added a persistent TUI overlay shell with Findings, Similar Code, and Runtime Coverage views, state-preserving navigation, and explicit placeholder guidance while inline optional workflows are developed; the existing `o` dialog workflow remains available.
 - Added TUI-only Optional Analysis controls with separate Status, previewed/confirmed Setup, and Run actions for Similar Code and local runtime coverage; setup is cancellable, drift-checked, user-global, and unavailable to tools or non-interactive modes.
 - Added bounded, project-isolated `/fallow history` for reopening digest-validated session reports and conservatively comparing compatible runs as new, unchanged, resolved, or unavailable without retaining raw reports in memory or treating resolved findings as current work.
