@@ -5,6 +5,7 @@ import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
 import type { FallowNavigatorResult, FallowNavigatorState, FallowPrSummary, FallowProjectState } from "../types";
 import { FallowIssueNavigator } from "../ui";
+import { FallowOverlayShell } from "../ui/overlay-shell";
 import { fallowProjectIssues } from "./issues";
 import { buildFallowExecutor, buildFallowFinalArgs, runFallowWithLoaderIfUi, type FallowCommandExecutor, type FallowCommandResult } from "./loader";
 import { hasFallowNavigator, isFallowTuiMode } from "./mode";
@@ -177,15 +178,18 @@ export function openFallowOverviewNavigator(
 	const navigatorMode = resolveFallowNavigatorMode(overview, options.optionalAnalysis);
 	if (navigatorMode === "none") return Promise.resolve(null);
 	const informationalMode = navigatorMode === "informational";
-	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => (
-		new FallowIssueNavigator(overview, theme, done, () => tui.requestRender(), {
+	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
+		const navigator = new FallowIssueNavigator(overview, theme, done, () => tui.requestRender(), {
 			...options,
 			commandArgs: [...options.commandArgs],
-			visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows, informationalMode),
+			visibleRows: resolveFallowNavigatorVisibleRows(tui.terminal.rows - (options.optionalAnalysis ? 4 : 0), informationalMode),
 			informationalMode,
 			optionalAnalysis: options.optionalAnalysis,
-		})
-	), {
+		});
+		return options.optionalAnalysis
+			? new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows)
+			: navigator;
+	}, {
 		overlay: true,
 		overlayOptions: FALLOW_NAVIGATOR_OVERLAY_OPTIONS,
 	});

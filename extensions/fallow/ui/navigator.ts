@@ -111,6 +111,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.restoreState(options.initialState);
 	}
 
+	get hasModalInput(): boolean {
+		return this.preparingPrompt || this.editingSearch || this.actionPalette !== undefined;
+	}
+
 	handleInput(data: string): void {
 		if (this.routeModalInput(data)) return;
 		const bindings: Array<{ matches: (value: string) => boolean; action: () => void }> = [
