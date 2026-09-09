@@ -1,8 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createReadinessCheck, resolveReadinessRoot } from "../readiness";
 import type { ReadinessCheck } from "../readiness-report";
-import type { SimilarCodeRunRequest } from "../similar-code-options";
-import type { RuntimeCoverageRunRequest } from "../runtime-coverage-options";
+import { createOverlayAnalysisRun, type OverlayAnalysisRun } from "./overlay-analysis";
 import { runtimeCoverageExecutor } from "./runtime-coverage";
 import { formatFallowProjectStateText } from "../project/text";
 import { formatFallowPrSummaryText } from "../pr-summary/text";
@@ -171,6 +170,7 @@ function openFallowNavigator(
 		optionalAnalysis: true,
 		checkReadiness,
 		runSetup: createOverlaySetupRun(pi, ctx.mode, root, checkReadiness),
+		runAnalysis: createOverlayAnalysisRun(pi, ctx.mode, root),
 	});
 }
 
@@ -185,6 +185,7 @@ interface FallowOverviewNavigatorOptions {
 	optionalAnalysis?: boolean;
 	checkReadiness?: ReadinessCheck;
 	runSetup?: OverlaySetupRun;
+	runAnalysis?: OverlayAnalysisRun;
 }
 
 export function openFallowOverviewNavigator(
@@ -214,8 +215,8 @@ export function openFallowOverviewNavigator(
 		shell = new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows, options.checkReadiness, {
 			projectRoot: resolveReadinessRoot(ctx.cwd, options.commandArgs), initialState: options.initialState?.overlay,
 			runSetup: options.runSetup,
-			onSimilarCodeRun: optionalRunCallback(options.commandArgs, navigator, finish, "Run Similar Code"),
-			onRuntimeCoverageRun: optionalRunCallback(options.commandArgs, navigator, finish, "Run Runtime Coverage"),
+			runAnalysis: options.runAnalysis,
+			onAnalysisResult: (result) => finish(optionalResultTarget(result, options.commandArgs, navigator)),
 		});
 		return shell;
 	}, {
@@ -224,15 +225,12 @@ export function openFallowOverviewNavigator(
 	}).finally(() => shell?.dispose());
 }
 
-function optionalRunCallback(
-	commandArgs: string[], navigator: FallowIssueNavigator, finish: (result: FallowNavigatorResult | null) => void, label: string,
-): ((request: SimilarCodeRunRequest | RuntimeCoverageRunRequest) => void) | undefined {
-	if (!commandArgs.length) return undefined;
-	return (request) => finish({
-		type: "action", label, commandArgs: [...request.commandArgs],
-		...("sidecar" in request ? { runtimeCoverage: request } : {}),
-		returnTo: { commandArgs: [...commandArgs], state: navigator.snapshotState() },
-	});
+function optionalResultTarget(
+	result: FallowNavigatorResult | null, commandArgs: string[], navigator: FallowIssueNavigator,
+): FallowNavigatorResult | null {
+	// Explicit navigator actions may leave the overlay; returning must not silently rerun optional analysis.
+	if (result?.type !== "action") return result;
+	return { ...result, returnTo: { commandArgs: [...commandArgs], state: navigator.snapshotState() } };
 }
 
 function withOverlayState(result: FallowNavigatorResult | null, shell: FallowOverlayShell | undefined): FallowNavigatorResult | null {

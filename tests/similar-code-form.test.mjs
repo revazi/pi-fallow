@@ -170,7 +170,7 @@ it("bounds validation failures and timeouts, and performs no validation after im
 	timed.dispose();
 });
 
-it("retains the inline form across views and the existing result/return loop without input dialogs", async () => {
+it("retains the inline form through in-place execution without input dialogs or remounts", async () => {
 	let stage = 0;
 	const overview = { title: "Report", status: "success", stats: [], notes: [], sections: [] };
 	const ctx = { cwd: process.cwd(), mode: "tui", ui: { custom: async (factory) => {
@@ -178,26 +178,26 @@ it("retains the inline form across views and the existing result/return loop wit
 		const shell = factory({ terminal: { rows: 40 }, requestRender() {} }, theme, {}, (value) => { result = value; });
 		shell.focused = true;
 		await tick();
-		if (stage === 1) {
-			shell.handleInput("2"); await tick();
-			field(shell, "t", ".7"); field(shell, "l", "005");
-			for (const key of ["3", "1", "2"]) shell.handleInput(key);
-			assert.deepEqual(shell.snapshotState().similarCode, { scope: "", threshold: ".7", top: "005" });
-			shell.handleInput("\r"); await tick();
-			assert.equal(result.type, "action");
-		} else {
-			if (stage === 3) {
-				assert.match(text(shell), /\[2 Similar Code\]/);
-				assert.deepEqual(shell.snapshotState().similarCode, { scope: "", threshold: ".7", top: "005" });
-			}
-			shell.handleInput("q");
-		}
+		shell.handleInput("2"); await tick();
+		field(shell, "t", ".7"); field(shell, "l", "005");
+		for (const key of ["3", "1", "2"]) shell.handleInput(key);
+		assert.deepEqual(shell.snapshotState().similarCode, { scope: "", threshold: ".7", top: "005" });
+		shell.handleInput("\r"); await tick(); await tick();
+		assert.equal(result, undefined, "Run must not complete the mounted overlay");
+		assert.match(text(shell), /Run failed: fixture execution error/);
+		shell.handleInput("\x1b");
+		assert.deepEqual(shell.snapshotState().similarCode, { scope: "", threshold: ".7", top: "005" });
+		shell.handleInput("q");
 		return result;
 	} } };
 	await runFallowNavigatorLoop(["issues"], true, async (args, _remember, initialState) => {
 		stage++;
-		if (stage === 2) assert.deepEqual(args, ["similar-code", "--root", process.cwd(), "--threshold", "0.7", "--top", "5"]);
-		return openFallowOverviewNavigator(ctx, overview, { commandArgs: args, optionalAnalysis: true, initialState, checkReadiness: async () => ready });
+		return openFallowOverviewNavigator(ctx, overview, { commandArgs: args, optionalAnalysis: true, initialState, checkReadiness: async () => ready,
+			runAnalysis: async (request) => {
+				assert.deepEqual(request.commandArgs, ["similar-code", "--root", process.cwd(), "--threshold", "0.7", "--top", "5"]);
+				throw new Error("fixture execution error");
+			},
+		});
 	});
-	assert.equal(stage, 3);
+	assert.equal(stage, 1);
 });

@@ -149,7 +149,7 @@ export class SimilarCodeForm implements Component, Focusable {
 	private controls(): string {
 		if (this.editing) return "Tab/Shift+Tab next field · Enter finish & validate · Esc finish editing (values retained)";
 		if (!this.options.onRun) return "s/t/l edit · v validate · Run unavailable in this context";
-		return this.options.isReady() ? "s/t/l edit · v validate only · Enter validate & Run (existing loader; leaves overlay)" : "s/t/l edit · v validate · Run disabled until readiness is ready";
+		return this.options.isReady() ? "s/t/l edit · v validate only · Enter validate & Run in overlay (fresh readiness; no install)" : "s/t/l edit · v validate · Run disabled until readiness is ready";
 	}
 
 	private changed(): void { if (!this.disposed) this.requestRender(); }
