@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
 import { createReadinessCheck, resolveReadinessRoot } from "../readiness";
 import type { ReadinessCheck } from "../readiness-report";
+import type { SimilarCodeRunRequest } from "../similar-code-options";
 import { formatFallowProjectStateText } from "../project/text";
 import { formatFallowPrSummaryText } from "../pr-summary/text";
 import { commandDisplay, fallowExitLabel } from "../tool-render";
@@ -186,7 +187,11 @@ export function openFallowOverviewNavigator(
 	const informationalMode = navigatorMode === "informational";
 	let shell: FallowOverlayShell | undefined;
 	return ctx.ui.custom<FallowNavigatorResult | null>((tui, theme, _keybindings, done) => {
-		const finish = (result: FallowNavigatorResult | null) => { shell?.dispose(); done(result); };
+		const finish = (result: FallowNavigatorResult | null) => {
+			const completed = withOverlayState(result, shell);
+			shell?.dispose();
+			done(completed);
+		};
 		const navigator = new FallowIssueNavigator(overview, theme, finish, () => tui.requestRender(), {
 			...options,
 			commandArgs: [...options.commandArgs],
@@ -195,10 +200,28 @@ export function openFallowOverviewNavigator(
 			optionalAnalysis: options.optionalAnalysis,
 		});
 		if (!options.optionalAnalysis) return navigator;
-		shell = new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows, options.checkReadiness);
+		shell = new FallowOverlayShell(navigator, theme, () => tui.requestRender(), () => tui.terminal.rows, options.checkReadiness, {
+			projectRoot: resolveReadinessRoot(ctx.cwd, options.commandArgs), initialState: options.initialState?.overlay,
+			onSimilarCodeRun: similarCodeRunCallback(options.commandArgs, navigator, finish),
+		});
 		return shell;
 	}, {
 		overlay: true,
 		overlayOptions: FALLOW_NAVIGATOR_OVERLAY_OPTIONS,
 	}).finally(() => shell?.dispose());
+}
+
+function similarCodeRunCallback(
+	commandArgs: string[], navigator: FallowIssueNavigator, finish: (result: FallowNavigatorResult | null) => void,
+): ((request: SimilarCodeRunRequest) => void) | undefined {
+	if (!commandArgs.length) return undefined;
+	return (request) => finish({
+		type: "action", label: "Run Similar Code", commandArgs: [...request.commandArgs],
+		returnTo: { commandArgs: [...commandArgs], state: navigator.snapshotState() },
+	});
+}
+
+function withOverlayState(result: FallowNavigatorResult | null, shell: FallowOverlayShell | undefined): FallowNavigatorResult | null {
+	if (!shell || result?.type !== "action") return result;
+	return { ...result, returnTo: { ...result.returnTo, state: { ...result.returnTo.state, overlay: shell.snapshotState() } } };
 }

@@ -1,4 +1,5 @@
 import type { FallowTerminationReason } from "./process";
+import type { SimilarCodeFormValues } from "./similar-code-options";
 
 export type FallowOutputDetail = "summary" | "findings" | "raw";
 
@@ -70,7 +71,13 @@ export interface FallowOverview {
 	notes: string[];
 }
 
+export interface FallowOverlayState {
+	view: number;
+	similarCode: SimilarCodeFormValues;
+}
+
 export interface FallowNavigatorState {
+	overlay?: FallowOverlayState;
 	selectedReportIndex?: number;
 	scrollStart: number;
 	expandedReportIndices: number[];

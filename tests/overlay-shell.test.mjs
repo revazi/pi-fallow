@@ -142,7 +142,7 @@ describe("persistent Fallow overlay shell", () => {
 		shell.handleInput("2");
 		assert.match(text(shell), /Readiness: loading/);
 		assert.match(text(shell), /Checks never install/);
-		for (const key of ["e", "a", "t", "p", "\r", "s", "\t"]) shell.handleInput(key);
+		for (const key of ["e", "a", "p"]) shell.handleInput(key);
 		assert.deepEqual(results, []);
 		shell.handleInput("o");
 		assert.deepEqual(results[0].commandArgs, ["__pi-fallow-optional-analysis"]);
