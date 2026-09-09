@@ -183,7 +183,7 @@ it("does not execute after cancelled or timed-out preflight, even if its check c
 	});
 });
 
-it("keeps one overlay for artifact selection, passes preflight data to execution, and restores preview on result return", async () => {
+it("keeps one overlay through artifact selection, execution, and return to the retained preview", async () => {
 	await fixture(async (root) => {
 		let stage = 0; let saved;
 		const overview = { title: "Coverage test report", status: "success", stats: [], notes: [], sections: [] };
@@ -191,26 +191,28 @@ it("keeps one overlay for artifact selection, passes preflight data to execution
 			let result;
 			const shell = factory({ terminal: { rows: 40 }, requestRender() {} }, theme, {}, (value) => { result = value; });
 			shell.focused = true; await tick();
-			if (stage === 1) {
-				shell.handleInput("3"); await tick(); enterPath(shell, "v8.json");
-				await until(() => Boolean(shell.snapshotState().runtimeCoverage.preview));
-				saved = shell.snapshotState().runtimeCoverage;
-				for (const key of ["1", "2", "3"]) shell.handleInput(key);
-				assert.deepEqual(shell.snapshotState().runtimeCoverage, saved);
-				shell.handleInput("\r"); await until(() => result !== undefined);
-				saved = result.returnTo.state.overlay.runtimeCoverage;
-			} else {
-				if (stage === 3) { assert.match(text(shell), /\[3 Runtime Coverage\]/); assert.deepEqual(shell.snapshotState().runtimeCoverage, saved); }
-				shell.handleInput("q");
-			}
+			shell.handleInput("3"); await tick(); enterPath(shell, "v8.json");
+			await until(() => Boolean(shell.snapshotState().runtimeCoverage.preview));
+			saved = shell.snapshotState().runtimeCoverage;
+			for (const key of ["1", "2", "3"]) shell.handleInput(key);
+			assert.deepEqual(shell.snapshotState().runtimeCoverage, saved);
+			shell.handleInput("\r"); await until(() => text(shell).includes("fixture coverage error"));
+			assert.equal(result, undefined, "Run must not complete the mounted overlay");
+			shell.handleInput("\x1b");
+			assert.equal(shell.snapshotState().runtimeCoverage.preview.fingerprint, saved.preview.fingerprint);
+			shell.handleInput("q");
 			return result;
 		} } };
-		await runFallowNavigatorLoop(["issues"], true, async (args, _remember, initialState, _protected, environment, request) => {
+		await runFallowNavigatorLoop(["issues"], true, async (args, _remember, initialState) => {
 			stage++;
-			if (stage === 2) { assert.deepEqual(args, request.commandArgs); assert.equal(request.sidecar.fingerprint, sidecar.fingerprint); assert.equal(environment, undefined); }
-			if (stage === 3) assert.equal(request, undefined, "preflight/child credentials must not leak to return navigation");
-			return openFallowOverviewNavigator(ctx, overview, { commandArgs: args, initialState, optionalAnalysis: true, checkReadiness: async () => ready });
+			return openFallowOverviewNavigator(ctx, overview, { commandArgs: args, initialState, optionalAnalysis: true, checkReadiness: async () => ready,
+				runAnalysis: async (request) => {
+					assert.equal(request.sidecar.fingerprint, sidecar.fingerprint);
+					assert.equal(request.artifact.fingerprint, saved.preview.fingerprint);
+					throw new Error("fixture coverage error");
+				},
+			});
 		});
-		assert.equal(stage, 3);
+		assert.equal(stage, 1);
 	});
 });

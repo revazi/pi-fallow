@@ -138,7 +138,7 @@ export class RuntimeCoverageForm implements Component, Focusable {
 		if (!this.state.preview) return "a edit path · v/Enter preview (no Run yet)";
 		if (!this.canRun()) return "a edit · v preview · Run disabled: r refresh readiness, then v preview again";
 		if (!this.options.onRun) return "a edit · v preview · Run unavailable in this context";
-		return "a edit path · v preview · Enter Run (existing loader; leaves overlay)";
+		return "a edit path · v preview · Enter Run in overlay (fresh checks; no install)";
 	}
 
 	invalidate(): void { this.editor.invalidate(); }

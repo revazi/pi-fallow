@@ -1,10 +1,10 @@
 import { CURSOR_MARKER, matchesKey, Text, type Component, type Focusable } from "@earendil-works/pi-tui";
 import type { ReadinessCheck, ReadinessView } from "../readiness-report";
-import type { FallowOverlayState } from "../types";
-import type { SimilarCodeRunRequest } from "../similar-code-options";
+import type { FallowNavigatorResult, FallowOverlayState } from "../types";
+import type { OverlayAnalysisRun } from "../command/overlay-analysis";
+import { OverlayAnalysis } from "./overlay-analysis";
 import { SimilarCodeForm } from "./similar-code-form";
 import { RuntimeCoverageForm } from "./runtime-coverage-form";
-import type { RuntimeCoverageRunRequest } from "../runtime-coverage-options";
 import type { FallowIssueNavigator } from "./navigator";
 import { ReadinessState } from "./readiness-state";
 import { OverlaySetup, type OverlaySetupRun } from "./overlay-setup";
@@ -19,8 +19,8 @@ interface ShellOptions {
 	runSetup?: OverlaySetupRun;
 	projectRoot?: string;
 	initialState?: FallowOverlayState;
-	onSimilarCodeRun?: (request: SimilarCodeRunRequest) => void;
-	onRuntimeCoverageRun?: (request: RuntimeCoverageRunRequest) => void;
+	runAnalysis?: OverlayAnalysisRun;
+	onAnalysisResult?: (result: FallowNavigatorResult | null) => void;
 }
 
 /** One mounted shell owns its children until the enclosing custom UI completes. */
@@ -32,6 +32,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	private _focused = false;
 	private readiness: ReadinessState;
 	private setup: OverlaySetup;
+	private analysis: OverlayAnalysis;
 	private similarCode: SimilarCodeForm;
 	private runtimeCoverage: RuntimeCoverageForm;
 
@@ -45,19 +46,24 @@ export class FallowOverlayShell implements Component, Focusable {
 	) {
 		this.readiness = new ReadinessState(checkReadiness, requestRender);
 		this.setup = new OverlaySetup(options.runSetup, requestRender, (view) => this.readiness.refresh(view));
-		this.similarCode = new SimilarCodeForm({
-			root: options.projectRoot ?? process.cwd(), initialValues: options.initialState?.similarCode,
-			isReady: () => this.readiness.isReady("similar-code"), onRun: options.onSimilarCodeRun,
-		}, requestRender);
+		this.analysis = new OverlayAnalysis(options.runAnalysis, theme, requestRender, (result) => options.onAnalysisResult?.(result));
+		this.similarCode = this.createSimilarForm(options);
 		this.runtimeCoverage = this.createRuntimeForm(options, checkReadiness);
 		this.restoreView(options.initialState?.view);
+	}
+
+	private createSimilarForm(options: ShellOptions): SimilarCodeForm {
+		return new SimilarCodeForm({
+			root: options.projectRoot ?? process.cwd(), initialValues: options.initialState?.similarCode,
+			isReady: () => this.readiness.isReady("similar-code"), onRun: options.runAnalysis ? (request) => this.analysis.start(request) : undefined,
+		}, this.requestRender);
 	}
 
 	private createRuntimeForm(options: ShellOptions, checkReadiness: ReadinessCheck | undefined): RuntimeCoverageForm {
 		return new RuntimeCoverageForm({
 			root: options.projectRoot ?? process.cwd(), initialState: options.initialState?.runtimeCoverage,
 			readiness: () => this.readiness.currentReport("runtime-coverage"), checkReadiness,
-			onRun: options.onRuntimeCoverageRun,
+			onRun: options.runAnalysis ? (request) => this.analysis.start(request) : undefined,
 		}, this.requestRender);
 	}
 
@@ -83,6 +89,11 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private handleModalInput(data: string): boolean {
 		if (this.setup.active) { this.setup.handleInput(data); return true; }
+		if (this.analysis.active) return this.analysis.handleInput(data);
+		return this.handleEditorInput(data);
+	}
+
+	private handleEditorInput(data: string): boolean {
 		if (this.findings.hasModalInput) { this.findings.handleInput(data); return true; }
 		if (this.isFormEditing()) { this.currentForm()!.handleInput(data); return true; }
 		return false;
@@ -113,7 +124,8 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private handleViewControls(data: string): void {
-		if (data === "s") {
+		if (data === "R") { this.analysis.show(this.optionalView()); return; }
+		if (data === "S") {
 			this.similarCode.cancelPending();
 			this.runtimeCoverage.cancelPending();
 			this.setup.start(this.optionalView());
@@ -144,6 +156,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private switchView(view: number): void {
+		this.analysis.hide();
 		this.similarCode.cancelPending();
 		this.runtimeCoverage.cancelPending();
 		this.view = view;
@@ -165,12 +178,15 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	dispose(): void {
 		this.setup.dispose();
+		this.analysis.dispose();
 		this.readiness.dispose();
 		this.similarCode.dispose();
 		this.runtimeCoverage.dispose();
 	}
 
 	private syncFocus(): void {
+		this.analysis.focused = this._focused;
+		this.analysis.invalidate();
 		this.findings.focused = this._focused && this.view === 0;
 		this.similarCode.focused = this._focused && this.view === 1;
 		this.runtimeCoverage.focused = this._focused && this.view === 2;
@@ -179,8 +195,13 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	render(width: number): string[] {
 		if (width < 1) return [];
-		const header = this.headerLines(width);
+		if (this.analysis.active) return this.analysis.render(width, Math.max(1, Math.floor(this.terminalRows() * 0.95)));
 		if (this.setup.active) return this.setup.render(width, Math.max(1, Math.floor(this.terminalRows() * 0.95)), this.readiness.lines(this.optionalView()));
+		return this.renderView(width);
+	}
+
+	private renderView(width: number): string[] {
+		const header = this.headerLines(width);
 		if (this.view === 0) return [...header, ...this.findings.render(width)];
 		return [...header, ...this.renderOptional(width, header.length)];
 	}
@@ -197,7 +218,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private renderOptional(width: number, headerRows: number): string[] {
-		const footerText = this.isFormEditing() ? "Tab/Shift+Tab field · Enter finish & validate · Esc finish editing" : "s Setup · r refresh · i details · ↑↓ scroll · Esc/Backspace findings · o existing dialogs";
+		const footerText = this.isFormEditing() ? "Tab/Shift+Tab field · Enter finish & validate · Esc finish editing" : "S Setup · R last result · r refresh · i details · ↑↓ scroll · Esc/Backspace findings · o existing dialogs";
 		const footer = new Text(this.theme.fg("dim", footerText), 0, 0).render(width);
 		const rows = this.terminalRows();
 		const available = Number.isFinite(rows) && rows > 0 ? Math.floor(rows * 0.95) : 24;
@@ -212,7 +233,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	private optionalContent(width: number): string[] {
 		const body = [OPTIONAL_TEXT[this.view - 1]!, ...this.readiness.lines(this.optionalView()),
 			"", "Checks never install, download models, or change setup state.",
-			"Press s for Setup preview (never confirms installation). Shared in-overlay analysis execution is follow-up work; o opens existing dialogs.",
+			"Press S for Setup preview (never confirms installation). Run and results stay here; R reopens the last result. o opens legacy dialogs.",
 		].join("\n");
 		const form = this.currentForm()?.render(width) ?? [];
 		return [...form, ...new Text(this.theme.fg("text", body), 0, 0).render(width)];
@@ -226,6 +247,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	invalidate(): void {
+		this.analysis.invalidate();
 		this.findings.invalidate();
 		this.similarCode.invalidate();
 		this.runtimeCoverage.invalidate();
