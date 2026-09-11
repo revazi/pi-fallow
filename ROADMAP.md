@@ -34,7 +34,7 @@ The long measurement history belongs in the benchmark documentation rather than 
 - a typed command registry shared by tool, slash, autocomplete, and smoke-test surfaces, including architecture-to-`guard` support;
 - authoritative normalized-report selection shared across output and prompts, with complete-report hydration and drift protection;
 - bounded, project-isolated session history with digest-validated report reopening and conservative compatible-run comparison;
-- explicit opt-in semantic similar-code status, discovery, inspect, and review flows with local-model provenance and advisory completion, plus TUI-only previewed and confirmed model setup;
+- explicit opt-in semantic similar-code status, discovery, inspect, and review flows with local-model provenance and advisory completion, plus TUI-only previewed and confirmed model setup and reproducible, no-cache model-backed certification over a frozen tiny project;
 - visible Optional Analysis Status / Setup / Run controls for Similar Code and selected local runtime-coverage artifacts, with verified user-global sidecars and no project or cloud mutation; and
 - an issue-focused default that combines actionable dead-code, duplication, health, and security candidates without flooding the navigator with informational file scores or hotspots.
 
@@ -42,7 +42,7 @@ See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.m
 
 ## Remaining priorities
 
-1. **Keep command and report compatibility honest.** Frozen capability-schema and live registry-prefix checks now cover managed output, positional targets, and selected type-aware flags (see [`fixture scope`](./tests/fixtures/fallow/README.md)). Real dead-code, duplication, health, security, combined, unavailable/partial type-aware, and nested help/missing-input evidence now supplements those checks. Successful signed `fallow-cov` local execution is now covered by an isolated opt-in lane; continue #83 with user-authorized model-backed execution and selected specialized report layouts; installed-capability diagnostics remain separate work, preserving graceful behavior with separately installed Fallow versions.
+1. **Keep command and report compatibility honest.** Frozen capability-schema and live registry-prefix checks cover managed output, positional targets, and selected type-aware flags (see [`fixture scope`](./tests/fixtures/fallow/README.md)). Real dead-code, duplication, health, security, combined, unavailable/partial type-aware, signed runtime-coverage, and complete model-backed Similar Code discovery/inspect/review evidence supplement those checks. Next, consider #77 installed-capability diagnostics while preserving graceful behavior with separately installed Fallow versions.
 2. **Decide whether user-owned customization is still desired.** If demand remains, design Pi Fallow-specific global/project configuration, prompt templates, and a safe prompt/config preview without taking ownership of Fallow's configuration file.
 3. **Refine navigator workflows from evidence.** Make any remaining history, comparison, or UI density improvements only when real large-report use identifies a concrete need.
 4. **Improve quality where evidence points.** Raise coverage and maintainability gradually around real execution, command-flow, rendering, project-state, and PR-summary hotspots. Do not split files cosmetically merely to improve a metric.
@@ -60,6 +60,6 @@ Future work must preserve these boundaries:
 
 ## Suggested delivery order
 
-1. Extend the fixture/schema and registry-drift foundation with representative report and nested-command coverage needed to keep release evidence reproducible.
+1. Build installed-capability drift diagnostics (#77) on the completed fixture/schema foundation without adding startup probes or runtime version gates.
 2. Confirm demand and scope before implementing user-owned configuration or prompt customization/preview.
-3. Iterate on navigator density, hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.
+3. Iterate on navigator density, performance evidence, hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.

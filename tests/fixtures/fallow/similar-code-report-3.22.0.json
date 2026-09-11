@@ -1,0 +1,684 @@
+{
+  "fallowVersion": "3.22.0",
+  "model": {
+    "id": "jinaai/jina-embeddings-v2-base-code",
+    "revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
+    "license": "Apache-2.0"
+  },
+  "inputSha256": "e431a144a2b8952dd159824857cb31a629c2ecce90e1cf8700489b3456149610",
+  "args": {
+    "status": [
+      "similar-code",
+      "status",
+      "--format",
+      "json",
+      "--quiet"
+    ],
+    "discovery": [
+      "similar-code",
+      "--root",
+      "<PROJECT>",
+      "--config",
+      "<EMPTY_CONFIG>",
+      "--no-cache",
+      "--threshold",
+      "0.8",
+      "--min-lines",
+      "4",
+      "--top",
+      "1",
+      "--format",
+      "json",
+      "--quiet"
+    ],
+    "inspect": [
+      "similar-code",
+      "--root",
+      "<PROJECT>",
+      "--config",
+      "<EMPTY_CONFIG>",
+      "inspect",
+      "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+      "--candidates",
+      "<CANDIDATES>",
+      "--format",
+      "json",
+      "--quiet"
+    ],
+    "review": [
+      "similar-code",
+      "review",
+      "--candidates",
+      "<CANDIDATES>",
+      "--verdicts",
+      "<VERDICTS>",
+      "--require-verdict-for-each-candidate",
+      "--format",
+      "json",
+      "--quiet"
+    ]
+  },
+  "inputs": {
+    "candidatesSha256": "16e6c2d4d8b4bbcc44febfc5cdb9abdd6eb2da0b74c2cc57f7dc0f22f22e17aa",
+    "verdictsSha256": "d9f74c65ccea57def936d7565d4dbd27b9a44414bf75f14b85e7de8ad7a96c97",
+    "verdicts": {
+      "schema_version": "1",
+      "verdicts": [
+        {
+          "candidate_id": "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+          "review_key": "similar-code:review:v1:ec5a41f51374e2e1cb175bc2718f56d0246cd57f38a29e2fce89331a28abe0a0",
+          "candidate_worthy": true,
+          "behaviorally_equivalent": true,
+          "refactor_safe": false,
+          "outcome": "same-responsibility",
+          "rationale": "Fixture implementations are identical, but preserving both exported names still requires an explicit compatibility plan."
+        }
+      ]
+    }
+  },
+  "reports": {
+    "status": {
+      "kind": "similar-code-status",
+      "schema_version": "1",
+      "version": "3.22.0",
+      "protocol_version": 2,
+      "embedding_semantics_version": 1,
+      "companion_version": "3.22.0",
+      "model_ready": true,
+      "model_id": "jinaai/jina-embeddings-v2-base-code",
+      "model_revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
+      "dimensions": 768,
+      "max_tokens": 1024,
+      "license": "Apache-2.0",
+      "cache_dir": "<EXISTING_MODEL_CACHE>",
+      "download_bytes": 324329844,
+      "analysis_offline": true,
+      "integrity_verified": true
+    },
+    "discovery": {
+      "kind": "similar-code",
+      "schema_version": "1",
+      "version": "3.22.0",
+      "elapsed_ms": 0,
+      "generation": {
+        "extraction_semantics_version": 1,
+        "embedding_semantics_version": 1,
+        "provider": {
+          "provider": "official-local-companion",
+          "companion_version": "3.22.0",
+          "protocol_version": 2,
+          "source_left_machine": false
+        },
+        "model": {
+          "model_id": "jinaai/jina-embeddings-v2-base-code",
+          "revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
+          "artifact_sha256": "8b53bfd4ae2cd586004a6ca4a16551b630a2a1b1d655ff1ee9be1286a1781c5b",
+          "license": "Apache-2.0",
+          "dimensions": 768
+        },
+        "parameters": {
+          "dtype": "f32",
+          "pooling": "mean",
+          "normalized": true,
+          "batch_size": 1,
+          "max_tokens": 1024,
+          "parameter_sha256": "a41ef119ecb605de742d0ea4035a45fb7371cec7cc3f049b90b3c24f6678b606"
+        },
+        "scope": {
+          "active": false,
+          "paths": []
+        },
+        "threshold": 0.8,
+        "min_lines": 4
+      },
+      "candidates": [
+        {
+          "candidate_id": "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+          "review_key": "similar-code:review:v1:ec5a41f51374e2e1cb175bc2718f56d0246cd57f38a29e2fce89331a28abe0a0",
+          "left": {
+            "path": "beta.js",
+            "name": "normalizeBeta",
+            "start_line": 1,
+            "start_column": 8,
+            "end_line": 9,
+            "end_column": 2,
+            "source_sha256": "163ddf03a65a1c392650041a20aa5ede8b473f0209ea7a9efa4089892adb5988"
+          },
+          "right": {
+            "path": "alpha.js",
+            "name": "normalizeAlpha",
+            "start_line": 1,
+            "start_column": 8,
+            "end_line": 9,
+            "end_column": 2,
+            "source_sha256": "be4678a1c72adf84024297837a8f5f8a21a3b70619c26171020772cf4f375aee"
+          },
+          "similarity": 0.8711237177103248,
+          "similarity_band": "moderate",
+          "verification_status": "unverified",
+          "enrichment": {
+            "graph_relationship": "not-requested",
+            "entry_point_reachability": "not-requested",
+            "callers": "not-requested",
+            "callees": "not-requested",
+            "ownership": "not-requested",
+            "churn": "not-requested",
+            "tests": "not-requested",
+            "deterministic_clone_coverage": "not-requested",
+            "runtime": "not-requested"
+          },
+          "actions": [
+            {
+              "action": "inspect",
+              "description": "Inspect bounded source, graph, ownership, churn, test, and deterministic clone evidence",
+              "read_only": true
+            },
+            {
+              "action": "review",
+              "description": "Join this immutable candidate with a separate evidence-grounded verdict",
+              "read_only": true
+            }
+          ]
+        }
+      ],
+      "completion": {
+        "status": "complete",
+        "phases": [
+          {
+            "phase": "discovery",
+            "status": "complete",
+            "processed": 3,
+            "total": 3,
+            "reason": null
+          },
+          {
+            "phase": "extraction",
+            "status": "complete",
+            "processed": 2,
+            "total": null,
+            "reason": null
+          },
+          {
+            "phase": "cache",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "embedding",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "validation",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "comparison",
+            "status": "complete",
+            "processed": 1,
+            "total": null,
+            "reason": null
+          },
+          {
+            "phase": "enrichment",
+            "status": "skipped",
+            "processed": 0,
+            "total": null,
+            "reason": "raw discovery defers source-grounded enrichment to inspect"
+          }
+        ],
+        "limits": {
+          "max_files": 20000,
+          "max_functions": 10000,
+          "max_source_bytes": 16777216,
+          "max_function_bytes": 65536,
+          "max_batch_size": 1,
+          "max_vector_bytes": 268435456,
+          "max_comparisons": 1000000,
+          "max_candidates": 4096,
+          "max_neighbors_per_function": 20,
+          "timeout_ms": 900000
+        },
+        "skips": [],
+        "cache": {
+          "status": "disabled",
+          "hits": 0,
+          "misses": 2,
+          "writes": 0,
+          "invalid_entries": 0
+        },
+        "provider_inference_ms": 0
+      },
+      "diagnostics": []
+    },
+    "inspect": {
+      "kind": "similar-code-inspect",
+      "schema_version": "1",
+      "version": "3.22.0",
+      "elapsed_ms": 0,
+      "generation": {
+        "extraction_semantics_version": 1,
+        "embedding_semantics_version": 1,
+        "provider": {
+          "provider": "official-local-companion",
+          "companion_version": "3.22.0",
+          "protocol_version": 2,
+          "source_left_machine": false
+        },
+        "model": {
+          "model_id": "jinaai/jina-embeddings-v2-base-code",
+          "revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
+          "artifact_sha256": "8b53bfd4ae2cd586004a6ca4a16551b630a2a1b1d655ff1ee9be1286a1781c5b",
+          "license": "Apache-2.0",
+          "dimensions": 768
+        },
+        "parameters": {
+          "dtype": "f32",
+          "pooling": "mean",
+          "normalized": true,
+          "batch_size": 1,
+          "max_tokens": 1024,
+          "parameter_sha256": "a41ef119ecb605de742d0ea4035a45fb7371cec7cc3f049b90b3c24f6678b606"
+        },
+        "scope": {
+          "active": false,
+          "paths": []
+        },
+        "threshold": 0.8,
+        "min_lines": 4
+      },
+      "candidate": {
+        "candidate_id": "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+        "review_key": "similar-code:review:v1:ec5a41f51374e2e1cb175bc2718f56d0246cd57f38a29e2fce89331a28abe0a0",
+        "left": {
+          "path": "beta.js",
+          "name": "normalizeBeta",
+          "start_line": 1,
+          "start_column": 8,
+          "end_line": 9,
+          "end_column": 2,
+          "source_sha256": "163ddf03a65a1c392650041a20aa5ede8b473f0209ea7a9efa4089892adb5988"
+        },
+        "right": {
+          "path": "alpha.js",
+          "name": "normalizeAlpha",
+          "start_line": 1,
+          "start_column": 8,
+          "end_line": 9,
+          "end_column": 2,
+          "source_sha256": "be4678a1c72adf84024297837a8f5f8a21a3b70619c26171020772cf4f375aee"
+        },
+        "similarity": 0.8711237177103248,
+        "similarity_band": "moderate",
+        "verification_status": "unverified",
+        "enrichment": {
+          "graph_relationship": "not-requested",
+          "entry_point_reachability": "not-requested",
+          "callers": "not-requested",
+          "callees": "not-requested",
+          "ownership": "not-requested",
+          "churn": "not-requested",
+          "tests": "not-requested",
+          "deterministic_clone_coverage": "not-requested",
+          "runtime": "not-requested"
+        },
+        "actions": [
+          {
+            "action": "inspect",
+            "description": "Inspect bounded source, graph, ownership, churn, test, and deterministic clone evidence",
+            "read_only": true
+          },
+          {
+            "action": "review",
+            "description": "Join this immutable candidate with a separate evidence-grounded verdict",
+            "read_only": true
+          }
+        ]
+      },
+      "packet": {
+        "candidate_id": "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+        "review_key": "similar-code:review:v1:ec5a41f51374e2e1cb175bc2718f56d0246cd57f38a29e2fce89331a28abe0a0",
+        "availability": {
+          "graph_relationship": "available",
+          "entry_point_reachability": "available",
+          "callers": "available",
+          "callees": "available",
+          "ownership": "unavailable",
+          "churn": "unavailable",
+          "tests": "available",
+          "deterministic_clone_coverage": "available",
+          "runtime": "not-requested"
+        },
+        "graph_relationship": "shared-direct-importer",
+        "left": {
+          "source_window": "function normalizeBeta(records) {\n  const result = [];\n  for (const record of records) {\n    if (!record.active) continue;\n    result.push(record.name.trim().toLowerCase());\n  }\n  result.sort();\n  return result;\n}",
+          "parameter_count": 1,
+          "is_async": false,
+          "is_generator": false,
+          "has_await": false,
+          "has_throw": false,
+          "side_effect_hint": "may-have-side-effects",
+          "entry_point_reachable": true,
+          "callers": [
+            {
+              "path": "index.js",
+              "name": "<module>",
+              "line": 1
+            }
+          ],
+          "callees": [],
+          "owners": [],
+          "churn_commits": null,
+          "tests": [],
+          "deterministic_clone_coverage": 0.8888888888888888,
+          "runtime_observations": null
+        },
+        "right": {
+          "source_window": "function normalizeAlpha(records) {\n  const result = [];\n  for (const record of records) {\n    if (!record.active) continue;\n    result.push(record.name.trim().toLowerCase());\n  }\n  result.sort();\n  return result;\n}",
+          "parameter_count": 1,
+          "is_async": false,
+          "is_generator": false,
+          "has_await": false,
+          "has_throw": false,
+          "side_effect_hint": "may-have-side-effects",
+          "entry_point_reachable": true,
+          "callers": [
+            {
+              "path": "index.js",
+              "name": "<module>",
+              "line": 1
+            }
+          ],
+          "callees": [],
+          "owners": [],
+          "churn_commits": null,
+          "tests": [],
+          "deterministic_clone_coverage": 0.8888888888888888,
+          "runtime_observations": null
+        }
+      },
+      "completion": {
+        "status": "complete",
+        "phases": [
+          {
+            "phase": "discovery",
+            "status": "complete",
+            "processed": 3,
+            "total": 3,
+            "reason": null
+          },
+          {
+            "phase": "extraction",
+            "status": "complete",
+            "processed": 2,
+            "total": null,
+            "reason": null
+          },
+          {
+            "phase": "cache",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "embedding",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "validation",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "comparison",
+            "status": "complete",
+            "processed": 1,
+            "total": null,
+            "reason": null
+          },
+          {
+            "phase": "enrichment",
+            "status": "skipped",
+            "processed": 0,
+            "total": null,
+            "reason": "raw discovery defers source-grounded enrichment to inspect"
+          }
+        ],
+        "limits": {
+          "max_files": 20000,
+          "max_functions": 10000,
+          "max_source_bytes": 16777216,
+          "max_function_bytes": 65536,
+          "max_batch_size": 1,
+          "max_vector_bytes": 268435456,
+          "max_comparisons": 1000000,
+          "max_candidates": 4096,
+          "max_neighbors_per_function": 20,
+          "timeout_ms": 900000
+        },
+        "skips": [],
+        "cache": {
+          "status": "disabled",
+          "hits": 0,
+          "misses": 2,
+          "writes": 0,
+          "invalid_entries": 0
+        },
+        "provider_inference_ms": 0
+      },
+      "diagnostics": [
+        {
+          "domain": "enrichment",
+          "code": "FALLOW_SIMILAR_CODE_GRAPH_REFERENCES_MODULE_LEVEL",
+          "message": "callers and callees are direct module import relationships; <module> at line 1 is a module anchor, not a function callsite",
+          "path": null
+        },
+        {
+          "domain": "enrichment",
+          "code": "FALLOW_SIMILAR_CODE_OWNERSHIP_UNAVAILABLE",
+          "message": "no CODEOWNERS file found (looked for: CODEOWNERS, .github/CODEOWNERS, .gitlab/CODEOWNERS, docs/CODEOWNERS). Create one of these files or use --group-by directory instead",
+          "path": null
+        },
+        {
+          "domain": "enrichment",
+          "code": "FALLOW_SIMILAR_CODE_CHURN_UNAVAILABLE",
+          "message": "git repository unavailable at project root",
+          "path": null
+        }
+      ]
+    },
+    "review": {
+      "kind": "similar-code-review",
+      "schema_version": "1",
+      "version": "3.22.0",
+      "elapsed_ms": 0,
+      "generation": {
+        "extraction_semantics_version": 1,
+        "embedding_semantics_version": 1,
+        "provider": {
+          "provider": "official-local-companion",
+          "companion_version": "3.22.0",
+          "protocol_version": 2,
+          "source_left_machine": false
+        },
+        "model": {
+          "model_id": "jinaai/jina-embeddings-v2-base-code",
+          "revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
+          "artifact_sha256": "8b53bfd4ae2cd586004a6ca4a16551b630a2a1b1d655ff1ee9be1286a1781c5b",
+          "license": "Apache-2.0",
+          "dimensions": 768
+        },
+        "parameters": {
+          "dtype": "f32",
+          "pooling": "mean",
+          "normalized": true,
+          "batch_size": 1,
+          "max_tokens": 1024,
+          "parameter_sha256": "a41ef119ecb605de742d0ea4035a45fb7371cec7cc3f049b90b3c24f6678b606"
+        },
+        "scope": {
+          "active": false,
+          "paths": []
+        },
+        "threshold": 0.8,
+        "min_lines": 4
+      },
+      "review": {
+        "candidates_sha256": "16e6c2d4d8b4bbcc44febfc5cdb9abdd6eb2da0b74c2cc57f7dc0f22f22e17aa",
+        "verdicts_sha256": "d9f74c65ccea57def936d7565d4dbd27b9a44414bf75f14b85e7de8ad7a96c97"
+      },
+      "candidates": [
+        {
+          "candidate": {
+            "candidate_id": "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+            "review_key": "similar-code:review:v1:ec5a41f51374e2e1cb175bc2718f56d0246cd57f38a29e2fce89331a28abe0a0",
+            "left": {
+              "path": "beta.js",
+              "name": "normalizeBeta",
+              "start_line": 1,
+              "start_column": 8,
+              "end_line": 9,
+              "end_column": 2,
+              "source_sha256": "163ddf03a65a1c392650041a20aa5ede8b473f0209ea7a9efa4089892adb5988"
+            },
+            "right": {
+              "path": "alpha.js",
+              "name": "normalizeAlpha",
+              "start_line": 1,
+              "start_column": 8,
+              "end_line": 9,
+              "end_column": 2,
+              "source_sha256": "be4678a1c72adf84024297837a8f5f8a21a3b70619c26171020772cf4f375aee"
+            },
+            "similarity": 0.8711237177103248,
+            "similarity_band": "moderate",
+            "verification_status": "unverified",
+            "enrichment": {
+              "graph_relationship": "not-requested",
+              "entry_point_reachability": "not-requested",
+              "callers": "not-requested",
+              "callees": "not-requested",
+              "ownership": "not-requested",
+              "churn": "not-requested",
+              "tests": "not-requested",
+              "deterministic_clone_coverage": "not-requested",
+              "runtime": "not-requested"
+            },
+            "actions": [
+              {
+                "action": "inspect",
+                "description": "Inspect bounded source, graph, ownership, churn, test, and deterministic clone evidence",
+                "read_only": true
+              },
+              {
+                "action": "review",
+                "description": "Join this immutable candidate with a separate evidence-grounded verdict",
+                "read_only": true
+              }
+            ]
+          },
+          "verdict": {
+            "candidate_id": "similar-code:candidate:v1:c62fc2f33f387207926198d4d1138017e0b66d6ead2897227dfbad65d97bbba4",
+            "review_key": "similar-code:review:v1:ec5a41f51374e2e1cb175bc2718f56d0246cd57f38a29e2fce89331a28abe0a0",
+            "candidate_worthy": true,
+            "behaviorally_equivalent": true,
+            "refactor_safe": false,
+            "outcome": "same-responsibility",
+            "rationale": "Fixture implementations are identical, but preserving both exported names still requires an explicit compatibility plan."
+          },
+          "verdict_match": "candidate-id",
+          "outcome": "same-responsibility"
+        }
+      ],
+      "completion": {
+        "status": "complete",
+        "phases": [
+          {
+            "phase": "discovery",
+            "status": "complete",
+            "processed": 3,
+            "total": 3,
+            "reason": null
+          },
+          {
+            "phase": "extraction",
+            "status": "complete",
+            "processed": 2,
+            "total": null,
+            "reason": null
+          },
+          {
+            "phase": "cache",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "embedding",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "validation",
+            "status": "complete",
+            "processed": 2,
+            "total": 2,
+            "reason": null
+          },
+          {
+            "phase": "comparison",
+            "status": "complete",
+            "processed": 1,
+            "total": null,
+            "reason": null
+          },
+          {
+            "phase": "enrichment",
+            "status": "skipped",
+            "processed": 0,
+            "total": null,
+            "reason": "raw discovery defers source-grounded enrichment to inspect"
+          }
+        ],
+        "limits": {
+          "max_files": 20000,
+          "max_functions": 10000,
+          "max_source_bytes": 16777216,
+          "max_function_bytes": 65536,
+          "max_batch_size": 1,
+          "max_vector_bytes": 268435456,
+          "max_comparisons": 1000000,
+          "max_candidates": 4096,
+          "max_neighbors_per_function": 20,
+          "timeout_ms": 900000
+        },
+        "skips": [],
+        "cache": {
+          "status": "disabled",
+          "hits": 0,
+          "misses": 2,
+          "writes": 0,
+          "invalid_entries": 0
+        },
+        "provider_inference_ms": 0
+      },
+      "diagnostics": []
+    }
+  }
+}
