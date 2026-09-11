@@ -32,6 +32,9 @@ export function addSimilarCodeRunMetadata(
 	addStat(stats, "scope files", Array.isArray(scope.paths) ? scope.paths.length : undefined);
 	addStat(stats, "provider inference", numberWithSuffix(completion.provider_inference_ms, "ms"));
 	addStat(stats, "cache", cache.status);
+	addStat(stats, "cache hits", cache.hits);
+	addStat(stats, "cache misses", cache.misses);
+	addStat(stats, "cache writes", cache.writes);
 	addTrustNotes(notes, provider, completion);
 	appendIncompletePhases(notes, completion.phases);
 	appendSkips(notes, completion.skips);

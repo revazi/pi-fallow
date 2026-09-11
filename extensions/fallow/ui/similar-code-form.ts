@@ -4,7 +4,10 @@ import { InlineTextEditor } from "./inline-text-editor";
 import { emptySimilarCodeValues, validateSimilarCodeOptions, type SimilarCodeField, type SimilarCodeFormValues, type SimilarCodeRunRequest, type SimilarCodeValidation } from "../similar-code-options";
 
 const FIELDS: SimilarCodeField[] = ["scope", "threshold", "top"];
-const LABELS = { scope: "s Scope (blank: whole project)", threshold: "t Threshold (0..1; blank: Fallow default)", top: "l Result limit (1..100000; blank: Fallow default)" };
+const LABELS = { scope: "Scope", threshold: "Threshold", top: "Result limit" };
+const DEFAULT_VALUES = { scope: "whole project", threshold: "Fallow default", top: "Fallow default" };
+const FIELD_KEYS = { scope: "s", threshold: "t", top: "l" };
+const PLAIN_THEME = { fg: (_tone: string, text: string) => text, bold: (text: string) => text };
 interface FormOptions {
 	root: string;
 	initialValues?: SimilarCodeFormValues;
@@ -49,12 +52,19 @@ export class SimilarCodeForm implements Component, Focusable {
 	private handleControls(data: string): boolean {
 		const actions = new Map<string, () => void>([
 			["s", () => this.edit("scope")], ["t", () => this.edit("threshold")], ["l", () => this.edit("top")],
-			["v", () => this.validate(false)],
+			["v", () => this.validate(false)], ["c", () => this.toggleCache()],
 		]);
 		const action = actions.get(data);
 		if (action) { action(); return true; }
 		if (matchesKey(data, "enter")) { this.validate(true); return true; }
 		return false;
+	}
+
+	private toggleCache(): void {
+		this.cancelPending();
+		this.values.reuseCache = this.values.reuseCache !== true;
+		this.notice = "";
+		this.changed();
 	}
 
 	private edit(field: SimilarCodeField): void {
@@ -131,19 +141,54 @@ export class SimilarCodeForm implements Component, Focusable {
 		catch (error) { this.notice = `Run request failed: ${boundedReadinessText(String(error))}`; }
 	}
 
-	render(width: number): string[] {
+	render(width: number, theme?: any): string[] {
 		if (width < 1) return [];
-		const lines = [...new Text("Similar Code — opt-in, advisory", 0, 0).render(width), ...FIELDS.flatMap((field) => this.fieldLines(field, width))];
-		return [...lines, ...new Text([this.controls(), this.notice].filter(Boolean).join("\n"), 0, 0).render(width)];
+		const ui = theme ?? PLAIN_THEME;
+		const title = `${ui.fg("accent", "●")} ${ui.fg("accent", ui.bold("Analysis options"))}${wideContext(width, ui, "· local semantic model")}`;
+		const lines = [...new Text(title, 0, 0).render(width), ...FIELDS.flatMap((field) => this.fieldLines(field, width, ui)),
+			...new Text(this.cacheLine(width, ui), 0, 0).render(width)];
+		return [...lines, ...new Text(this.formStatus(ui), 0, 0).render(width)];
 	}
 
-	private fieldLines(field: SimilarCodeField, width: number): string[] {
-		const value = displayedValue(this.values[field]);
-		const text = field === this.editing ? LABELS[field] : `${LABELS[field]}: ${value}`;
-		const lines = new Text(text, 0, 0).render(width);
+	private formStatus(theme: any): string {
+		const lines = ["", theme.fg("dim", this.controls())];
+		if (!this.notice) return lines.join("\n");
+		const tone = this.noticeTone();
+		const icons = { success: "✓", warning: "!", error: "!" };
+		lines.push(`${theme.fg(tone, icons[tone])} ${theme.fg(tone, this.notice)}`);
+		return lines.join("\n");
+	}
+
+	private noticeTone(): "success" | "warning" | "error" {
+		if (Object.keys(this.errors).length) return "error";
+		if (this.notice.startsWith("Options valid")) return "success";
+		return "warning";
+	}
+
+	private cacheLine(width: number, theme: any): string {
+		const mode = this.cacheMode(theme);
+		const label = "Reuse embeddings".padEnd(labelWidth(width));
+		const hint = width < 50 ? "" : `  ${theme.fg("dim", mode.hint)}`;
+		return `  ${theme.fg("accent", "c")} ${label} ${mode.value}${hint}`;
+	}
+
+	private cacheMode(theme: any): { value: string; hint: string } {
+		if (this.values.reuseCache === true) return { value: theme.fg("success", "☑ ON"), hint: "Run reads/writes user-local cache" };
+		return { value: theme.fg("muted", "☐ OFF"), hint: "off; no cache writes" };
+	}
+
+	private fieldLines(field: SimilarCodeField, width: number, theme: any): string[] {
+		const lines = new Text(this.fieldText(field, width, theme), 0, 0).render(width);
 		if (field === this.editing) lines.push(...this.input.render(width));
-		if (this.errors[field]) lines.push(...new Text(`Error: ${this.errors[field]}`, 0, 0).render(width));
+		if (this.errors[field]) lines.push(...new Text(`    ${theme.fg("error", `! Error: ${this.errors[field]}`)}`, 0, 0).render(width));
 		return lines;
+	}
+
+	private fieldText(field: SimilarCodeField, width: number, theme: any): string {
+		const value = boundedReadinessText(this.values[field]) || DEFAULT_VALUES[field];
+		const label = `  ${theme.fg("accent", FIELD_KEYS[field])} ${theme.fg("text", LABELS[field].padEnd(labelWidth(width)))}`;
+		if (field === this.editing) return `${label} ${theme.fg("accent", "editing")}`;
+		return `${label} ${theme.fg("accent", value)}`;
 	}
 
 	private controls(): string {
@@ -157,4 +202,7 @@ export class SimilarCodeForm implements Component, Focusable {
 	dispose(): void { this.disposed = true; this.cancelPending(); }
 }
 
-function displayedValue(value: string): string { return boundedReadinessText(value) || "(blank)"; }
+function labelWidth(width: number): number { return width < 50 ? 12 : 18; }
+function wideContext(width: number, theme: any, text: string): string {
+	return width < 50 ? "" : ` ${theme.fg("dim", text)}`;
+}

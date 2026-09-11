@@ -262,7 +262,7 @@ describe("buildFallowOverview", () => {
 				phases: [{ phase: "embedding", status: "complete", processed: 2, total: 2 }],
 				skips: [],
 				provider_inference_ms: 250,
-				cache: { status: "hit" },
+				cache: { status: "hit", hits: 2, misses: 0, writes: 0 },
 			},
 			diagnostics: [],
 		});
@@ -284,6 +284,9 @@ describe("buildFallowOverview", () => {
 			{ label: "scope files", value: 2 },
 			{ label: "provider inference", value: "250ms" },
 			{ label: "cache", value: "hit" },
+			{ label: "cache hits", value: 2 },
+			{ label: "cache misses", value: 0 },
+			{ label: "cache writes", value: 0 },
 		]);
 		assert.equal(overview.sections[0].title, "Unverified semantic candidates");
 		assert.deepEqual(overview.sections[0].items[0], {

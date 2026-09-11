@@ -2,8 +2,8 @@ import { realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep, win32 } from "node:path";
 import { boundedReadinessText } from "./readiness-report";
 
-export interface SimilarCodeFormValues { scope: string; threshold: string; top: string }
-export type SimilarCodeField = keyof SimilarCodeFormValues;
+export interface SimilarCodeFormValues { scope: string; threshold: string; top: string; reuseCache?: boolean }
+export type SimilarCodeField = Exclude<keyof SimilarCodeFormValues, "reuseCache">;
 export interface SimilarCodeRunRequest { commandArgs: string[]; values: SimilarCodeFormValues }
 export type SimilarCodeValidation =
 	| { ok: true; request: SimilarCodeRunRequest }

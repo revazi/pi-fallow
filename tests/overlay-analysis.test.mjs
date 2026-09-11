@@ -22,7 +22,8 @@ const signal = () => new AbortController().signal;
 const values = { scope: "", threshold: ".8", top: "5" };
 const request = (root = process.cwd()) => ({ values, commandArgs: ["similar-code", "--root", root, "--threshold", "0.8", "--top", "5"] });
 const semantic = (completion = "complete", candidates = true) => ({
-	kind: "similar-code", version: "3.22.0", schema_version: 1, completion: { status: completion },
+	kind: "similar-code", version: "3.22.0", schema_version: 1,
+	completion: { status: completion, cache: { status: "hit", hits: 12, misses: 0, writes: 0 } },
 	generation: { model: { model_id: "fixture/model", revision: "pinned-fixture-revision" }, provider: { source_left_machine: false } },
 	candidates: candidates ? [{ candidate_id: "sc_fixture", verification_status: "unverified", similarity: .95,
 		left: { path: "src/a.ts", name: "normalizeA", start_line: 1 }, right: { path: "src/b.ts", name: "normalizeB", start_line: 2 } }] : [],
@@ -45,6 +46,30 @@ async function resultFor(data, code = 0, terminationReason) {
 }
 
 describe("optional analysis execution gate", () => {
+	it("updates elapsed time during silent work and stops refreshing after settlement or disposal", async (t) => {
+		t.mock.timers.enable({ apis: ["setInterval", "Date"], now: 0 });
+		let finish;
+		let renders = 0;
+		const component = new OverlayAnalysis(() => new Promise((resolve, reject) => { finish = reject; }), theme, () => renders++, () => {});
+		t.after(() => component.dispose());
+		component.start(request());
+		t.mock.timers.tick(3_000);
+		assert.match(text(component), /Elapsed 3s/);
+		assert.ok(renders >= 4);
+		finish(new Error("fixture failure"));
+		await tick();
+		assert.doesNotMatch(text(component), /Elapsed/);
+		const settled = renders;
+		t.mock.timers.tick(2_000);
+		assert.equal(renders, settled);
+		component.start(request());
+		component.dispose();
+		const disposed = renders;
+		t.mock.timers.tick(2_000);
+		assert.equal(renders, disposed);
+		finish(new Error("cancelled"));
+		await tick();
+	});
 	it("checks fresh readiness, canonical options, shell-free argv, complete output, and never installs", async () => {
 		await fixture(async (root) => {
 			const events = [];
@@ -52,7 +77,7 @@ describe("optional analysis execution gate", () => {
 				executeProcess: async (command, args, cwd, _signal, timeout, environment, output) => {
 					events.push("execute");
 					assert.doesNotMatch(command, /npx|npm/);
-					assert.deepEqual(args, [...request(root).commandArgs, "--no-cache", "--format", "json", "--quiet"]);
+					assert.deepEqual(args, [...request(root).commandArgs, "--no-cache", "--format", "json"]);
 					assert.equal(cwd, root); assert.ok(timeout > 0); assert.equal(environment, undefined);
 					output("fixture progress");
 					return { stdout: JSON.stringify(semantic()), stderr: "", code: 1, killed: false };
@@ -64,7 +89,27 @@ describe("optional analysis execution gate", () => {
 			assert.equal(result.reportMetadata.complete, true);
 			assert.equal(result.reportMetadata.fallowVersion, "3.22.0");
 			assert.match(await readFile(result.formatted.fullOutputPath, "utf8"), /pinned-fixture-revision/);
-			assert.ok(progress.some((args) => args[1] === "fixture progress"));
+			assert.ok(progress.some((args) => args[1] === "fixture progress" && /timeout/.test(args[0])));
+			assert.ok(progress.some((args) => /may take minutes/.test(args[1] ?? "")));
+		});
+	});
+
+	it("permits embedding cache writes only for an explicitly enabled Similar Code request", async () => {
+		await fixture(async (root) => {
+			for (const reuseCache of [undefined, false, true, "true"]) {
+				const input = request(root);
+				input.values = { ...input.values, reuseCache };
+				const progress = [];
+				const run = createOverlayAnalysisRun({}, "tui", root, async () => ready, {
+					executeProcess: async (_command, args) => {
+						assert.equal(args.includes("--no-cache"), reuseCache !== true);
+						assert.ok(!args.includes("--quiet"));
+						return { stdout: JSON.stringify(semantic()), stderr: "", code: 0, killed: false };
+					},
+				});
+				await run(input, signal(), (_label, output) => progress.push(output ?? ""));
+				assert.equal(progress.join("").includes("may read/write"), reuseCache === true);
+			}
 		});
 	});
 
@@ -168,7 +213,10 @@ describe("persistent analysis and result views", () => {
 			analysis.start(request()); await tick();
 			assert.match(text(analysis), expectedLabel(label));
 			assert.match(text(analysis), /advisory/);
-			if (label === "success") assert.match(text(analysis), /normalizeA/);
+			if (label === "success") {
+				assert.match(text(analysis), /normalizeA/);
+				assert.match(text(analysis), /cache hit 12\/12/);
+			}
 			if (label !== "error") analysis.handleInput("I");
 			assert.match(text(analysis), /Complete output:/);
 			assert.match(text(analysis), /Report metadata:/);

@@ -35,10 +35,35 @@ function create(role = "finding", count = 40, checkReadiness) {
 function text(shell, width = 100) { return shell.render(width).join("\n"); }
 
 describe("persistent Fallow overlay shell", () => {
+	it("keeps optional pages bordered and the active tab visible at narrow and wide sizes", () => {
+		const { shell, resize } = create();
+		for (const width of [40, 64, 100]) {
+			for (const rows of [12, 24, 40]) {
+				resize(rows);
+				for (const view of ["2", "3"]) {
+					shell.handleInput(view);
+					for (const key of ["\u001b[H", "\u001b[F"]) {
+						shell.handleInput(key);
+						const lines = shell.render(width);
+						const plain = lines.map((line) => line.replace(/\u001b\[[0-9;]*m/g, ""));
+						assert.match(plain[0], /^╭ ✦ (Similar Code|Runtime Coverage) ─+╮$/);
+						assert.match(plain.at(-1), /^╰─+╯$/);
+						assert.ok(plain.slice(1, -1).every((line) => (line.startsWith("│ ") && line.endsWith(" │")) || /^├─+┤$/.test(line)));
+						assert.ok(plain[1].includes(`[${view} `));
+						assert.ok(lines.every((line) => visibleWidth(line) === width));
+						assert.ok(lines.length <= Math.floor(rows * 0.95));
+					}
+				}
+			}
+		}
+		shell.dispose();
+	});
 	for (const [role, count] of [["finding", 40], ["context", 4], ["finding", 0]]) {
 		it(`switches views without completing the overlay for ${role}/${count} reports`, () => {
 			const { shell, findings, results, renders } = create(role, count);
 			const original = text(shell);
+			assert.match(original.split("\n")[0], /╭/);
+			assert.ok(!original.split("\n")[0].includes("[1 Findings]"), "navigation belongs inside the report, not above it");
 			for (const label of ["Findings", "Similar Code", "Runtime Coverage"]) assert.ok(original.includes(label));
 			shell.handleInput("2");
 			assert.match(text(shell), /\[2 Similar Code\]/);
@@ -52,6 +77,20 @@ describe("persistent Fallow overlay shell", () => {
 			assert.equal(renders(), 5);
 		});
 	}
+
+	it("retains the explicit cache choice across optional views without clearing findings", () => {
+		const { shell, findings, results } = create();
+		shell.handleInput("s");
+		const before = findings.snapshotState();
+		shell.handleInput("2"); shell.handleInput("c");
+		assert.equal(shell.snapshotState().similarCode.reuseCache, true);
+		shell.handleInput("3"); shell.handleInput("2");
+		assert.match(text(shell), /Run reads\/writes user-local cache/);
+		shell.handleInput("1");
+		assert.deepEqual(findings.snapshotState(), before);
+		assert.deepEqual(results, []);
+		shell.dispose();
+	});
 
 	it("preserves filters, selected/expanded/marked findings, scroll, and prompt detail", () => {
 		const { shell, findings, results } = create();

@@ -1,4 +1,4 @@
-import { matchesKey, Text, type Component, type Focusable } from "@earendil-works/pi-tui";
+import { matchesKey, Text, truncateToWidth, visibleWidth, type Component, type Focusable } from "@earendil-works/pi-tui";
 import type { ReadinessCheck, ReadinessView } from "../readiness-report";
 import type { FallowNavigatorResult, FallowOverlayState } from "../types";
 import type { OverlayAnalysisRun } from "../command/overlay-analysis";
@@ -10,10 +10,12 @@ import { ReadinessState } from "./readiness-state";
 import { OverlaySetup, type OverlaySetupRun } from "./overlay-setup";
 import { overlayFrame, overlayRows } from "./overlay-layout";
 
+import { purple, violet } from "./shared";
+
 const VIEW_LABELS = ["Findings", "Similar Code", "Runtime Coverage"];
 const OPTIONAL_TEXT = [
-	"Similar Code\n\nOpt-in semantic similarity; candidates are advisory, not proof that code can be consolidated.",
-	"Runtime Coverage\n\nLocal runtime evidence is limited to the selected capture; cold code is not proof of safe deletion.",
+	"Semantic matches are advisory—not proof that code can be consolidated.",
+	"Evidence covers only the selected capture; cold code is not proof of safe deletion.",
 ];
 
 interface ShellOptions {
@@ -50,7 +52,7 @@ export class FallowOverlayShell implements Component, Focusable {
 		options: ShellOptions = {},
 	) {
 		this.readiness = new ReadinessState(checkReadiness, requestRender);
-		this.setup = new OverlaySetup(options.runSetup, requestRender, (view) => this.readiness.refresh(view));
+		this.setup = new OverlaySetup(options.runSetup, requestRender, (view) => this.readiness.refresh(view), theme);
 		this.analysis = new OverlayAnalysis(options.runAnalysis, theme, requestRender, (result) => options.onAnalysisResult?.(result));
 		this.similarCode = this.createSimilarForm(options);
 		this.runtimeCoverage = this.createRuntimeForm(options, checkReadiness);
@@ -251,15 +253,29 @@ export class FallowOverlayShell implements Component, Focusable {
 	private renderSized(width: number, rows: number): string[] {
 		const size = `${width}:${rows}`;
 		if (this.size !== size) { this.followFindings = true; this.size = size; }
-		if (this.analysis.active) return this.analysis.render(width, rows);
-		if (this.setup.active) return this.setup.render(width, rows, this.readiness.lines(this.optionalView()));
+		if (this.analysis.active) return this.bordered(this.analysis.render(width - 4, rows - 2), width, ` ✦ ${VIEW_LABELS[this.view]} · Analysis `);
+		if (this.setup.active) return this.bordered(this.setup.render(width - 4, rows - 2, this.readiness.lines(this.optionalView())), width, ` ✦ ${VIEW_LABELS[this.view]} · Setup `);
+		if (this.view !== 0) return this.bordered(this.renderView(width - 4, rows - 2), width, ` ✦ ${VIEW_LABELS[this.view]} `);
 		return this.renderView(width, rows);
 	}
 
 	private renderView(width: number, rows: number): string[] {
-		const content = this.view === 0 ? this.findings.render(width) : this.optionalContent(width);
-		const anchor = this.view === 0 && this.followFindings ? this.findings.viewportAnchor : undefined;
-		const frame = overlayFrame(width, rows, this.headerLines(width), content, this.footerLines(width), this.scroll[this.view]!, anchor);
+		if (this.view === 0) return this.renderFindingsView(width, rows);
+		return this.applyFrame(overlayFrame(width, rows, this.headerLines(width), this.optionalContent(width), this.footerLines(width), this.scroll[this.view]!));
+	}
+
+	private renderFindingsView(width: number, rows: number): string[] {
+		const content = this.findings.render(width, this.navigationLine(width - 4));
+		const fixedRows = Math.min(3, content.findIndex((line) => line.includes("[1 Findings]")) + 1);
+		const anchor = this.followFindings ? this.findings.viewportAnchor : undefined;
+		const adjustedAnchor = anchor === undefined ? undefined : Math.max(0, anchor - fixedRows);
+		return this.applyFrame(overlayFrame(
+			width, rows, content.slice(0, fixedRows), content.slice(fixedRows, -1),
+			this.bordered(this.footerLines(width - 4), width).slice(1), this.scroll[0]!, adjustedAnchor,
+		));
+	}
+
+	private applyFrame(frame: ReturnType<typeof overlayFrame>): string[] {
 		this.pageRows = frame.pageRows;
 		this.contentRows = frame.contentRows;
 		this.scroll[this.view] = frame.start;
@@ -267,34 +283,83 @@ export class FallowOverlayShell implements Component, Focusable {
 		return frame.lines;
 	}
 
+	private bordered(lines: string[], width: number, title = ""): string[] {
+		const inner = width - 4;
+		const label = truncateToWidth(this.theme.fg("accent", this.theme.bold?.(title) ?? title), inner);
+		return [purple("╭") + label + purple("─".repeat(width - 2 - visibleWidth(label)) + "╮"), ...lines.map((line) => {
+			if ([purple("─".repeat(inner)), this.theme.fg("border", "─".repeat(inner))].includes(line)) return purple("├" + "─".repeat(width - 2) + "┤");
+			const clipped = truncateToWidth(line, inner);
+			return purple("│ ") + clipped + " ".repeat(Math.max(0, inner - visibleWidth(clipped))) + purple(" │");
+		}), purple("╰" + "─".repeat(width - 2) + "╯")];
+	}
+
+	private navigationLine(width: number): string {
+		const narrow = width < 64;
+		const labels = narrow ? ["Findings", "Similar", "Coverage"] : VIEW_LABELS;
+		const tabs = labels.map((label, index) => this.tab(label, index, narrow));
+		return tabs.join(this.theme.fg("borderMuted", narrow ? " " : "  │  "));
+	}
+
+	private tab(label: string, index: number, narrow: boolean): string {
+		const text = `${index + 1} ${label}`;
+		if (index !== this.view) return this.theme.fg("muted", text);
+		const selected = [ `◆ [${text}]`, `[${text}]` ][Number(narrow)]!;
+		return this.selectedTab(this.bold(selected));
+	}
+
+	private bold(text: string): string {
+		if (!this.theme.bold) return text;
+		return this.theme.bold(text);
+	}
+
+	private selectedTab(text: string): string {
+		const active = this.theme.fg("accent", text);
+		if (!this.theme.bg) return active;
+		return this.theme.bg("selectedBg", active);
+	}
+
 	private headerLines(width: number): string[] {
-		const tabs = VIEW_LABELS.map((label, index) => this.theme.fg(
-			index === this.view ? "accent" : "muted",
-			index === this.view ? `[${index + 1} ${label}]` : `${index + 1} ${label}`,
-		));
-		const navigation = new Text(width < 64 ? "1 Findings · 2 Similar · 3 Coverage" : tabs.join("   "), 0, 0).render(width);
-		const helpText = this.isFormEditing() ? "Esc finishes editing (retains values); then 1/2/3 switch view" : "1/2/3 switch view · q close";
+		const navigation = new Text(this.navigationLine(width), 0, 0).render(width);
+		const helpText = this.isFormEditing()
+			? (width < 60 ? "Esc finish edit · Tab next field" : "Esc finishes editing (retains values); then 1/2/3 switch view")
+			: (width < 60 ? `${violet("S")} setup · ${violet("r")} refresh · ${violet("q")} close` : `${violet("S")} setup   ${violet("R")} result   ${violet("r")} refresh   ${violet("i")} details   ${violet("q")} close`);
 		const help = new Text(this.theme.fg("dim", helpText), 0, 0).render(width);
-		return [...navigation, ...help];
+		return [...navigation, ...help, purple("─".repeat(width))];
 	}
 
 	private footerLines(width: number): string[] {
 		if (this.view === 0) return new Text(this.findingsFooter(), 0, 0).render(width);
 		const help = this.isFormEditing() ? "Tab/Shift+Tab field · Enter validate · Esc finish editing" : "S Setup · R result · r refresh · i details · ↑↓ scroll · Esc findings";
-		return new Text(this.theme.fg("dim", help), 0, 0).render(width);
+		return [purple("─".repeat(width)), ...new Text(this.theme.fg("muted", help), 0, 0).render(width)];
 	}
 
 	private findingsFooter(): string {
-		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "↑↓ findings · PgUp/PgDn viewport · 2/3 optional views · q close";
+		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "q close · ↑↓ findings · PgUp/PgDn viewport · 2/3 optional views";
 	}
 
 	private optionalContent(width: number): string[] {
-		const body = [OPTIONAL_TEXT[this.view - 1]!, ...this.readiness.lines(this.optionalView()),
-			"", "Checks never install, download models, or change setup state.",
-			"S previews Setup (never confirms installation). Run and results stay here; R reopens the last result. o opens Similar Code.",
-		].join("\n");
-		const form = this.currentForm()?.render(width) ?? [];
-		return [...form, ...new Text(this.theme.fg("text", body), 0, 0).render(width)];
+		const form = this.currentForm()?.render(width, this.theme) ?? [];
+		return [
+			...form,
+			purple("─".repeat(width)),
+			...this.readinessContent(width),
+			"",
+			...new Text(this.theme.fg("dim", OPTIONAL_TEXT[this.view - 1]!), 0, 0).render(width),
+		];
+	}
+
+	private readinessContent(width: number): string[] {
+		const lines = this.readiness.lines(this.optionalView());
+		const tone = readinessTone(lines[0]);
+		const heading = `${this.theme.fg(tone, "●")} ${this.theme.fg("accent", this.theme.bold("Component readiness"))}`;
+		const details = lines.flatMap((line, index) => new Text(this.readinessLine(line, index, tone), 0, 0).render(width));
+		const safety = this.theme.fg("dim", "Checks never install or download automatically · setup requires confirmation");
+		return [heading, ...details, safety];
+	}
+
+	private readinessLine(line: string, index: number, tone: string): string {
+		if (index === 0) return this.theme.fg(tone, this.theme.bold(line));
+		return this.theme.fg(line.startsWith("Press ") ? "accent" : "muted", line);
 	}
 
 	invalidate(): void {
@@ -303,4 +368,11 @@ export class FallowOverlayShell implements Component, Focusable {
 		this.similarCode.invalidate();
 		this.runtimeCoverage.invalidate();
 	}
+}
+
+function readinessTone(status = "Readiness: unknown"): "success" | "warning" | "error" {
+	const tones: Array<[RegExp, "success" | "warning" | "error"]> = [
+		[/ready$/u, "success"], [/failed|corrupt/u, "error"], [/loading|not checked|missing|incompatible|unknown/u, "warning"],
+	];
+	return tones.find(([pattern]) => pattern.test(status))?.[1] ?? "warning";
 }
