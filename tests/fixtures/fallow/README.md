@@ -27,6 +27,13 @@ const fixture = {
   commands: schema.commands.map(({name, flags}) => ({name, flags: flags.map(flag)})),
 };
 fs.writeFileSync(`tests/fixtures/fallow/schema-${version}.json`, JSON.stringify(fixture, null, 2) + "\n");
+const capabilities = {
+  ...fixture,
+  issue_types: schema.issue_types.map(({id, command, result_key}) => ({id, command, result_key})),
+  related_schemas: Object.fromEntries(Object.entries(schema.related_schemas).filter(([key]) => key.endsWith("_command"))),
+  mcp_resources: {resources: schema.mcp_resources.resources.map(({uri}) => ({uri}))},
+};
+fs.writeFileSync(`tests/fixtures/fallow/capabilities-${version}.json`, JSON.stringify(capabilities, null, 2) + "\n");
 NODE
 ```
 
@@ -54,9 +61,20 @@ allowed values, all slash-only flows, or arbitrary report layouts. Required-inpu
 checks cover advertised required flags/positionals not supplied by fixed registry
 prefixes or managed output flags; help evidence extends this to selected nested
 commands, not conditional argument constraints.
-No schema probing or version gate is added to startup, autocomplete, or runtime
-execution. Independently installed older/newer Fallow versions remain usable;
-user-facing installed-capability diagnostics remain separate work (#77).
+`capabilities-3.22.0.json` extends that frozen projection with the issue-type
+id/command/result-key registry plus related-schema commands and MCP resource
+URIs used by `/fallow compatibility`. Runtime mutation tests distinguish additive
+unknown capabilities from removed/incompatible modeled capabilities and enforce
+bounded transcript-facing diagnostics. The packaged comparison baseline is the
+smaller `extensions/fallow/certified-capabilities.ts` projection; both versions
+must match the pinned development target. The frozen capability projection has
+SHA-256 `ff70848ef1f95ae5db4ddb2ebb0ed4255e2a2bc56472d1f69bb01e8fa3190b78`.
+
+No schema probing or version gate is added to startup, autocomplete, or ordinary
+runtime execution. `/fallow compatibility` is the only explicit capability probe,
+uses a read-only non-installing runner, and never blocks commands. Independently
+installed older/newer Fallow versions remain usable whenever their command paths
+still work.
 
 ## Captured report and nested-command evidence
 

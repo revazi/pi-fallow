@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCompletions } from "./fallow/autocomplete";
 import { fallowCli } from "./fallow/cli";
+import { renderFallowCompatibilityMessage } from "./fallow/compatibility";
 import { fallowToolContract } from "./fallow/contract";
 import { runFallowCommandHandler } from "./fallow/command/handler";
 import { fallowArgumentHint } from "./fallow/registry";
@@ -55,5 +56,8 @@ function registerFallowResultRenderer(pi: ExtensionAPI): void {
 	);
 	pi.registerMessageRenderer("fallow-about", (message, options, theme) =>
 		renderFallowAboutMessage(message, options, theme),
+	);
+	pi.registerMessageRenderer("fallow-compatibility", (message, options, theme) =>
+		renderFallowCompatibilityMessage(message, options, theme),
 	);
 }

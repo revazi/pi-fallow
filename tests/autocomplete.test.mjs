@@ -40,6 +40,8 @@ describe("Fallow autocomplete", () => {
 		const rootCompletions = fallowCompletions.getFallowRootCommandCompletions();
 		assert.ok(labels(rootCompletions).includes("health"));
 		assert.ok(labels(rootCompletions).includes("issues"));
+		assert.ok(labels(rootCompletions).includes("compatibility"));
+		assert.equal(fallowCompletions.getFallowArgumentCompletions("compatibility "), null);
 		const runIndex = labels(rootCompletions).indexOf("run");
 		assert.notEqual(runIndex, -1);
 		assert.equal(rootCompletions[runIndex].description, "Run the configured default command (project issues unless overridden)");

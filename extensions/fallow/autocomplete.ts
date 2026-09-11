@@ -430,7 +430,7 @@ function isCoverageAnalyze(first: string, second: string | undefined): boolean {
 	return first === "coverage" && second === "analyze";
 }
 
-const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update"]);
+const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update", "compatibility"]);
 
 function allFlags(command: string | undefined): FlagSpec[] {
 	if (isCommandWithoutFlags(command)) return [];

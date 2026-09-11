@@ -5,6 +5,7 @@ All notable changes to Pi Fallow are documented here.
 ## [Unreleased]
 
 ### Added
+- Added explicit `/fallow compatibility` diagnostics that compare the installed read-only capability schema with the frozen certified surface, distinguish bounded additive guidance from modeled incompatibilities, identify affected Pi Fallow commands, and never install, gate execution, or run during startup/autocomplete.
 - Added inline Runtime Coverage artifact editing and preview with session-local feedback retention, explicit local/unknown-production limitations, and cancellable artifact/sidecar revalidation in both the form and executor. Requests pin the verified sidecar, strip cloud overrides, and disable analysis caching; no capture, upload, or project mutation is performed.
 - Added inline Similar Code scope, threshold, and result-limit editing with field validation, readiness-gated shell-free run requests through the existing loader, and form-state restoration when returning from results. Configuration prompts remain only in the legacy `o` workflow; shared in-overlay execution is follow-up work.
 - Added read-only optional-component readiness inside the overlay, with refresh, expandable installation details, supported external sidecar discovery, signature verification, bounded failures, and cancellation/stale-response protection. Status never installs components or changes setup state.

@@ -1,0 +1,2484 @@
+{
+  "name": "fallow",
+  "version": "3.22.0",
+  "manifest_version": "1",
+  "default_command": null,
+  "output_formats": [
+    "human",
+    "json",
+    "sarif",
+    "compact",
+    "markdown",
+    "md",
+    "codeclimate",
+    "gitlab-codequality",
+    "gitlab-code-quality",
+    "pr-comment-github",
+    "pr-comment-gitlab",
+    "review-github",
+    "review-gitlab",
+    "badge",
+    "github-annotations",
+    "github-summary"
+  ],
+  "global_flags": [
+    {
+      "name": "--root",
+      "short": "-r",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--config",
+      "short": "-c",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--allow-remote-extends",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--format",
+      "short": "-f",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "human",
+        "json",
+        "sarif",
+        "compact",
+        "markdown",
+        "codeclimate",
+        "pr-comment-github",
+        "pr-comment-gitlab",
+        "review-github",
+        "review-gitlab",
+        "badge",
+        "github-annotations",
+        "github-summary"
+      ]
+    },
+    {
+      "name": "--pretty",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--quiet",
+      "short": "-q",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--no-cache",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--threads",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--changed-since",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--diff-file",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--diff-stdin",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--churn-file",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--max-file-size",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--baseline",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--baseline-mode",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "count",
+        "identity"
+      ]
+    },
+    {
+      "name": "--parent-run",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--save-baseline",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--production",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--no-production",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--production-dead-code",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--production-health",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--production-dupes",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--workspace",
+      "short": "-w",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--changed-workspaces",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--group-by",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "owner",
+        "directory",
+        "package",
+        "section"
+      ]
+    },
+    {
+      "name": "--performance",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--explain",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--explain-skipped",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--summary",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--ci",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--fail-on-issues",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--sarif-file",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--output-file",
+      "short": "-o",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--report-path-prefix",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--fail-on-regression",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--tolerance",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--regression-baseline",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--save-regression-baseline",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--only",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "dead-code",
+        "dupes",
+        "health"
+      ]
+    },
+    {
+      "name": "--skip",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "dead-code",
+        "dupes",
+        "health"
+      ]
+    },
+    {
+      "name": "--dupes-mode",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "strict",
+        "mild",
+        "weak",
+        "semantic"
+      ]
+    },
+    {
+      "name": "--dupes-near",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--dupes-threshold",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--dupes-min-tokens",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--dupes-min-lines",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--dupes-min-occurrences",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--dupes-skip-local",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--dupes-cross-language",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--dupes-ignore-imports",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--dupes-no-ignore-imports",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--score",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--trend",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--save-snapshot",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--coverage",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--coverage-root",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--include-entry-exports",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--type-aware",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--no-type-aware",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--type-aware-project",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--type-aware-require",
+      "type": "string",
+      "required": false,
+      "possible_values": [
+        "best-effort",
+        "complete"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "dead-code",
+      "flags": [
+        {
+          "name": "--unused-files",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-exports",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-deps",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-types",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--private-type-leaks",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-enum-members",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-class-members",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-store-members",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unprovided-injects",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unrendered-components",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-component-props",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-component-emits",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-component-inputs",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-component-outputs",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-svelte-events",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-server-actions",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-load-data-keys",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unresolved-imports",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unlisted-deps",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--duplicate-exports",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--circular-deps",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--re-export-cycles",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--boundary-violations",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--policy-violations",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--stale-suppressions",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-catalog-entries",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--empty-catalog-groups",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unresolved-catalog-references",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-dependency-overrides",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--misconfigured-dependency-overrides",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--include-dupes",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--trace",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--trace-file",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--trace-dependency",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--impact-closure",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--symbol-impact",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--top",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "watch",
+      "flags": [
+        {
+          "name": "--no-clear",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "type-aware",
+      "flags": []
+    },
+    {
+      "name": "similar-code",
+      "flags": [
+        {
+          "name": "--threshold",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-lines",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--top",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "inspect",
+      "flags": [
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--symbol",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--symbol-chain",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--churn",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "trace",
+      "flags": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "--callers",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--callees",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--depth",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "fix",
+      "flags": [
+        {
+          "name": "--dry-run",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--yes",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--no-create-config",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "init",
+      "flags": [
+        {
+          "name": "--toml",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--agents",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--hooks",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--branch",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--decline",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "hooks",
+      "flags": []
+    },
+    {
+      "name": "agent",
+      "flags": []
+    },
+    {
+      "name": "ci",
+      "flags": []
+    },
+    {
+      "name": "config-schema",
+      "flags": []
+    },
+    {
+      "name": "plugin-schema",
+      "flags": []
+    },
+    {
+      "name": "plugin-check",
+      "flags": []
+    },
+    {
+      "name": "rule-pack-schema",
+      "flags": []
+    },
+    {
+      "name": "rule-pack",
+      "flags": []
+    },
+    {
+      "name": "guard",
+      "flags": [
+        {
+          "name": "files",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "config",
+      "flags": [
+        {
+          "name": "--path",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "recommend",
+      "flags": []
+    },
+    {
+      "name": "list",
+      "flags": [
+        {
+          "name": "--entry-points",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--files",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--plugins",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--boundaries",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--workspaces",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "workspaces",
+      "flags": []
+    },
+    {
+      "name": "dupes",
+      "flags": [
+        {
+          "name": "--mode",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "strict",
+            "mild",
+            "weak",
+            "semantic"
+          ]
+        },
+        {
+          "name": "--near",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--min-tokens",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-lines",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-occurrences",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--threshold",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--skip-local",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--cross-language",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--ignore-imports",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--no-ignore-imports",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--top",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--trace",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "health",
+      "flags": [
+        {
+          "name": "--max-cyclomatic",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--max-cognitive",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--max-crap",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--top",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--sort",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "severity",
+            "cyclomatic",
+            "cognitive",
+            "lines"
+          ]
+        },
+        {
+          "name": "--complexity",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--complexity-breakdown",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--file-scores",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--coverage-gaps",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--hotspots",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--ownership",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--ownership-emails",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "raw",
+            "handle",
+            "anonymized",
+            "hash"
+          ]
+        },
+        {
+          "name": "--targets",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--type-coupling",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--css",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--effort",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        {
+          "name": "--score",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--min-score",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-severity",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "moderate",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "name": "--report-only",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--since",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-commits",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--save-snapshot",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--trend",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--coverage",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--coverage-root",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--runtime-coverage",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-invocations-hot",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-observation-volume",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--low-traffic-threshold",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "flags",
+      "flags": [
+        {
+          "name": "--top",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "suppressions",
+      "flags": [
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "explain",
+      "flags": [
+        {
+          "name": "issue_type",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "audit",
+      "flags": [
+        {
+          "name": "--production-dead-code",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--production-health",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--production-dupes",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--dead-code-baseline",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--health-baseline",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--dupes-baseline",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--max-crap",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--coverage",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--coverage-root",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--no-css",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--css-deep",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--no-css-deep",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--gate",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "new-only",
+            "all"
+          ]
+        },
+        {
+          "name": "--runtime-coverage",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-invocations-hot",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--gate-marker",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--brief",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--max-decisions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--walkthrough-guide",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--walkthrough-file",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--walkthrough",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--mark-viewed",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--show-cleared",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--show-deprioritized",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "audit-cache",
+      "flags": []
+    },
+    {
+      "name": "decision-surface",
+      "flags": [
+        {
+          "name": "--max-decisions",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "impact",
+      "flags": [
+        {
+          "name": "--all",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--sort",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "recent",
+            "resolved",
+            "contained",
+            "name"
+          ]
+        },
+        {
+          "name": "--limit",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "security",
+      "flags": [
+        {
+          "name": "--runtime-coverage",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--min-invocations-hot",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--gate",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "new",
+            "newly-reachable"
+          ]
+        },
+        {
+          "name": "--surface",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "report",
+      "flags": [
+        {
+          "name": "--from",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "schema",
+      "flags": []
+    },
+    {
+      "name": "ci-template",
+      "flags": []
+    },
+    {
+      "name": "migrate",
+      "flags": [
+        {
+          "name": "--toml",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--jsonc",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--dry-run",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--from",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "license",
+      "flags": []
+    },
+    {
+      "name": "telemetry",
+      "flags": []
+    },
+    {
+      "name": "coverage",
+      "flags": []
+    },
+    {
+      "name": "setup-hooks",
+      "flags": [
+        {
+          "name": "--agent",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "claude",
+            "codex"
+          ]
+        },
+        {
+          "name": "--dry-run",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--force",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--user",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--gitignore-claude",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--uninstall",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "viz",
+      "flags": [
+        {
+          "name": "--out",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--no-open",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--viz-format",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "html",
+            "dot",
+            "mermaid"
+          ]
+        }
+      ]
+    }
+  ],
+  "issue_types": [
+    {
+      "id": "unused-file",
+      "command": "dead-code",
+      "result_key": "unused_files"
+    },
+    {
+      "id": "unused-export",
+      "command": "dead-code",
+      "result_key": "unused_exports"
+    },
+    {
+      "id": "unused-type",
+      "command": "dead-code",
+      "result_key": "unused_types"
+    },
+    {
+      "id": "private-type-leak",
+      "command": "dead-code",
+      "result_key": "private_type_leaks"
+    },
+    {
+      "id": "unused-dependency",
+      "command": "dead-code",
+      "result_key": "unused_dependencies"
+    },
+    {
+      "id": "unused-dev-dependency",
+      "command": "dead-code",
+      "result_key": "unused_dev_dependencies"
+    },
+    {
+      "id": "unused-optional-dependency",
+      "command": "dead-code",
+      "result_key": "unused_optional_dependencies"
+    },
+    {
+      "id": "type-only-dependency",
+      "command": "dead-code",
+      "result_key": "type_only_dependencies"
+    },
+    {
+      "id": "test-only-dependency",
+      "command": "dead-code",
+      "result_key": "test_only_dependencies"
+    },
+    {
+      "id": "dev-dependency-in-production",
+      "command": "dead-code",
+      "result_key": "dev_dependencies_in_production"
+    },
+    {
+      "id": "unused-enum-member",
+      "command": "dead-code",
+      "result_key": "unused_enum_members"
+    },
+    {
+      "id": "unused-class-member",
+      "command": "dead-code",
+      "result_key": "unused_class_members"
+    },
+    {
+      "id": "unused-store-member",
+      "command": "dead-code",
+      "result_key": "unused_store_members"
+    },
+    {
+      "id": "unresolved-import",
+      "command": "dead-code",
+      "result_key": "unresolved_imports"
+    },
+    {
+      "id": "unlisted-dependency",
+      "command": "dead-code",
+      "result_key": "unlisted_dependencies"
+    },
+    {
+      "id": "duplicate-export",
+      "command": "dead-code",
+      "result_key": "duplicate_exports"
+    },
+    {
+      "id": "circular-dependency",
+      "command": "dead-code",
+      "result_key": "circular_dependencies"
+    },
+    {
+      "id": "re-export-cycle",
+      "command": "dead-code",
+      "result_key": "re_export_cycles"
+    },
+    {
+      "id": "boundary-violation",
+      "command": "dead-code",
+      "result_key": "boundary_violations"
+    },
+    {
+      "id": "boundary-coverage",
+      "command": "dead-code",
+      "result_key": "boundary_coverage_violations"
+    },
+    {
+      "id": "boundary-call-violation",
+      "command": "dead-code",
+      "result_key": "boundary_call_violations"
+    },
+    {
+      "id": "policy-violation",
+      "command": "dead-code",
+      "result_key": "policy_violations"
+    },
+    {
+      "id": "stale-suppression",
+      "command": "dead-code",
+      "result_key": "stale_suppressions"
+    },
+    {
+      "id": "missing-suppression-reason",
+      "command": "dead-code",
+      "result_key": null
+    },
+    {
+      "id": "unused-catalog-entry",
+      "command": "dead-code",
+      "result_key": "unused_catalog_entries"
+    },
+    {
+      "id": "empty-catalog-group",
+      "command": "dead-code",
+      "result_key": "empty_catalog_groups"
+    },
+    {
+      "id": "unresolved-catalog-reference",
+      "command": "dead-code",
+      "result_key": "unresolved_catalog_references"
+    },
+    {
+      "id": "unused-dependency-override",
+      "command": "dead-code",
+      "result_key": "unused_dependency_overrides"
+    },
+    {
+      "id": "misconfigured-dependency-override",
+      "command": "dead-code",
+      "result_key": "misconfigured_dependency_overrides"
+    },
+    {
+      "id": "invalid-client-export",
+      "command": "dead-code",
+      "result_key": "invalid_client_exports"
+    },
+    {
+      "id": "mixed-client-server-barrel",
+      "command": "dead-code",
+      "result_key": "mixed_client_server_barrels"
+    },
+    {
+      "id": "misplaced-directive",
+      "command": "dead-code",
+      "result_key": "misplaced_directives"
+    },
+    {
+      "id": "unprovided-inject",
+      "command": "dead-code",
+      "result_key": "unprovided_injects"
+    },
+    {
+      "id": "unrendered-component",
+      "command": "dead-code",
+      "result_key": "unrendered_components"
+    },
+    {
+      "id": "unused-component-prop",
+      "command": "dead-code",
+      "result_key": "unused_component_props"
+    },
+    {
+      "id": "unused-component-emit",
+      "command": "dead-code",
+      "result_key": "unused_component_emits"
+    },
+    {
+      "id": "unused-component-input",
+      "command": "dead-code",
+      "result_key": "unused_component_inputs"
+    },
+    {
+      "id": "unused-component-output",
+      "command": "dead-code",
+      "result_key": "unused_component_outputs"
+    },
+    {
+      "id": "unused-svelte-event",
+      "command": "dead-code",
+      "result_key": "unused_svelte_events"
+    },
+    {
+      "id": "unused-server-action",
+      "command": "dead-code",
+      "result_key": "unused_server_actions"
+    },
+    {
+      "id": "unused-load-data-key",
+      "command": "dead-code",
+      "result_key": "unused_load_data_keys"
+    },
+    {
+      "id": "prop-drilling",
+      "command": "dead-code",
+      "result_key": "prop_drilling_chains"
+    },
+    {
+      "id": "thin-wrapper",
+      "command": "dead-code",
+      "result_key": "thin_wrappers"
+    },
+    {
+      "id": "duplicate-prop-shape",
+      "command": "dead-code",
+      "result_key": "duplicate_prop_shapes"
+    },
+    {
+      "id": "route-collision",
+      "command": "dead-code",
+      "result_key": "route_collisions"
+    },
+    {
+      "id": "dynamic-segment-name-conflict",
+      "command": "dead-code",
+      "result_key": "dynamic_segment_name_conflicts"
+    },
+    {
+      "id": "high-cyclomatic-complexity",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "high-cognitive-complexity",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "high-complexity",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "high-crap-score",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "refactoring-target",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "css-token-drift",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "css-duplicate-block",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "css-selector-complexity",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "css-dead-surface",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "css-broken-reference",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "untested-file",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "untested-export",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "runtime-safe-to-delete",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "runtime-review-required",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "runtime-low-traffic",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "runtime-coverage-unavailable",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "runtime-coverage",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "coverage-intelligence-risky-change",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "coverage-intelligence-delete",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "coverage-intelligence-review",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "coverage-intelligence-refactor",
+      "command": "health",
+      "result_key": null
+    },
+    {
+      "id": "code-duplication",
+      "command": "dupes",
+      "result_key": null
+    },
+    {
+      "id": "feature-flag",
+      "command": "flags",
+      "result_key": null
+    },
+    {
+      "id": "tainted-sink",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "client-server-leak",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "hardcoded-secret",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "dangerous-html",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "template-escape-bypass",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "command-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "code-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "dynamic-regex",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "redos-regex",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "resource-amplification",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "dynamic-module-load",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "sql-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "ssrf",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "secret-to-network",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "path-traversal",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "header-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "open-redirect",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "postmessage-wildcard-origin",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "tls-validation-disabled",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "cleartext-transport",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "electron-unsafe-webpreferences",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "world-writable-permission",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "insecure-temp-file",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "mysql-multiple-statements",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "permissive-cors",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "insecure-cookie",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "mass-assignment",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "weak-crypto",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "insecure-randomness",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "jwt-alg-none",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "jwt-verify-missing-algorithms",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "deprecated-cipher",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "unsafe-buffer-alloc",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "unsafe-deserialization",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "angular-trusted-html",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "nextjs-open-redirect",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "dom-document-write",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "jquery-html",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "route-send-file",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "webview-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "prototype-pollution",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "zip-slip",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "nosql-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "ssti",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "xxe",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "secret-pii-log",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "xpath-injection",
+      "command": "security",
+      "result_key": null
+    },
+    {
+      "id": "llm-call-injection",
+      "command": "security",
+      "result_key": null
+    }
+  ],
+  "related_schemas": {
+    "config_schema_command": "fallow config-schema",
+    "rule_pack_schema_command": "fallow rule-pack-schema",
+    "plugin_schema_command": "fallow plugin-schema",
+    "plugin_check_command": "fallow plugin-check"
+  },
+  "mcp_resources": {
+    "resources": [
+      {
+        "uri": "fallow://tools"
+      },
+      {
+        "uri": "fallow://issue-types"
+      },
+      {
+        "uri": "fallow://explain"
+      },
+      {
+        "uri": "fallow://task-matrix"
+      },
+      {
+        "uri": "fallow://schema/config"
+      },
+      {
+        "uri": "fallow://schema/plugin"
+      },
+      {
+        "uri": "fallow://schema/rule-pack"
+      },
+      {
+        "uri": "fallow://explain/{issue_type}"
+      }
+    ]
+  }
+}

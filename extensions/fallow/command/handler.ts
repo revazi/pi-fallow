@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { fallowCli } from "../cli";
+import { sendFallowCompatibilityMessage } from "../compatibility";
 import { recordFallowHistory } from "../history";
 import { detectFallowBaseRef } from "../project/git";
 import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorState } from "../types";
@@ -20,10 +21,7 @@ export async function runFallowCommandHandler(
 ): Promise<void> {
 	const parsedArgs = parseFallowHandlerArgs(ctx, rawArgs);
 	if (!parsedArgs) return;
-	if (isFallowAboutCommand(parsedArgs)) {
-		await sendFallowAboutMessage(pi, ctx);
-		return;
-	}
+	if (await runFallowExtensionCommand(pi, ctx, parsedArgs)) return;
 	const args = await normalizeFallowHandlerArgs(ctx, commandState, parsedArgs);
 	if (!args) return;
 	const result = await executeFallowCommandLoop(pi, ctx, commandState, args);
@@ -44,8 +42,19 @@ function splitOptionalFallowArgs(value: string): string[] {
 	return value.trim() ? fallowCli.splitArgs(value) : [];
 }
 
+async function runFallowExtensionCommand(pi: ExtensionAPI, ctx: FallowCommandContext, args: string[]): Promise<boolean> {
+	if (isFallowAboutCommand(args)) await sendFallowAboutMessage(pi, ctx);
+	else if (isFallowCompatibilityCommand(args)) await sendFallowCompatibilityMessage(pi, ctx);
+	else return false;
+	return true;
+}
+
 function isFallowAboutCommand(args: string[]): boolean {
 	return args.length === 1 && ["about", "version", "update"].includes(args[0]!);
+}
+
+function isFallowCompatibilityCommand(args: string[]): boolean {
+	return args.length === 1 && args[0] === "compatibility";
 }
 
 async function normalizeFallowHandlerArgs(

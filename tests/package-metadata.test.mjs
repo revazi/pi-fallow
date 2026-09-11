@@ -32,6 +32,8 @@ describe("package and automation metadata", () => {
 		}
 		assert.match(readme, /\| 0\.84\.4 \| 0\.84\.4 \| 22\.19 and 24 \| 3\.22\.0 \|/);
 		assert.match(readme, /tested compatibility; it is not an installation constraint/);
+		assert.match(readme, /Certification.*Compatibility.*Installation constraints/s);
+		assert.match(readme, /\/fallow compatibility.*never gates ordinary execution/s);
 		assert.match(readme, /wildcard peer dependencies/);
 	});
 
