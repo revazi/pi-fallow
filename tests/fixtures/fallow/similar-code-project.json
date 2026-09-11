@@ -1,0 +1,6 @@
+{
+  "package.json": "{\"name\":\"similar-code-certification\",\"private\":true,\"type\":\"module\"}\n",
+  "index.js": "import { normalizeAlpha } from './alpha.js';\nimport { normalizeBeta } from './beta.js';\nconsole.log(normalizeAlpha([]), normalizeBeta([]));\n",
+  "alpha.js": "export function normalizeAlpha(records) {\n  const result = [];\n  for (const record of records) {\n    if (!record.active) continue;\n    result.push(record.name.trim().toLowerCase());\n  }\n  result.sort();\n  return result;\n}\n",
+  "beta.js": "export function normalizeBeta(records) {\n  const result = [];\n  for (const record of records) {\n    if (!record.active) continue;\n    result.push(record.name.trim().toLowerCase());\n  }\n  result.sort();\n  return result;\n}\n"
+}

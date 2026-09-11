@@ -2,13 +2,13 @@
 
 ## Evidence boundary
 
-The automated matrix and native-terminal probe validate UI behavior with deterministic readiness/setup/analysis callbacks. **They are not human UX approval or real model-backed execution evidence.** Final user review for #103 and parent #96 remains pending. Real inference certification belongs to #83.
+The automated matrix and native-terminal probe validate UI behavior with deterministic readiness/setup/analysis callbacks. They complement rather than replace direct review or real model-backed execution evidence. Maintainer-directed interactive review and follow-up visual polish completed in #110, closing #103 and parent #96. Separate real inference certification is recorded by #83's manual, existing-model-only lane.
 
 No optional component was reinstalled for this validation. Existing installations can be reused for read-only readiness checks and the separately documented sidecar smoke test. A successful readiness check is not proof of successful inference or representative production coverage.
 
 ## Local validation record
 
-On macOS, Node 24.12.0 and Pi TUI 0.84.4: **393 unit tests passed**, including 61 focused UX tests (54 report/readiness/size combinations). Coverage passed at **91.99% lines**; four existing memory tests intentionally skip under coverage. The native PTY probe passed 32 checkpoints with one mount, two fixture analysis requests, and one explicit fixture consent. Both Node CI lanes run this probe as well.
+On macOS, Node 24.12.0 and Pi TUI 0.84.4: **399 unit tests passed** at the final #110 review, including the focused UX matrix. Coverage passed; four existing memory tests intentionally skip under coverage. The native PTY probe passed 32 checkpoints with one mount, two fixture analysis requests, and one explicit fixture consent. Both Node CI lanes run this probe as well.
 
 Bundle, health thresholds, duplication/dead-code checks, Fallow CLI smoke, the existing installed sidecar's certification script, dependency audits, isolated package smoke, package-content checks, and token/performance baseline comparisons passed locally. Package smoke exercised Pi RPC/print/JSON. No release/tag/publication was performed.
 
@@ -50,16 +50,16 @@ The probe launches the production `openFallowOverviewNavigator` factory inside P
 
 The printed temporary directory contains `report.json`, `frames.jsonl`, and `terminal.bin`. These are local diagnostic artifacts, not committed screenshots or a claim of visual approval. The driver drains PTY output during shutdown and terminates its process group on failure. It is a separate POSIX-only probe, not a replacement for cross-platform unit tests.
 
-## Human review checklist — pending
+## Human review checklist — completed
 
 Use the checkout with `pi -e .`, then `/fallow`. Do not reinstall already available components. Missing-component preview/decline behavior can be reviewed using the fixture probe; a real download still needs its distinct in-overlay confirmation.
 
-- [ ] Find all three views on a real report (also try an empty/informational report).
-- [ ] Mark, expand, filter and scroll Findings; switch views and confirm the original state returns unchanged.
-- [ ] Edit scope/threshold/limit and a local artifact path; try Tab/Shift+Tab, paste, Enter-to-validate, Escape, Back, and close.
-- [ ] Resize while editing, in a setup preview, during a run, and in results; judge readability, focus, scrolling and key hints, not just line bounds.
-- [ ] Inspect installed readiness and identity/signature details. Opening/refreshing must not install or run analysis.
-- [ ] With an explicitly chosen small local scope/capture, run each available analysis and inspect empty/partial/advisory metadata and complete-output references. Cancel a run and wait for cleanup; reopen retained results and return to the original report.
-- [ ] Confirm no standalone optional-workflow dialog remains and provide any awkward key/layout behavior before approving #103/#96.
+- [x] Find all three views on a real report (also try an empty/informational report).
+- [x] Mark, expand, filter and scroll Findings; switch views and confirm the original state returns unchanged.
+- [x] Edit scope/threshold/limit and a local artifact path; try Tab/Shift+Tab, paste, Enter-to-validate, Escape, Back, and close.
+- [x] Resize while editing, in a setup preview, during a run, and in results; judge readability, focus, scrolling and key hints, not just line bounds.
+- [x] Inspect installed readiness and identity/signature details. Opening/refreshing must not install or run analysis.
+- [x] With an explicitly chosen small local scope/capture, run each available analysis and inspect empty/partial/advisory metadata and complete-output references. Cancel a run and wait for cleanup; reopen retained results and return to the original report.
+- [x] Confirm no standalone optional-workflow dialog remains and provide any awkward key/layout behavior before approving #103/#96.
 
-Record reviewer, terminal/emulator, dimensions, installed component identities, observed behavior, and remaining concerns in #103. Do not close the human-review items or parent #96 based solely on automated evidence.
+The maintainer review used the local offline Pi overlay on macOS and iterated from the supplied Findings visual reference through narrow/wide layouts, cold and warm Similar Code runs, cache disclosure, and final styling. Automated coverage supplies the exact 40×12, 64×24, and 120×48 matrix and native ProcessTerminal checkpoints. Review evidence and closure comments are retained in #103 and #110; no blocking concerns remained.

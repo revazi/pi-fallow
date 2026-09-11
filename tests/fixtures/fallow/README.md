@@ -157,10 +157,45 @@ fields. Normalized overlay coverage is intentionally tracked as #87 because the
 successful report exposed that existing `coverage-analyze` output is currently
 retained raw but not surfaced as navigator findings.
 
-### Remaining #83 scope
+## Optional model-backed Similar Code evidence
 
-This remains short of full closure of #83. Model-backed discovery and successful
-source-grounded inspect/review are not certified until the user explicitly runs
-Fallow's pinned-model setup. Audit/change-gate and other specialized layouts
-remain future coverage. Help/failure evidence must not be inferred as successful
-model-backed analysis.
+`similar-code-report-3.22.0.json` preserves three successful specialized report
+layouts from `similar-code-project.json`: complete semantic discovery, a
+source-grounded inspect packet, and immutable candidate/verdict review. The tiny
+project contains two intentionally identical implementations with distinct
+export names. The frozen verdict therefore records behavioral equivalence while
+conservatively keeping `refactor_safe: false` until export compatibility has an
+explicit plan.
+
+The evidence binds the exact Fallow version, model ID/revision/license, project
+digest, candidate source digests, candidate/review identities, and exact input
+document hashes. It retains model and provider provenance, completion phases,
+enrichment availability, diagnostics, actions, and the separate verdict. Only
+elapsed/provider timing and telemetry run identity are normalized. Offline tests
+exercise all three reports through parsing, normalization, bounded output, and
+readable complete-output retention, and mutation-check report identity, model,
+source, inspect availability, verdict, and digest drift while allowing additive
+fields.
+
+This lane requires the user to have already installed Fallow's exact pinned model.
+It never authorizes or invokes setup and cannot download a model. Discovery runs
+with an explicit empty config and `--no-cache`; the captured completion contract
+must report a disabled cache with zero writes and local-only source processing.
+Inspect and review consume temporary copies of the unchanged normalized discovery
+and verdict documents. The script isolates project/config state, strips unrelated
+environment variables and credentials, and removes all temporary files.
+
+Regenerate deliberately, or compare a fresh local run with the frozen evidence:
+
+```sh
+node scripts/similar-code-certification.mjs --write
+npm run smoke:fallow-similar
+```
+
+Ordinary unit tests are fully offline. This manual lane is intentionally absent
+from CI and release gates because automation must not install the model and hosted
+runners do not own a user-authorized model cache. A missing, mismatched, or
+integrity-unverified model fails with guidance instead of running setup. This
+completes #83's model-backed nested workflow evidence; future report additions
+should remain evidence-driven rather than claiming exhaustive certification of
+every Fallow output layout.
