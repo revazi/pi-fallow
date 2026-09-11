@@ -81,6 +81,7 @@ Manual slash command examples:
 /fallow pr
 /fallow rerun
 /fallow about
+/fallow compatibility
 /fallow audit --base origin/main --gate new-only
 /fallow check-changed --changed-since main
 /fallow dead-code --changed-since main
@@ -116,7 +117,7 @@ Set `PI_FALLOW_DEFAULT_COMMAND` to a shell-free command string to replace the ag
 export PI_FALLOW_DEFAULT_COMMAND='health --complexity --targets --score'
 ```
 
-Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive or extension-only defaults such as `run`, `rerun`, `history`, or `about` are rejected.
+Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive or extension-only defaults such as `run`, `rerun`, `history`, `about`, or `compatibility` are rejected.
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
@@ -186,6 +187,8 @@ Pi Fallow therefore does not add these status/file/browser operations to `fallow
 
 `/fallow about` shows the installed Pi Fallow version, latest npm version, update command, and project links. Pi Fallow also checks npm once per TUI session and shows a non-blocking warning when a newer version is available. Update an npm installation with `pi update npm:pi-fallow`. Set `PI_FALLOW_DISABLE_UPDATE_NOTICE=1` to disable startup update notices.
 
+`/fallow compatibility` explicitly runs the installed CLI's read-only `schema --format json --quiet` command and compares its bounded capability projection with Pi Fallow's certified model. It shows the installed and certified Fallow versions, additive commands/flags/issue types/formats/resources as direct-CLI guidance, and removed or incompatible modeled capabilities with affected `fallow_run` or slash commands. The diagnostic never invokes an installing `npx` fallback, setup, analysis, or cache mutation; it does not run at extension load, startup, or autocomplete time, and it never gates ordinary execution. Manifest v1 cannot prove nested-command behavior or live report schema versions, so those remain covered by frozen/live certification evidence and are labeled separately rather than inferred.
+
 ### Session run history and comparison
 
 Every completed `/fallow` analysis and trace is added to bounded in-memory session history. `/fallow history` (or `history list`) shows the current project's runs; `/fallow history open r1` reopens an unchanged retained report in the existing navigator; `/fallow history compare r1 r2` treats the first run as prior and the second as current; and `/fallow history clear` removes only the current project's history metadata. History commands never replace `/fallow rerun`, which continues to execute the last analysis command.
@@ -230,7 +233,7 @@ The current `0.5.x` development line is certified with this host matrix:
 
 Certification installs the generated Pi Fallow tarball in isolation and uses the exact Pi version and manifest-declared CLI entrypoint locked by this repository. It verifies offline extension loading, `/fallow` discovery, the default aggregate plus explicit `/fallow health` and session history over RPC, default `/fallow` in print and JSON modes, empty Pi stderr, and the absence of extension/provider-turn errors. Package checks run on both supported Node lines.
 
-This matrix records tested compatibility; it is not an installation constraint or a claim about untested Pi versions. Pi packages intentionally remain host-provided wildcard peer dependencies, following Pi's package guidance. Other Pi versions may work, but are not certified until they pass the same package smoke checks.
+This matrix records tested compatibility; it is not an installation constraint or a claim about untested Pi or Fallow versions. **Certification** means the exact matrix passed the repository's frozen and live evidence suites. **Compatibility** means the installed Fallow still advertises the capabilities Pi Fallow models; `/fallow compatibility` can diagnose that surface on demand. **Installation constraints** are only the requirements declared below. A version mismatch alone is not a failure, diagnostics do not constrain resolution or execution, and additive capabilities remain usable through the Fallow CLI even before Pi Fallow models them. Pi packages intentionally remain host-provided wildcard peer dependencies, following Pi's package guidance. Other Pi or Fallow versions may work, but are not certified until they pass the same checks.
 
 ## Requirements
 

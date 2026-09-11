@@ -11,6 +11,16 @@
     "jiti",
     "js-tiktoken"
   ],
+  "ignoreExports": [
+    {
+      "file": "extensions/fallow/compatibility.ts",
+      "exports": [
+        "diagnoseFallowCapabilities",
+        "createFallowCompatibilityCheck",
+        "formatFallowCompatibility"
+      ]
+    }
+  ],
   "usedClassMembers": [
     {
       "implements": "Focusable",
