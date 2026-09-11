@@ -251,12 +251,16 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private renderSized(width: number, rows: number): string[] {
-		const size = `${width}:${rows}`;
-		if (this.size !== size) { this.followFindings = true; this.size = size; }
+		this.trackSize(width, rows);
 		if (this.analysis.active) return this.bordered(this.analysis.render(width - 4, rows - 2), width, ` ✦ ${VIEW_LABELS[this.view]} · Analysis `);
 		if (this.setup.active) return this.bordered(this.setup.render(width - 4, rows - 2, this.readiness.lines(this.optionalView())), width, ` ✦ ${VIEW_LABELS[this.view]} · Setup `);
 		if (this.view !== 0) return this.bordered(this.renderView(width - 4, rows - 2), width, ` ✦ ${VIEW_LABELS[this.view]} `);
 		return this.renderView(width, rows);
+	}
+
+	private trackSize(width: number, rows: number): void {
+		const size = `${width}:${rows}`;
+		if (this.size !== size) { this.followFindings = true; this.size = size; }
 	}
 
 	private renderView(width: number, rows: number): string[] {

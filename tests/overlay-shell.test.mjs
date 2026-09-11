@@ -34,26 +34,30 @@ function create(role = "finding", count = 40, checkReadiness) {
 
 function text(shell, width = 100) { return shell.render(width).join("\n"); }
 
+function assertOptionalPagesAtSize(shell, width, rows) {
+	for (const view of ["2", "3"]) {
+		shell.handleInput(view);
+		for (const key of ["\u001b[H", "\u001b[F"]) {
+			shell.handleInput(key);
+			const lines = shell.render(width);
+			const plain = lines.map((line) => line.replace(/\u001b\[[0-9;]*m/g, ""));
+			assert.match(plain[0], /^╭ ✦ (Similar Code|Runtime Coverage) ─+╮$/);
+			assert.match(plain.at(-1), /^╰─+╯$/);
+			assert.ok(plain.slice(1, -1).every((line) => (line.startsWith("│ ") && line.endsWith(" │")) || /^├─+┤$/.test(line)));
+			assert.ok(plain[1].includes(`[${view} `));
+			assert.ok(lines.every((line) => visibleWidth(line) === width));
+			assert.ok(lines.length <= Math.floor(rows * 0.95));
+		}
+	}
+}
+
 describe("persistent Fallow overlay shell", () => {
 	it("keeps optional pages bordered and the active tab visible at narrow and wide sizes", () => {
 		const { shell, resize } = create();
 		for (const width of [40, 64, 100]) {
 			for (const rows of [12, 24, 40]) {
 				resize(rows);
-				for (const view of ["2", "3"]) {
-					shell.handleInput(view);
-					for (const key of ["\u001b[H", "\u001b[F"]) {
-						shell.handleInput(key);
-						const lines = shell.render(width);
-						const plain = lines.map((line) => line.replace(/\u001b\[[0-9;]*m/g, ""));
-						assert.match(plain[0], /^╭ ✦ (Similar Code|Runtime Coverage) ─+╮$/);
-						assert.match(plain.at(-1), /^╰─+╯$/);
-						assert.ok(plain.slice(1, -1).every((line) => (line.startsWith("│ ") && line.endsWith(" │")) || /^├─+┤$/.test(line)));
-						assert.ok(plain[1].includes(`[${view} `));
-						assert.ok(lines.every((line) => visibleWidth(line) === width));
-						assert.ok(lines.length <= Math.floor(rows * 0.95));
-					}
-				}
+				assertOptionalPagesAtSize(shell, width, rows);
 			}
 		}
 		shell.dispose();
