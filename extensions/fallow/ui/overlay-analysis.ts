@@ -29,6 +29,8 @@ export class OverlayAnalysis implements Focusable {
 	private views = new Map<ReadinessView, AnalysisView>();
 	private current?: AnalysisView;
 	private pending = false;
+	private startedAt = 0;
+	private heartbeat?: ReturnType<typeof setInterval>;
 	private pageRows = 1;
 	private contentRows = 0;
 
@@ -40,6 +42,9 @@ export class OverlayAnalysis implements Focusable {
 		this.views.set(requestView(request), entry);
 		this.current = entry;
 		this.active = this.pending = true;
+		this.startedAt = Date.now();
+		this.heartbeat = setInterval(() => this.changed(), 1_000);
+		this.heartbeat.unref();
 		this.changed();
 		void this.execute(entry);
 	}
@@ -82,6 +87,7 @@ export class OverlayAnalysis implements Focusable {
 	private settle(entry: AnalysisView): void {
 		if (entry.controller.signal.aborted) entry.label = "Analysis cancelled; process cleanup settled. Any returned evidence is incomplete.";
 		this.pending = false;
+		this.stopHeartbeat();
 		entry.scroll = 0;
 		this.changed();
 	}
@@ -154,15 +160,30 @@ export class OverlayAnalysis implements Focusable {
 	render(width: number, rows: number): string[] {
 		const entry = this.current;
 		if (!entry || width < 1) return [];
-		const heading = new Text(`${clean(entry.label).slice(0, 180)}\n${advisory(entry.request)}`, 0, 0).render(width);
-		const footer = new Text(this.footerHelp(entry), 0, 0).render(width);
-		const content = this.content(entry, width, rows);
-		const frame = overlayFrame(width, rows, heading, content, footer, entry.scroll, this.resultAnchor(entry));
+		const separator = this.theme.fg("border", "─".repeat(width));
+		const heading = [...new Text(this.analysisHeading(entry), 0, 0).render(width), separator];
+		const footer = [separator, ...new Text(this.theme.fg("muted", this.footerHelp(entry)), 0, 0).render(width)];
+		const frame = overlayFrame(width, rows, heading, this.content(entry, width, rows), footer, entry.scroll, this.resultAnchor(entry));
 		this.pageRows = frame.pageRows;
 		this.contentRows = frame.contentRows;
 		entry.scroll = frame.start;
 		entry.follow = false;
 		return frame.lines;
+	}
+
+	private analysisHeading(entry: AnalysisView): string {
+		const elapsed = this.pending ? `Elapsed ${Math.floor((Date.now() - this.startedAt) / 1_000)}s · ` : "";
+		const label = `${elapsed}${clean(entry.label).slice(0, 180)}`;
+		const tone = this.analysisTone(entry);
+		return `${this.theme.fg(tone, "●")} ${this.theme.fg(tone, this.theme.bold(label))}\n${this.theme.fg("dim", advisory(entry.request))}`;
+	}
+
+	private analysisTone(entry: AnalysisView): "accent" | "success" | "warning" | "error" {
+		const states: Array<[boolean, "accent" | "warning" | "error"]> = [
+			[entry.controller.signal.aborted, "warning"], [this.pending, "accent"],
+			[/failed|no recognized/iu.test(entry.label), "error"], [/incomplete|cancelled/iu.test(entry.label), "warning"],
+		];
+		return states.find(([matches]) => matches)?.[1] ?? "success";
 	}
 
 	private footerHelp(entry: AnalysisView): string {
@@ -175,7 +196,7 @@ export class OverlayAnalysis implements Focusable {
 	}
 
 	private content(entry: AnalysisView, width: number, rows: number): string[] {
-		if ([this.pending, entry.details, !entry.navigator].some(Boolean)) return new Text(clean(detailText(entry)), 0, 0).render(width);
+		if ([this.pending, entry.details, !entry.navigator].some(Boolean)) return new Text(this.theme.fg("text", clean(detailText(entry))), 0, 0).render(width);
 		return this.renderNavigator(entry, width, rows);
 	}
 
@@ -187,10 +208,11 @@ export class OverlayAnalysis implements Focusable {
 		return entry.navigator!.render(width).map((line) => truncateToWidth(line, width));
 	}
 
+	private stopHeartbeat(): void { clearInterval(this.heartbeat); this.heartbeat = undefined; }
 	private changed(): void { if (!this.disposed) this.requestRender(); }
 	private isCurrent(entry: AnalysisView): boolean { return !this.disposed && this.current === entry; }
 	invalidate(): void { for (const entry of this.views.values()) entry.navigator?.invalidate(); }
-	dispose(): void { this.disposed = true; this.current?.controller.abort(); this.views.clear(); }
+	dispose(): void { this.disposed = true; this.stopHeartbeat(); this.current?.controller.abort(); this.views.clear(); }
 }
 
 function analysisError(error: unknown): string { return error instanceof Error ? error.message : String(error); }
@@ -202,9 +224,40 @@ function advisory(request: OverlayAnalysisRequest): string {
 }
 function resultLabel(result: FallowCommandResult): string {
 	const metadata = result.reportMetadata;
-	if (!metadata.complete) return `Analysis incomplete: ${metadata.completenessReason ?? "unverified completion"} (exit ${result.execution.code}). I: details/output`;
-	if (!result.formatted.overview) return `Analysis returned no recognized report (exit ${result.execution.code}). I: details/output`;
-	return `Analysis complete (exit ${result.execution.code}). I: provenance and complete output`;
+	const run = runSummary(result);
+	if (!metadata.complete) return `Analysis incomplete: ${metadata.completenessReason ?? "unverified completion"} (${run}). I: details/output`;
+	if (!result.formatted.overview) return `Analysis returned no recognized report (${run}). I: details/output`;
+	return `Analysis complete (${run}). I: provenance and complete output`;
+}
+
+function runSummary(result: FallowCommandResult): string {
+	const parts = [formatElapsed(result.details.elapsedMs), cacheSummary(result.formatted.overview), `exit ${result.execution.code}`];
+	return parts.filter(Boolean).join(" · ");
+}
+
+function formatElapsed(elapsedMs: number): string | undefined {
+	if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return undefined;
+	return `${(elapsedMs / 1_000).toFixed(1)}s`;
+}
+
+function cacheSummary(overview: FallowOverview | undefined): string | undefined {
+	if (!overview) return undefined;
+	const stats = new Map(overview.stats.map((stat) => [stat.label, stat.value]));
+	const status = stats.get("cache");
+	if (typeof status !== "string") return undefined;
+	return `cache ${status}${cacheCounts(stats)}${cacheWrites(stats)}`;
+}
+
+function cacheCounts(stats: Map<string, string | number>): string {
+	const hits = Number(stats.get("cache hits"));
+	const misses = Number(stats.get("cache misses"));
+	if (!Number.isFinite(hits) || !Number.isFinite(misses)) return "";
+	return ` ${hits}/${hits + misses}`;
+}
+
+function cacheWrites(stats: Map<string, string | number>): string {
+	const writes = Number(stats.get("cache writes"));
+	return writes > 0 ? ` · ${writes} new` : "";
 }
 function overviewDetails(overview: FallowOverview | undefined): string[] {
 	if (!overview) return [];

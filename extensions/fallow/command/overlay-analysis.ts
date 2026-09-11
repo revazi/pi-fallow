@@ -26,27 +26,46 @@ export function createOverlayAnalysisRun(
 ): OverlayAnalysisRun {
 	const executeProcess = options.executeProcess ?? execFallowProcess;
 	const preflightMs = options.preflightMs ?? 30_000;
-	return async (input, signal, progress) => {
-		if (mode !== "tui") throw new Error("Optional analysis overlay execution requires an interactive TUI command.");
-		const request = structuredClone(input);
-		const view = analysisView(request);
-		progress("Rechecking readiness and validated inputs…");
-		const processes = new Set<Promise<unknown>>();
-		const runner = createFallowRunner({ allowNpxFallback: false, executeProcess: (command, args, cwd, abort, timeout, environment) =>
-			trackProcess(processes, executeProcess(command, args, cwd, abort, timeout, environment, (output) => progress("Reading local process output…", output))),
-		});
-		const readiness = check ?? createReadinessCheck(pi, root, runner);
-		await preflightAndDrain(() => checkedWithinBudget((abort) => preflight(root, request, readiness, abort, options), signal, preflightMs, "Analysis preflight timed out; no analysis started."), processes);
-		signal.throwIfAborted();
-		const executor = runtimeCoverageExecutor("sidecar" in request ? request : undefined, runner.execute, options.revalidateCoverage, options.preflightMs);
-		const args = analysisArgs(request);
-		const timeoutSecs = analysisTimeout(view, options.timeoutSecs);
-		progress(`Running ${view} locally (timeout ${timeoutSecs}s)…`);
-		return fallowEngine.runFallowWithExecutor({
-			pi, cwd: root, args, signal, timeoutSecs, executor,
-			throwOnExecutionError: false, preserveNavigatorDetails: true, outputDetail: "findings",
-		});
-	};
+	return (input, signal, progress) => executeOverlayAnalysis(pi, mode, root, check, options, executeProcess, preflightMs, input, signal, progress);
+}
+
+async function executeOverlayAnalysis(
+	pi: ExtensionAPI, mode: string, root: string, check: ReadinessCheck | undefined, options: ExecutionOptions,
+	executeProcess: typeof execFallowProcess, preflightMs: number, input: OverlayAnalysisRequest, signal: AbortSignal,
+	progress: (label: string, output?: string) => void,
+): Promise<FallowCommandResult> {
+	requireTui(mode);
+	const request = structuredClone(input);
+	const view = analysisView(request);
+	let stage = "Rechecking readiness and validated inputs…";
+	progress(stage);
+	const processes = new Set<Promise<unknown>>();
+	const runner = createFallowRunner({ allowNpxFallback: false, executeProcess: (command, args, cwd, abort, timeout, environment) =>
+		trackProcess(processes, executeProcess(command, args, cwd, abort, timeout, environment, (output) => progress(stage, output))),
+	});
+	const readiness = check ?? createReadinessCheck(pi, root, runner);
+	await preflightAndDrain(() => checkedWithinBudget((abort) => preflight(root, request, readiness, abort, options), signal, preflightMs, "Analysis preflight timed out; no analysis started."), processes);
+	signal.throwIfAborted();
+	const executor = runtimeCoverageExecutor(runtimeRequest(request), runner.execute, options.revalidateCoverage, options.preflightMs);
+	const timeoutSecs = analysisTimeout(view, options.timeoutSecs);
+	stage = `Running ${view} locally (timeout ${timeoutSecs}s)…`;
+	progress(stage, runGuidance(request));
+	return fallowEngine.runFallowWithExecutor({
+		pi, cwd: root, args: analysisArgs(request), signal, timeoutSecs, executor,
+		throwOnExecutionError: false, preserveNavigatorDetails: true, outputDetail: "findings",
+	});
+}
+
+function requireTui(mode: string): void {
+	if (mode !== "tui") throw new Error("Optional analysis overlay execution requires an interactive TUI command.");
+}
+
+function runtimeRequest(request: OverlayAnalysisRequest): RuntimeCoverageRunRequest | undefined {
+	return "sidecar" in request ? request : undefined;
+}
+
+function runGuidance(request: OverlayAnalysisRequest): string | undefined {
+	return "sidecar" in request ? undefined : similarRunGuidance(request);
 }
 
 async function trackProcess<T>(processes: Set<Promise<unknown>>, work: Promise<T>): Promise<T> {
@@ -64,7 +83,17 @@ async function preflightAndDrain(check: () => Promise<void>, processes: Set<Prom
 function analysisView(request: OverlayAnalysisRequest): ReadinessView { return "sidecar" in request ? "runtime-coverage" : "similar-code"; }
 
 function analysisArgs(request: OverlayAnalysisRequest): string[] {
-	return buildFallowFinalArgs([...request.commandArgs, ...("sidecar" in request ? [] : ["--no-cache"])]);
+	// Keep JSON on stdout, but allow cold-run guidance/progress on stderr in the live overlay.
+	return "sidecar" in request ? buildFallowFinalArgs(request.commandArgs) : [
+		...request.commandArgs, ...(request.values.reuseCache === true ? [] : ["--no-cache"]), "--format", "json",
+	];
+}
+
+function similarRunGuidance(request: SimilarCodeRunRequest): string {
+	const cache = request.values.reuseCache === true
+		? "Local embedding cache enabled: this Run may read/write the user-local project cache. Cache misses may take minutes."
+		: "Uncached local inference may take minutes. No embedding cache is read or written.";
+	return `${cache} No download or installation is attempted.\n`;
 }
 
 async function preflight(root: string, request: OverlayAnalysisRequest, check: ReadinessCheck, signal: AbortSignal, options: ExecutionOptions): Promise<void> {

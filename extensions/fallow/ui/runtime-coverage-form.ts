@@ -4,6 +4,8 @@ import { buildRuntimeCoverageRequest, inspectCoverageArtifact, readyRuntimeBindi
 import { InlineTextEditor } from "./inline-text-editor";
 import { LatestFormTask } from "./latest-form-task";
 
+const PLAIN_THEME = { fg: (_tone: string, text: string) => text, bold: (text: string) => text };
+
 interface CoverageFormOptions {
 	root: string;
 	initialState?: RuntimeCoverageFormState;
@@ -101,17 +103,41 @@ export class RuntimeCoverageForm implements Component, Focusable {
 		this.task.cancel();
 	}
 
-	render(width: number): string[] {
+	render(width: number, theme?: any): string[] {
 		if (width < 1) return [];
-		const lines = new Text("Runtime Coverage — local V8/Istanbul artifact\nLocal/unknown-production evidence only; cold code is not proof of safe deletion.", 0, 0).render(width);
-		lines.push(...this.pathLines(width));
-		lines.push(...new Text([...this.previewLines(), boundedReadinessText(this.state.feedback), this.controls()].join("\n"), 0, 0).render(width));
+		const ui = theme ?? PLAIN_THEME;
+		const lines = new Text(`${this.titleLine(width, ui)}\n${ui.fg("dim", "Local/unknown-production evidence only; cold code is not proof of safe deletion.")}`, 0, 0).render(width);
+		lines.push(...this.pathLines(width, ui));
+		if (this.state.preview) lines.push("", ...this.styledPreviewLines(width, ui));
+		lines.push(...new Text(`\n${this.feedbackLine(ui)}\n${ui.fg("dim", this.controls())}`, 0, 0).render(width));
 		return lines;
 	}
 
-	private pathLines(width: number): string[] {
-		if (this.isEditing) return [...new Text("Artifact path (absolute, project-relative, or ~/)", 0, 0).render(width), ...this.editor.render(width)];
-		return new Text(`a Artifact: ${boundedReadinessText(this.state.input) || "(not selected)"}`, 0, 0).render(width);
+	private titleLine(width: number, theme: any): string {
+		const context = width < 50 ? "" : ` ${theme.fg("dim", "· local V8/Istanbul capture")}`;
+		return `${theme.fg("accent", "●")} ${theme.fg("accent", theme.bold("Evidence source"))}${context}`;
+	}
+
+	private feedbackLine(theme: any): string {
+		const feedback = boundedReadinessText(this.state.feedback);
+		const success = /validated|retained/u.test(feedback);
+		const tone = success ? "success" : /failed|disabled|cancelled|changed/u.test(feedback) ? "error" : "warning";
+		return `${theme.fg(tone, success ? "✓" : "!")} ${theme.fg(tone, feedback)}`;
+	}
+
+	private pathLines(width: number, theme: any): string[] {
+		if (this.isEditing) {
+			const label = `  ${theme.fg("accent", "a")} ${theme.fg("text", "Artifact path")} ${theme.fg("accent", "editing")}`;
+			return [...new Text(label, 0, 0).render(width), ...this.editor.render(width)];
+		}
+		const value = boundedReadinessText(this.state.input) || "not selected";
+		const label = `  ${theme.fg("accent", "a")} ${theme.fg("text", "Artifact".padEnd(labelWidth(width)))} ${theme.fg("accent", value)}`;
+		return new Text(label, 0, 0).render(width);
+	}
+
+	private styledPreviewLines(width: number, theme: any): string[] {
+		const heading = `${theme.fg("accent", "◆")} ${theme.fg("accent", theme.bold("Validated preview"))}`;
+		return [...new Text(heading, 0, 0).render(width), ...this.previewLines().flatMap((line, index) => new Text(theme.fg(index < 3 ? "muted" : "dim", line), 0, 0).render(width))];
 	}
 
 	private previewLines(): string[] {
@@ -144,3 +170,5 @@ export class RuntimeCoverageForm implements Component, Focusable {
 	invalidate(): void { this.editor.invalidate(); }
 	dispose(): void { this.disposed = true; this.task.dispose(); this.editor.stop(); }
 }
+
+function labelWidth(width: number): number { return width < 50 ? 12 : 18; }

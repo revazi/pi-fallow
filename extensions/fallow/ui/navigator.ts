@@ -99,6 +99,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	get viewportAnchor(): number { return this.selectedRow; }
 
 	private cachedWidth?: number;
+	private cachedNavigation?: string;
 	private cachedLines?: string[];
 
 	constructor(
@@ -164,15 +165,16 @@ export class FallowIssueNavigator implements Component, Focusable {
 		return true;
 	}
 
-	render(width: number): string[] {
-		if (this.cachedWidth === width && this.cachedLines) return this.cachedLines;
+	render(width: number, navigation?: string): string[] {
+		if (this.cachedWidth === width && this.cachedNavigation === navigation && this.cachedLines) return this.cachedLines;
+		this.cachedNavigation = navigation;
 		const frameWidth = Math.max(FRAME_BORDER_WIDTH, width);
 		const innerWidth = Math.max(1, frameWidth - FRAME_BORDER_WIDTH);
 		const visible = this.visibleIssues();
 		const lines: string[] = [];
 
 		this.selectedRow = 0;
-		this.renderHeader(frameWidth, innerWidth, visible, lines);
+		this.renderHeader(frameWidth, innerWidth, visible, lines, navigation);
 		this.renderBody(frameWidth, innerWidth, visible, lines);
 		this.renderFooter(frameWidth, lines);
 		lines.push(this.bottomBorder(frameWidth));
@@ -247,7 +249,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.filtersChanged();
 	}
 
-	private renderHeader(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[]): void {
+	private renderHeader(frameWidth: number, innerWidth: number, visible: FlatIssue[], lines: string[], navigation?: string): void {
 		const title = buildHeaderTitle(
 			visible.filter((entry) => !isInformational(entry)).length,
 			this.findingIssues().length,
@@ -259,6 +261,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		);
 		lines.push(this.topBorder(frameWidth, title));
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
+		if (navigation) lines.push(this.frame(navigation, frameWidth));
 		for (const line of this.filterLines(innerWidth)) lines.push(this.frame(line, frameWidth));
 		for (const line of wrapTextWithAnsi(this.helpLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
 		lines.push(this.separator(frameWidth));
@@ -383,7 +386,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			);
 			return;
 		}
-		if (this.options.optionalAnalysis) lines.push(this.frame(this.optionalAnalysisLine(), frameWidth));
+		if (this.showOptionalAnalysisFooter()) lines.push(this.frame(this.optionalAnalysisLine(), frameWidth));
 		if (this.isInformationalMode()) {
 			this.appendWrappedFooter(this.informationalImplicationLine(), frameWidth, innerWidth, lines);
 			return;
@@ -402,6 +405,10 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private appendWrappedFooter(text: string, frameWidth: number, innerWidth: number, lines: string[]): void {
 		for (const line of wrapTextWithAnsi(text, innerWidth)) lines.push(this.frame(line, frameWidth));
+	}
+
+	private showOptionalAnalysisFooter(): boolean {
+		return Boolean(this.options.optionalAnalysis) && !this.cachedNavigation;
 	}
 
 	private optionalAnalysisLine(): string {

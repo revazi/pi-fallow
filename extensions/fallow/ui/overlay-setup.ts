@@ -2,6 +2,8 @@ import { matchesKey, Text } from "@earendil-works/pi-tui";
 import type { ReadinessView } from "../readiness-report";
 import { overlayFrame } from "./overlay-layout";
 
+const PLAIN_THEME = { fg: (_tone: string, text: string) => text, bold: (text: string) => text };
+
 export type OverlaySetupRun = (
 	view: ReadinessView, signal: AbortSignal,
 	confirm: (title: string, preview: string) => Promise<boolean>,
@@ -23,7 +25,7 @@ export class OverlaySetup {
 	private pageRows = 1;
 	private contentRows = 0;
 
-	constructor(private run: OverlaySetupRun | undefined, private changed: () => void, private settled: (view: ReadinessView) => void) {}
+	constructor(private run: OverlaySetupRun | undefined, private changed: () => void, private settled: (view: ReadinessView) => void, private theme: any = PLAIN_THEME) {}
 
 	start(view: ReadinessView): void {
 		if (this.active || this.disposed) return;
@@ -117,15 +119,36 @@ export class OverlaySetup {
 	}
 
 	render(width: number, rows: number, readiness: string[]): string[] {
-		const heading = new Text(clean(this.title), 0, 0).render(width);
-		const footer = new Text(this.help(), 0, 0).render(width);
-		const body = [this.title, this.preview, this.notice, ...(this.pending ? [] : readiness), this.output ? `Output (last 12000 characters):\n${this.output}` : ""].filter(Boolean).join("\n\n");
-		const content = new Text(clean(body), 0, 0).render(width);
+		const separator = this.theme.fg("border", "─".repeat(width));
+		const heading = [...new Text(this.setupHeading(), 0, 0).render(width), separator];
+		const footer = [separator, ...new Text(this.theme.fg("muted", this.help()), 0, 0).render(width)];
+		const content = new Text(this.theme.fg("text", clean(this.setupBody(readiness))), 0, 0).render(width);
 		const frame = overlayFrame(width, rows, heading, content, footer, this.scroll);
 		this.pageRows = frame.pageRows;
 		this.contentRows = frame.contentRows;
 		this.scroll = frame.start;
 		return frame.lines;
+	}
+
+	private setupHeading(): string {
+		const tone = this.setupTone();
+		const title = clean(this.title);
+		const context = this.confirmation ? "Review every side effect before confirming." : "User-local setup · explicit confirmation required";
+		return `${this.theme.fg(tone, "●")} ${this.theme.fg(tone, this.theme.bold?.(title) ?? title)}\n${this.theme.fg("dim", context)}`;
+	}
+
+	private setupBody(readiness: string[]): string {
+		const parts = [this.preview, this.notice];
+		if (!this.pending) parts.push(...readiness);
+		if (this.output) parts.push(`Output (last 12000 characters):\n${this.output}`);
+		return parts.filter(Boolean).join("\n\n");
+	}
+
+	private setupTone(): "accent" | "success" | "warning" | "error" {
+		if (/failed/iu.test(this.title)) return "error";
+		if (/finished/iu.test(this.title)) return "success";
+		if (/cancelled|declined|cancelling/iu.test(this.title)) return "warning";
+		return "accent";
 	}
 
 	private help(): string {

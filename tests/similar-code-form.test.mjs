@@ -130,6 +130,41 @@ it("shows field errors, preserves invalid values, validates without running, and
 	restored.dispose(); form.dispose();
 });
 
+it("requires an explicit cache toggle, retains it in drafts, and never runs on toggle", async () => {
+	const requests = [];
+	const options = { root: process.cwd(), isReady: () => true, onRun: (request) => requests.push(request) };
+	const form = new SimilarCodeForm(options, () => {});
+	assert.match(text(form), /off; no cache writes/);
+	form.handleInput("c");
+	assert.equal(form.snapshot().reuseCache, true);
+	assert.match(text(form), /Run reads\/writes user-local cache/);
+	assert.equal(requests.length, 0);
+	const restored = new SimilarCodeForm({ ...options, initialValues: form.snapshot() }, () => {});
+	assert.equal(restored.snapshot().reuseCache, true);
+	restored.handleInput("s"); restored.handleInput("c"); restored.handleInput("\x1b");
+	assert.equal(restored.snapshot().scope, "c", "editing owns the toggle key");
+	assert.equal(restored.snapshot().reuseCache, true);
+	form.handleInput("\r"); await tick();
+	assert.equal(requests[0].values.reuseCache, true);
+	form.handleInput("c");
+	assert.equal(form.snapshot().reuseCache, false);
+	assert.equal(requests.length, 1);
+	form.dispose(); restored.dispose();
+});
+
+it("changing the cache policy cancels an in-flight Run validation", async () => {
+	let complete;
+	const requests = [];
+	const form = new SimilarCodeForm({ root: process.cwd(), isReady: () => true, onRun: (request) => requests.push(request),
+		validate: (_root, values) => new Promise((resolve) => { complete = () => resolve({ ok: true, request: { values, commandArgs: ["similar-code"] } }); }),
+	}, () => {});
+	form.handleInput("\r"); await tick();
+	form.handleInput("c"); complete(); await tick();
+	assert.deepEqual(requests, []);
+	assert.equal(form.snapshot().reuseCache, true);
+	form.dispose();
+});
+
 it("Enter while editing only finishes and validates; a separate Enter is required to request a run", async () => {
 	let requests = 0;
 	const form = new SimilarCodeForm({ root: process.cwd(), isReady: () => true, onRun: () => requests++ }, () => {});
