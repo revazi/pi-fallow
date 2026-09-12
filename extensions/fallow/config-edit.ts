@@ -165,7 +165,7 @@ function tomlTableRange(lines: TomlLine[], table: TomlLine): { start: number; en
 }
 
 function parseTomlRule(line: TomlLine, expectedRule: string): TomlRule | undefined {
-	const match = /^(\s*)("(?:\\.|[^"])*"|'[^']*'|[A-Za-z0-9_-]+)(\s*=\s*)([^\r\n]*)/.exec(line.text);
+	const match = /^(\s*)("(?:\\.|[^"\\])*"|'[^']*'|[A-Za-z0-9_-]+)(\s*=\s*)([^\r\n]*)/.exec(line.text);
 	if (!match || decodeTomlKey(match[2]!) !== expectedRule) return undefined;
 	return parseTomlSeverity(match, line.offset, expectedRule);
 }
