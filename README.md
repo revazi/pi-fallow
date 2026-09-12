@@ -82,6 +82,9 @@ Manual slash command examples:
 /fallow rerun
 /fallow about
 /fallow compatibility
+/fallow config-assist
+/fallow config-assist preview-rule unused-exports warn
+/fallow config-assist apply-rule unused-exports warn
 /fallow audit --base origin/main --gate new-only
 /fallow check-changed --changed-since main
 /fallow dead-code --changed-since main
@@ -117,7 +120,7 @@ Set `PI_FALLOW_DEFAULT_COMMAND` to a shell-free command string to replace the ag
 export PI_FALLOW_DEFAULT_COMMAND='health --complexity --targets --score'
 ```
 
-Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive or extension-only defaults such as `run`, `rerun`, `history`, `about`, or `compatibility` are rejected.
+Arguments after `/fallow run` are appended to the configured default. Explicit commands such as `/fallow dupes` are never replaced. Recursive or extension-only defaults such as `run`, `rerun`, `history`, `about`, `compatibility`, or `config-assist` are rejected.
 
 `/fallow check-changed` is a Pi Fallow convenience alias for Fallow's combined root analysis with `--changed-since`.
 
@@ -130,6 +133,14 @@ The agent-facing `fallow_run` tool passes command-specific flags as separate `ar
 When `fallow_run` is active, its compact Pi prompt guidance tells the model to inspect or trace before deletion, treat incomplete type-aware evidence as advisory, preview fixes before applying them, avoid unrequested changes, and reserve raw detail for necessary diagnostics.
 
 `--type-aware-project` selects a TypeScript project and `--type-aware-require best-effort|complete` controls required completeness. Always inspect the returned type-aware completeness, omissions, and abstentions: incomplete evidence remains advisory and must not be treated as exact delete-safety proof. Fallow also supports `--baseline-mode count|identity` for health baselines and `--no-type-aware` to override config for a syntactic-only run.
+
+### Safe configuration assistant
+
+`/fallow config-assist` (or `/fallow config-assist inspect`) performs an explicit read-only inspection of Fallow's discovered source and resolved configuration. It reports only ownership, format, and bounded counts for entries, rules, workspaces, plugins, boundaries, and overrides. Resolved values, plugin names, workspace names, secrets, and unrelated configuration are not copied into the transcript or diagnostic logs. The probe uses the installed `config`, `config --path`, and—when previewing—`config-schema` commands with installing `npx` fallback disabled. It never runs during extension load, startup, autocomplete, or ordinary analysis.
+
+Customization is deliberately narrow and structured: `preview-rule RULE error|warn|off` previews one schema-recognized rule severity, while `apply-rule RULE error|warn|off` shows the same bounded preview and is available only in interactive TUI mode. Natural-language edits, arbitrary schema paths, Fallow `init`, global configuration management, Pi/provider settings, and prompt-template management remain out of scope. Malformed or unknown inputs are refused with the source file and schema path.
+
+Inspection and preview never write. Apply requires a direct confirmation in Pi's TUI, then repeats config discovery, installed-schema hashing, and source-content checks. Any concurrent drift or cancellation refuses the stale plan. Pi Fallow modifies only a recognized config file directly in the active project root; inherited or external configuration remains read-only, and a project-local `.fallowrc.jsonc` references the inherited source through `extends` without copying its values. Existing JSON/JSONC/TOML files are patched at only the requested scalar, preserving comments and surrounding formatting. A byte-exact, same-permission backup is written beside an existing file as `.pi-fallow.bak` (using the first free numeric suffix), and the replacement uses a synced same-directory temporary file plus atomic rename. New files use an exclusive atomic link so a concurrently created config is never overwritten. Failed or cancelled pre-commit writes clean up temporary backups/files.
 
 ### Optional analysis controls
 

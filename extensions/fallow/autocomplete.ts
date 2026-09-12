@@ -240,6 +240,17 @@ const HISTORY_SUBCOMMANDS: CompletionSpec[] = [
 	{ value: "clear", description: "Clear project history metadata without deleting report files" },
 ];
 
+const CONFIG_ASSIST_SUBCOMMANDS: CompletionSpec[] = [
+	{ value: "inspect", description: "Summarize resolved configuration without exposing values" },
+	{ value: "preview-rule", description: "Preview a project rule-severity change without writing" },
+	{ value: "apply-rule", description: "Preview, confirm, drift-check, and atomically apply a rule severity" },
+];
+
+const CONFIG_SEVERITIES: CompletionSpec[] = ["error", "warn", "off"].map((value) => ({
+	value,
+	description: `Set rule severity to ${value}`,
+}));
+
 const IMPACT_FLAGS: FlagSpec[] = [
 	{ flag: "--all", description: "Aggregate every tracked project" },
 	{ flag: "--sort", description: "Sort --all rows", values: ["recent", "resolved", "contained", "name"] },
@@ -430,7 +441,7 @@ function isCoverageAnalyze(first: string, second: string | undefined): boolean {
 	return first === "coverage" && second === "analyze";
 }
 
-const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update", "compatibility"]);
+const COMMANDS_WITHOUT_FLAGS = new Set(["rerun", "about", "version", "update", "compatibility", "config-assist"]);
 
 function allFlags(command: string | undefined): FlagSpec[] {
 	if (isCommandWithoutFlags(command)) return [];
@@ -604,9 +615,24 @@ function resolvePositionalCompletions(context: ReturnType<typeof analyzeFallowAr
 
 function completeCommandPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
 	if (shouldCompleteCoverageAnalyze(context.previousTokens)) return completeCoverageAnalyze(context);
+	return completeNamedCommandPosition(context);
+}
+
+function completeNamedCommandPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
 	if (shouldCompleteSimilarCodeSubcommand(context)) return completeSimilarCodeSubcommand(context);
 	if (shouldCompleteHistorySubcommand(context)) return completeHistorySubcommand(context);
+	if (isConfigAssistPosition(context)) return completeConfigAssistPosition(context);
 	return completeFlags(context.beforeCurrent, context.current, context.flags, context.usedFlags);
+}
+
+function isConfigAssistPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): boolean {
+	return context.command === "config-assist";
+}
+
+function completeConfigAssistPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	if (shouldCompleteConfigAssistSubcommand(context)) return completeConfigAssistSubcommand(context);
+	if (shouldCompleteConfigSeverity(context)) return completeConfigSeverity(context);
+	return null;
 }
 
 function shouldCompleteCoverageAnalyze(tokens: string[]): boolean {
@@ -621,6 +647,16 @@ function shouldCompleteSimilarCodeSubcommand(context: ReturnType<typeof analyzeF
 
 function shouldCompleteHistorySubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): boolean {
 	return context.command === "history" && context.previousTokens.length === 1 && !context.current.startsWith("-");
+}
+
+function shouldCompleteConfigAssistSubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): boolean {
+	return context.command === "config-assist" && context.previousTokens.length === 1;
+}
+
+function shouldCompleteConfigSeverity(context: ReturnType<typeof analyzeFallowArgumentContext>): boolean {
+	return context.command === "config-assist"
+		&& ["preview-rule", "apply-rule"].includes(context.previousTokens[1] ?? "")
+		&& context.previousTokens.length === 3;
 }
 
 function completeRootPosition(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
@@ -643,6 +679,16 @@ function completeSimilarCodeSubcommand(context: ReturnType<typeof analyzeFallowA
 
 function completeHistorySubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
 	const items = completeToken(context.beforeCurrent, context.current, HISTORY_SUBCOMMANDS);
+	return items.length ? items : null;
+}
+
+function completeConfigAssistSubcommand(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	const items = completeToken(context.beforeCurrent, context.current, CONFIG_ASSIST_SUBCOMMANDS);
+	return items.length ? items : null;
+}
+
+function completeConfigSeverity(context: ReturnType<typeof analyzeFallowArgumentContext>): AutocompleteItem[] | null {
+	const items = completeToken(context.beforeCurrent, context.current, CONFIG_SEVERITIES);
 	return items.length ? items : null;
 }
 

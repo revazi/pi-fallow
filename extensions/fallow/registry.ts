@@ -61,6 +61,10 @@ const fallowCommandRegistry = [
 		slash: { root: { value: "compatibility", description: "Compare the installed Fallow capabilities with Pi Fallow's certified surface", hintOrder: 0 } },
 	},
 	{
+		name: "config-assist",
+		slash: { root: { value: "config-assist", description: "Inspect or safely preview/apply a project rule-severity change", hintOrder: 17 } },
+	},
+	{
 		name: "issues",
 		slash: {
 			root: { value: "issues", description: "Aggregate project code-quality and security findings in one report", hintOrder: 1 },

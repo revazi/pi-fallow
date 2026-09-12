@@ -13,8 +13,8 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 Unless noted otherwise, these are repository-specific measurements from the `0.5.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
-- **Tests and coverage:** 412 tests; current coverage is **92.57% statements/lines**, **88.47% branches**, and **92.40% functions**. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
-- **Fallow quality:** Fallow 3.22 reports health **83.8 (B)**, average maintainability **90.3**, and zero threshold findings, dead-code issues, or clone groups.
+- **Tests and coverage:** 419 tests; current coverage is **91.94% statements/lines**, **87.37% branches**, and **91.16% functions**. The `0.5.0` release-candidate snapshot recorded **88.50% statements/lines**, **86.35% branches**, and **85.44% functions**; subprocess-sensitive reruns can vary slightly by run and Node line while CI continues to enforce the coverage thresholds.
+- **Fallow quality:** Fallow 3.22 reports health **83.9 (B)**, average maintainability **90.3**, and zero threshold findings, dead-code issues, or clone groups.
 - **Dependency audits:** strict production and complete-tree npm audits report zero vulnerabilities. These audit results are separate from Fallow's modeled security-candidate analysis.
 - **Host compatibility:** packaged, provider-free Pi **0.84.4** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
 - **Token baseline:** the current `fallow_run` tool contract is **421 tokens under both pinned tokenizers**. Across the frozen corpus, bounded tool results total **8,036 `o200k_base` / 7,925 `cl100k_base` tokens**. The output-detail work leaves the benchmarked slash-command and editor-prompt surfaces unchanged and reduces aggregate `o200k_base` tool-result tokens by **82.16%** from the immediate pre-output-detail baseline. These are deterministic corpus measurements, not provider billing claims; see [`benchmarks/README.md`](./benchmarks/README.md).
@@ -33,6 +33,7 @@ The long measurement history belongs in the benchmark documentation rather than 
 - measured model guidance for deletion evidence, fix previews, advisory type-aware results, and routine bounded detail;
 - a typed command registry shared by tool, slash, autocomplete, and smoke-test surfaces, including architecture-to-`guard` support;
 - explicit, read-only `/fallow compatibility` diagnostics over the installed capability manifest, with bounded additive guidance, affected-command incompatibilities, frozen drift mutations, and no startup probe or runtime gate;
+- a bounded `/fallow config-assist` workflow for read-only ownership/count inspection and schema-checked rule-severity previews, with TUI-only confirmation, drift refusal, exact backups, atomic project-local writes, inherited-config isolation, and no secret-bearing resolved values in transcripts;
 - authoritative normalized-report selection shared across output and prompts, with complete-report hydration and drift protection;
 - bounded, project-isolated session history with digest-validated report reopening and conservative compatible-run comparison;
 - explicit opt-in semantic similar-code status, discovery, inspect, and review flows with local-model provenance and advisory completion, plus TUI-only previewed and confirmed model setup and reproducible, no-cache model-backed certification over a frozen tiny project;
@@ -44,10 +45,9 @@ See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.m
 ## Remaining priorities
 
 1. **Keep command and report compatibility honest.** Frozen capability-schema, installed-capability diagnostics, and live registry-prefix checks cover managed output, positional targets, selected type-aware flags, issue registries, and bounded additive/removal guidance (see [`fixture scope`](./tests/fixtures/fallow/README.md)). Real dead-code, duplication, health, security, combined, unavailable/partial type-aware, signed runtime-coverage, and complete model-backed Similar Code discovery/inspect/review evidence supplement those checks. Continue refreshing this evidence deliberately as Fallow evolves while preserving graceful behavior with separately installed versions.
-2. **Decide whether user-owned customization is still desired.** If demand remains, design Pi Fallow-specific global/project configuration, prompt templates, and a safe prompt/config preview without taking ownership of Fallow's configuration file.
-3. **Refine navigator workflows from evidence.** Make any remaining history, comparison, or UI density improvements only when real large-report use identifies a concrete need.
-4. **Improve quality where evidence points.** Raise coverage and maintainability gradually around real execution, command-flow, rendering, project-state, and PR-summary hotspots. Do not split files cosmetically merely to improve a metric.
-5. **Maintain compatibility and supply-chain gates.** Keep Pi, Fallow, Node, and dependency compatibility current with strict production/complete-tree audits and repeatable package-boundary certification.
+2. **Refine navigator workflows from evidence.** Make any remaining history, comparison, or UI density improvements only when real large-report use identifies a concrete need.
+3. **Improve quality where evidence points.** Raise coverage and maintainability gradually around real execution, command-flow, rendering, project-state, configuration assistance, and PR-summary hotspots. Do not split files cosmetically merely to improve a metric.
+4. **Maintain compatibility and supply-chain gates.** Keep Pi, Fallow, Node, and dependency compatibility current with strict production/complete-tree audits and repeatable package-boundary certification.
 
 ## Invariants
 
@@ -61,5 +61,5 @@ Future work must preserve these boundaries:
 
 ## Suggested delivery order
 
-1. Confirm demand and scope before implementing user-owned configuration or prompt customization/preview.
-2. Iterate on navigator density, performance evidence, hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.
+1. Iterate on navigator density and project-issues performance evidence where measured use identifies a concrete problem.
+2. Improve hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.

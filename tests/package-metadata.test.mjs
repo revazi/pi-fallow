@@ -34,6 +34,9 @@ describe("package and automation metadata", () => {
 		assert.match(readme, /tested compatibility; it is not an installation constraint/);
 		assert.match(readme, /Certification.*Compatibility.*Installation constraints/s);
 		assert.match(readme, /\/fallow compatibility.*never gates ordinary execution/s);
+		assert.match(readme, /\/fallow config-assist.*read-only inspection/s);
+		assert.match(readme, /Apply requires a direct confirmation.*concurrent drift or cancellation refuses/s);
+		assert.match(readme, /inherited or external configuration remains read-only/s);
 		assert.match(readme, /wildcard peer dependencies/);
 	});
 
