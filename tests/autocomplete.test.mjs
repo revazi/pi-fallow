@@ -42,6 +42,9 @@ describe("Fallow autocomplete", () => {
 		assert.ok(labels(rootCompletions).includes("issues"));
 		assert.ok(labels(rootCompletions).includes("compatibility"));
 		assert.equal(fallowCompletions.getFallowArgumentCompletions("compatibility "), null);
+		assert.ok(labels(rootCompletions).includes("config-assist"));
+		assert.deepEqual(completionLabels("config-assist "), ["inspect", "preview-rule", "apply-rule"]);
+		assert.deepEqual(completionLabels("config-assist preview-rule unused-exports "), ["error", "warn", "off"]);
 		const runIndex = labels(rootCompletions).indexOf("run");
 		assert.notEqual(runIndex, -1);
 		assert.equal(rootCompletions[runIndex].description, "Run the configured default command (project issues unless overridden)");

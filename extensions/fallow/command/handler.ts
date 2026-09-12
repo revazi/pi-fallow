@@ -7,6 +7,7 @@ import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorStat
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs, resolveFallowRunArgs } from "./args";
 import { resolveFallowCommandBaseRef } from "./base";
+import { runFallowConfigAssistantCommand } from "./config-assistant";
 import { executeFallowHistoryCommand } from "./history";
 import { isFallowTuiMode } from "./mode";
 import { runFallowNavigatorLoop } from "./navigator-loop";
@@ -45,7 +46,14 @@ function splitOptionalFallowArgs(value: string): string[] {
 async function runFallowExtensionCommand(pi: ExtensionAPI, ctx: FallowCommandContext, args: string[]): Promise<boolean> {
 	if (isFallowAboutCommand(args)) await sendFallowAboutMessage(pi, ctx);
 	else if (isFallowCompatibilityCommand(args)) await sendFallowCompatibilityMessage(pi, ctx);
-	else return false;
+	else return runConfigAssistantIfRequested(pi, ctx, args);
+	return true;
+}
+
+async function runConfigAssistantIfRequested(pi: ExtensionAPI, ctx: FallowCommandContext, args: string[]): Promise<boolean> {
+	if (args[0] !== "config-assist") return false;
+	try { await runFallowConfigAssistantCommand(pi, ctx, args); }
+	catch (error) { reportFallowInputError(ctx, error); }
 	return true;
 }
 
