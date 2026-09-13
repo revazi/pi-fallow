@@ -44,13 +44,16 @@ interface RunnerRequest {
 	signal: AbortSignal | undefined;
 	timeoutSecs: number;
 	environment?: NodeJS.ProcessEnv;
+	allowNpxFallback: boolean;
+	executeProcess: ProcessExecutor;
+	refreshInstalled: boolean;
 }
 
 interface RunnerCacheEntry {
 	key: string;
 	environment: RunnerEnvironment;
 	route?: RunnerRoute;
-	resolving?: Promise<RunnerRoute>;
+	resolving: Map<string, Promise<RunnerRoute>>;
 }
 
 interface RunnerOptions {
@@ -89,8 +92,51 @@ export function createFallowRunner({
 		timeoutSecs: number,
 		environment?: NodeJS.ProcessEnv,
 	): Promise<FallowRunnerExecution> {
+		return executeWithPolicy(pi, args, cwd, signal, timeoutSecs, environment, allowNpxFallback, executeProcess, false);
+	}
+
+	/** Reuses only already resolved direct executables; it never invokes an installing npx route. */
+	async function executeInstalled(
+		pi: ExtensionAPI,
+		args: string[],
+		cwd: string,
+		signal: AbortSignal | undefined,
+		timeoutSecs: number,
+		environment?: NodeJS.ProcessEnv,
+		processExecutor: ProcessExecutor = executeProcess,
+	): Promise<FallowRunnerExecution> {
+		return executeWithPolicy(pi, args, cwd, signal, timeoutSecs, environment, false, processExecutor, false);
+	}
+
+	/** Refreshes PATH/package discovery while retaining a known direct executable from the npx package cache. */
+	async function refreshInstalled(
+		pi: ExtensionAPI,
+		args: string[],
+		cwd: string,
+		signal: AbortSignal | undefined,
+		timeoutSecs: number,
+		environment?: NodeJS.ProcessEnv,
+		processExecutor: ProcessExecutor = executeProcess,
+	): Promise<FallowRunnerExecution> {
+		return executeWithPolicy(pi, args, cwd, signal, timeoutSecs, environment, false, processExecutor, true);
+	}
+
+	async function executeWithPolicy(
+		pi: ExtensionAPI,
+		args: string[],
+		cwd: string,
+		signal: AbortSignal | undefined,
+		timeoutSecs: number,
+		environment: NodeJS.ProcessEnv | undefined,
+		requestAllowsNpx: boolean,
+		processExecutor: ProcessExecutor,
+		refreshInstalledRoute: boolean,
+	): Promise<FallowRunnerExecution> {
 		if (signal?.aborted) return unresolvedCancellation(args);
-		const request = { cwd: resolve(cwd), signal, timeoutSecs, environment };
+		const request = {
+			cwd: resolve(cwd), signal, timeoutSecs, environment,
+			allowNpxFallback: requestAllowsNpx, executeProcess: processExecutor, refreshInstalled: refreshInstalledRoute,
+		};
 		const route = await resolveCachedRoute(pi, request);
 		return executeResolvedRoute(pi, args, request, route);
 	}
@@ -102,7 +148,7 @@ export function createFallowRunner({
 		route: RunnerRoute,
 	): Promise<FallowRunnerExecution> {
 		if (request.signal?.aborted) return routeCancellation(route, args);
-		const execution = await executeRoute(route, args, request.cwd, request.signal, request.timeoutSecs, request.environment);
+		const execution = await executeRoute(route, args, request);
 		return handleExecution(pi, args, request, route, execution);
 	}
 
@@ -139,7 +185,7 @@ export function createFallowRunner({
 		removeCachedRoute(pi, request.cwd, failedRoute);
 		const retryRoute = await resolveRetryRoute(pi, request, failedRoute);
 		if (!retryRoute) return finalizeExecution(failedExecution, false);
-		const retry = await executeRoute(retryRoute, args, request.cwd, request.signal, request.timeoutSecs, request.environment);
+		const retry = await executeRoute(retryRoute, args, request);
 		if (retry.result.launchError) removeCachedRoute(pi, request.cwd, retryRoute);
 		return finalizeExecution(retry, retryRoute.source === "configured");
 	}
@@ -150,24 +196,32 @@ export function createFallowRunner({
 
 	async function resolveCachedRoute(pi: ExtensionAPI, request: RunnerRequest): Promise<RunnerRoute> {
 		const entry = cacheEntry(pi, request.cwd);
-		const cached = usableCachedRoute(entry.route, now());
+		const resolutionKey = routeResolutionKey(request);
+		const existingResolution = entry.resolving.get(resolutionKey);
+		if (existingResolution) return existingResolution;
+		const cached = cachedRouteForRequest(entry.route, request, now());
 		if (cached) return cached;
-		if (entry.resolving) return entry.resolving;
-		const pending = discoverRoute(entry.environment, request, new Set(), allowNpxFallback)
-			.then((route) => resolvedRouteOrFallback(route, now(), fallbackCacheTtlMs, allowNpxFallback));
-		entry.resolving = pending;
+		return resolveDiscoveredRoute(entry, request, resolutionKey);
+	}
+
+	async function resolveDiscoveredRoute(entry: RunnerCacheEntry, request: RunnerRequest, resolutionKey: string): Promise<RunnerRoute> {
+		const remembered = prepareInstalledRefresh(entry, request.refreshInstalled);
+		const pending = discoverRoute(entry.environment, request, new Set(), request.allowNpxFallback, remembered)
+			.then((route) => resolvedRouteOrFallback(route, now(), fallbackCacheTtlMs, request.allowNpxFallback));
+		entry.resolving.set(resolutionKey, pending);
 		try {
 			const route = await pending;
 			cacheResolvedRoute(entry, route, request.signal);
 			return route;
 		} finally {
-			entry.resolving = undefined;
+			entry.resolving.delete(resolutionKey);
 		}
 	}
 
 	async function resolveRetryRoute(pi: ExtensionAPI, request: RunnerRequest, failed: RunnerRoute): Promise<RunnerRoute | undefined> {
 		const entry = cacheEntry(pi, request.cwd);
-		const route = await discoverRoute(entry.environment, request, new Set([failed.command]), allowNpxFallback && failed.source !== "npx");
+		const retryAllowsNpx = request.allowNpxFallback && failed.source !== "npx";
+		const route = await discoverRoute(entry.environment, request, new Set([failed.command]), retryAllowsNpx);
 		if (route) entry.route = route;
 		return route;
 	}
@@ -177,9 +231,10 @@ export function createFallowRunner({
 		request: RunnerRequest,
 		skippedCommands: Set<string>,
 		allowNpx: boolean,
+		remembered?: RunnerRoute,
 	): Promise<RunnerRoute | undefined> {
 		if (environment.configuredBin) return configuredRoute(environment.configuredBin);
-		return discoverAutomaticRoute(environment.pathValue, request, skippedCommands, allowNpx);
+		return discoverAutomaticRoute(environment.pathValue, request, skippedCommands, allowNpx, remembered);
 	}
 
 	async function discoverAutomaticRoute(
@@ -187,12 +242,18 @@ export function createFallowRunner({
 		request: RunnerRequest,
 		skipped: Set<string>,
 		allowNpx: boolean,
+		remembered?: RunnerRoute,
 	): Promise<RunnerRoute | undefined> {
-		const pathCandidate = await discoverPathRoute(pathValue, request.cwd, skipped);
-		if (pathCandidate) return pathCandidate;
-		const packageCandidate = await discoverPackageRoute(skipped);
-		if (packageCandidate) return packageCandidate;
+		const existing = await discoverExistingAutomaticRoute(pathValue, request.cwd, skipped);
+		if (existing) return existing;
+		if (remembered && !skipped.has(remembered.command)) return remembered;
 		return discoverFallbackRoute(pathValue, request, skipped, allowNpx);
+	}
+
+	async function discoverExistingAutomaticRoute(pathValue: string, cwd: string, skipped: Set<string>): Promise<RunnerRoute | undefined> {
+		const pathCandidate = await discoverPathRoute(pathValue, cwd, skipped);
+		if (pathCandidate) return pathCandidate;
+		return discoverPackageRoute(skipped);
 	}
 
 	async function discoverFallbackRoute(
@@ -248,7 +309,7 @@ export function createFallowRunner({
 	}
 
 	async function locateNpxPackage(npxCommand: string, request: RunnerRequest): Promise<string | undefined> {
-		const result = await executeProcess(
+		const result = await request.executeProcess(
 			npxCommand,
 			NPX_PACKAGE_LOCATOR_ARGS,
 			request.cwd,
@@ -269,7 +330,7 @@ export function createFallowRunner({
 		const key = environmentKey(environment);
 		const existing = projectCaches.get(cwd);
 		if (existing?.key === key) return existing;
-		const created = { key, environment };
+		const created: RunnerCacheEntry = { key, environment, resolving: new Map() };
 		projectCaches.set(cwd, created);
 		return created;
 	}
@@ -282,18 +343,19 @@ export function createFallowRunner({
 	async function executeRoute(
 		route: RunnerRoute,
 		args: string[],
-		cwd: string,
-		signal: AbortSignal | undefined,
-		timeoutSecs: number,
-		environment?: NodeJS.ProcessEnv,
+		request: RunnerRequest,
 	): Promise<FallowRunnerExecution & { result: FallowProcessResult }> {
 		const executedArgs = [...route.argsPrefix, ...args];
-		const result = await executeProcess(route.command, executedArgs, cwd, signal, timeoutSecs, environment);
+		const result = await request.executeProcess(
+			route.command, executedArgs, request.cwd, request.signal, request.timeoutSecs, request.environment,
+		);
 		return { binary: route.displayBinary, args: executedArgs, result };
 	}
 
-	return { execute, clear };
+	return { execute, executeInstalled, refreshInstalled, clear };
 }
+
+export const sharedFallowRunner = createFallowRunner();
 
 function packageBinPath(packageRoot: string): string {
 	return [
@@ -319,9 +381,33 @@ function cancellationResult(): FallowProcessResult {
 	return { stdout: "", stderr: "", code: 130, killed: true, terminationReason: "cancelled" };
 }
 
-function usableCachedRoute(route: RunnerRoute | undefined, now: number): RunnerRoute | undefined {
-	if (!route || isExpired(route, now)) return undefined;
-	return route;
+function routeResolutionKey(request: RunnerRequest): string {
+	return request.refreshInstalled ? "installed-refresh" : String(request.allowNpxFallback);
+}
+
+function cachedRouteForRequest(route: RunnerRoute | undefined, request: RunnerRequest, now: number): RunnerRoute | undefined {
+	if (request.refreshInstalled) return undefined;
+	return usableCachedRoute(route, now, request.allowNpxFallback);
+}
+
+function prepareInstalledRefresh(entry: RunnerCacheEntry, refresh: boolean): RunnerRoute | undefined {
+	if (!refresh) return undefined;
+	const remembered = rememberedInstalledRoute(entry.route);
+	entry.route = undefined;
+	return remembered;
+}
+
+function usableCachedRoute(route: RunnerRoute | undefined, now: number, allowNpx: boolean): RunnerRoute | undefined {
+	if (!route) return undefined;
+	return cachedRouteUnavailable(route, now, allowNpx) ? undefined : route;
+}
+
+function cachedRouteUnavailable(route: RunnerRoute, now: number, allowNpx: boolean): boolean {
+	return isExpired(route, now) || (!allowNpx && route.source === "npx");
+}
+
+function rememberedInstalledRoute(route: RunnerRoute | undefined): RunnerRoute | undefined {
+	return route?.source === "npx-package" ? route : undefined;
 }
 
 function resolvedRouteOrFallback(route: RunnerRoute | undefined, now: number, ttlMs: number, allowNpx: boolean): RunnerRoute {

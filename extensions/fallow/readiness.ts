@@ -3,7 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { parseJson } from "./json";
 import { parseSimilarCodeCapability, similarCodeStatusLines } from "./optional-analysis";
 import { readinessNext, type ReadinessCheck, type ReadinessReport } from "./readiness-report";
-import { createFallowRunner } from "./runner";
+import { createFallowRunner, sharedFallowRunner } from "./runner";
 import { inspectRuntimeReadiness } from "./runtime-readiness";
 
 export function resolveReadinessRoot(cwd: string, args: string[]): string {
@@ -18,17 +18,36 @@ function rootArgument(args: string[], index: number): string | undefined {
 	return flag.replace(/^(?:--root=|-r)/u, "");
 }
 
+type ReadinessRunner = Pick<ReturnType<typeof createFallowRunner>, "clear" | "execute"> &
+	Partial<Pick<ReturnType<typeof createFallowRunner>, "refreshInstalled">>;
+
 /** No loader/dialog, setup plan, model setup, analysis, or installing runner fallback. */
 export function createReadinessCheck(
-	pi: ExtensionAPI, cwd: string, runner = createFallowRunner({ allowNpxFallback: false }),
+	pi: ExtensionAPI, cwd: string, runner: ReadinessRunner = sharedFallowRunner,
 ): ReadinessCheck {
 	return async (view, signal) => {
 		if (view === "runtime-coverage") return inspectRuntimeReadiness(cwd, signal);
-		runner.clear(pi); // Explicit refresh must notice an installation changed outside Pi.
-		const { result } = await runner.execute(pi, ["similar-code", "status", "--format", "json", "--quiet"], cwd, signal, 30);
-		if (result.code !== 0 || result.killed) throw new Error(`Similar Code status failed (exit ${result.code}): ${result.stderr}`);
-		return similarReadiness(result.stdout, result.stderr);
+		return checkSimilarReadiness(runner, pi, cwd, signal);
 	};
+}
+
+async function checkSimilarReadiness(runner: ReadinessRunner, pi: ExtensionAPI, cwd: string, signal: AbortSignal): Promise<ReadinessReport> {
+	const args = ["similar-code", "status", "--format", "json", "--quiet"];
+	// Refresh ordinary discovery, but retain a direct executable already located by a completed npx-backed run.
+	const execution = runner.refreshInstalled
+		? await runner.refreshInstalled(pi, args, cwd, signal, 30)
+		: await executeAfterClear(runner, pi, args, cwd, signal);
+	const { result } = execution;
+	if (result.code !== 0 || result.killed) throw new Error(`Similar Code status failed (exit ${result.code}): ${result.stderr}`);
+	return similarReadiness(result.stdout, result.stderr);
+}
+
+async function executeAfterClear(
+	runner: Pick<ReturnType<typeof createFallowRunner>, "clear" | "execute">,
+	pi: ExtensionAPI, args: string[], cwd: string, signal: AbortSignal,
+) {
+	runner.clear(pi); // Injected legacy runners retain the original explicit-refresh contract.
+	return runner.execute(pi, args, cwd, signal, 30);
 }
 
 function similarReadiness(stdout: string, stderr: string): ReadinessReport {

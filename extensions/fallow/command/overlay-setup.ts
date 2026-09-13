@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createOptionalAnalysisState, inspectRuntimeCoverageCapability, saveOptionalSetupOutput } from "../optional-analysis";
 import { execFallowProcess } from "../process";
-import { createFallowRunner } from "../runner";
+import { sharedFallowRunner } from "../runner";
 import type { ReadinessCheck } from "../readiness-report";
 import type { OverlaySetupRun } from "../ui/overlay-setup";
 import { runOptionalSetup } from "./optional-analysis";
@@ -18,7 +18,6 @@ export function createOverlaySetupRun(pi: ExtensionAPI, mode: string, root: stri
 			signal.throwIfAborted();
 			return execFallowProcess(command, args, cwd, abort, timeout, undefined, (text) => progress(undefined, text));
 		};
-		const runner = createFallowRunner({ allowNpxFallback: false, executeProcess: processRun });
 		await runOptionalSetup(view, mode, { cwd: root, confirm: async (title, preview) => {
 			if (!await confirm(title, preview)) return false;
 			signal.throwIfAborted();
@@ -30,7 +29,7 @@ export function createOverlaySetupRun(pi: ExtensionAPI, mode: string, root: stri
 			runFallow: async (args, label, timeout = 120) => {
 				signal.throwIfAborted();
 				progress(label);
-				return runner.execute(pi, args, root, signal, timeout);
+				return sharedFallowRunner.executeInstalled(pi, args, root, signal, timeout, undefined, processRun);
 			},
 			runProcess: async (command, args, label, timeout = 120) => {
 				progress(label);

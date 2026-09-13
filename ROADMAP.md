@@ -4,7 +4,7 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 ## Release status and boundaries
 
-- **Current boundary:** `0.6.0` adds persistent Similar Code overlay workflows, safe configuration assistance, installed-capability diagnostics, session history, navigator actions, and broader frozen/live certification on top of the issue-focused `0.5.x` line, as recorded in the [`0.6.0` changelog](./CHANGELOG.md#060---2026-09-13).
+- **Current boundary:** `0.6.1` fixes read-only Similar Code readiness after an npx-backed report while retaining the `0.6.0` persistent overlay, configuration, diagnostics, history, navigator, and certification baseline, as recorded in the [`0.6.1` changelog](./CHANGELOG.md#061---2026-09-13).
 - **Release records:** the npm registry and GitHub releases are authoritative for whether a version has completed publication; a version in source remains a candidate until the protected tag workflow succeeds.
 - **Publication gate:** every boundary remains blocked until all release gates pass, an independent release-readiness review is recorded, and a maintainer gives explicit authorization.
 - **Later work:** the priorities below are directional and carry no date or version commitment.

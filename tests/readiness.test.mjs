@@ -40,6 +40,22 @@ it("checks the existing model using only read-only status and refreshes runner r
 	assert.equal(clears, 2);
 });
 
+it("uses installed-only refresh when the shared-style runner has a previously resolved direct route", async () => {
+	let refreshes = 0;
+	const runner = {
+		clear: () => assert.fail("installed-only refresh must preserve the known direct route"),
+		execute: () => assert.fail("ordinary execution could invoke an installing fallback"),
+		async refreshInstalled(_pi, args, cwd, abort, timeout) {
+			refreshes++;
+			assert.deepEqual(args, ["similar-code", "status", "--format", "json", "--quiet"]);
+			assert.equal(cwd, "/project"); assert.ok(abort); assert.equal(timeout, 30);
+			return { result: { code: 0, killed: false, stdout: JSON.stringify(model), stderr: "" } };
+		},
+	};
+	assert.equal((await createReadinessCheck({}, "/project", runner)("similar-code", signal())).phase, "ready");
+	assert.equal(refreshes, 1);
+});
+
 it("does not invent readiness for missing, incompatible, unverified, malformed, or failed model checks", async () => {
 	for (const [patch, phase] of [[{ model_ready: false }, "missing"], [{ model_revision: "other" }, "incompatible"], [{ integrity_verified: false }, "corrupt"], [{ kind: "other" }, "error"]]) {
 		const check = createReadinessCheck({}, "/project", { clear() {}, execute: async () => ({ result: { code: 0, stdout: JSON.stringify({ ...model, ...patch }) } }) });
