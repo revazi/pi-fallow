@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setImmediate as tick } from "node:timers/promises";
 import { describe, it } from "node:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { createJiti } from "jiti";
@@ -92,6 +93,24 @@ function loadEndFindingPrompt(overview, fullOutputPath, includeFullDetails) {
 		if (includeFullDetails) navigator.handleInput("d");
 		navigator.handleInput("e");
 	});
+}
+
+async function assertNavigatorCopy(overview, selectKeys, count, rawPattern) {
+	let done = null;
+	const copied = [];
+	const navigator = new FallowIssueNavigator(overview, theme, (value) => { done = value; }, () => {}, {
+		copyText: async (value) => { copied.push(value); },
+	});
+	for (const key of selectKeys) navigator.handleInput(key);
+	navigator.handleInput("y"); await tick();
+	assert.equal(done, null);
+	assert.match(copied[0], new RegExp(`Selected findings: ${count}`));
+	assert.doesNotMatch(copied[0], /Full raw finding JSON/);
+	assert.match(navigator.render(100).join("\n"), /Copied .*\(compact\)/);
+	navigator.handleInput("d"); navigator.handleInput("y"); await tick();
+	assert.match(copied[1], /Full raw finding JSON/);
+	assert.match(copied[1], rawPattern);
+	assert.match(navigator.render(100).join("\n"), /Copied .*\(full\)/);
 }
 
 describe("FallowIssueNavigator prompt generation", () => {
@@ -318,6 +337,19 @@ describe("FallowIssueNavigator prompt generation", () => {
 
 		assert.equal(result?.detail, "full");
 		assert.match(result.prompt, /Full raw finding JSON/);
+	});
+
+	it("copies selected Findings and Similar Code items without closing, including full JSON mode", async () => {
+		const similar = {
+			title: "Fallow Similar Code", status: "warning", stats: [], notes: [], sections: [{
+				title: "Candidates", count: 1, items: [{
+					label: "normalizeA ↔ normalizeB", path: "src/a.ts", line: 1, action: "Review before consolidating.",
+					raw: { kind: "similar-code-candidate", candidate_id: "sc_fixture", similarity: 0.95 },
+				}],
+			}],
+		};
+		await assertNavigatorCopy(createOverview(), ["s", "j", "s"], 2, /"exportName": "helper"/);
+		await assertNavigatorCopy(similar, [], 1, /"candidate_id": "sc_fixture"/);
 	});
 
 	it("keeps compact late-finding prompts independent while full prompts hydrate or warn", async () => {

@@ -37,19 +37,18 @@ async function executeOverlayAnalysis(
 	requireTui(mode);
 	const request = structuredClone(input);
 	const view = analysisView(request);
-	let stage = "Rechecking readiness and validated inputs…";
-	progress(stage);
+	progress("Rechecking readiness and validated inputs…");
 	const processes = new Set<Promise<unknown>>();
 	const runner = createFallowRunner({ allowNpxFallback: false, executeProcess: (command, args, cwd, abort, timeout, environment) =>
-		trackProcess(processes, executeProcess(command, args, cwd, abort, timeout, environment, (output) => progress(stage, output))),
+		// JSON reports and companion status probes are machine output, not progress UI.
+		trackProcess(processes, executeProcess(command, args, cwd, abort, timeout, environment)),
 	});
 	const readiness = check ?? createReadinessCheck(pi, root, runner);
 	await preflightAndDrain(() => checkedWithinBudget((abort) => preflight(root, request, readiness, abort, options), signal, preflightMs, "Analysis preflight timed out; no analysis started."), processes);
 	signal.throwIfAborted();
 	const executor = runtimeCoverageExecutor(runtimeRequest(request), runner.execute, options.revalidateCoverage, options.preflightMs);
 	const timeoutSecs = analysisTimeout(view, options.timeoutSecs);
-	stage = `Running ${view} locally (timeout ${timeoutSecs}s)…`;
-	progress(stage, runGuidance(request));
+	progress(analysisStage(request, timeoutSecs));
 	return fallowEngine.runFallowWithExecutor({
 		pi, cwd: root, args: analysisArgs(request), signal, timeoutSecs, executor,
 		throwOnExecutionError: false, preserveNavigatorDetails: true, outputDetail: "findings",
@@ -62,10 +61,6 @@ function requireTui(mode: string): void {
 
 function runtimeRequest(request: OverlayAnalysisRequest): RuntimeCoverageRunRequest | undefined {
 	return "sidecar" in request ? request : undefined;
-}
-
-function runGuidance(request: OverlayAnalysisRequest): string | undefined {
-	return "sidecar" in request ? undefined : similarRunGuidance(request);
 }
 
 async function trackProcess<T>(processes: Set<Promise<unknown>>, work: Promise<T>): Promise<T> {
@@ -89,11 +84,10 @@ function analysisArgs(request: OverlayAnalysisRequest): string[] {
 	];
 }
 
-function similarRunGuidance(request: SimilarCodeRunRequest): string {
-	const cache = request.values.reuseCache === true
-		? "Local embedding cache enabled: this Run may read/write the user-local project cache. Cache misses may take minutes."
-		: "Uncached local inference may take minutes. No embedding cache is read or written.";
-	return `${cache} No download or installation is attempted.\n`;
+function analysisStage(request: OverlayAnalysisRequest, timeoutSecs: number): string {
+	if ("sidecar" in request) return `Analyzing selected coverage locally · timeout ${timeoutSecs}s…`;
+	const cache = request.values.reuseCache === true ? "cache on" : "cache off";
+	return `Finding similar code locally · ${cache} · timeout ${timeoutSecs}s…`;
 }
 
 async function preflight(root: string, request: OverlayAnalysisRequest, check: ReadinessCheck, signal: AbortSignal, options: ExecutionOptions): Promise<void> {

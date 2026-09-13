@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { copyToClipboard } from "@earendil-works/pi-coding-agent";
 import {
 	CURSOR_MARKER, matchesKey, SelectList, truncateToWidth, visibleWidth, wrapTextWithAnsi,
 	type Component, type Focusable, type SelectItem,
@@ -68,6 +69,7 @@ interface FallowNavigatorOptions {
 	visibleRows?: number;
 	informationalMode?: boolean;
 	optionalAnalysis?: boolean;
+	copyText?: (text: string) => Promise<void>;
 }
 
 interface FlatIssue {
@@ -93,6 +95,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private showInformational = false;
 	private includeFullDetails = false;
 	private preparingPrompt = false;
+	private copying = false;
 	private actionPalette?: { list: SelectList };
 	private actionNotice?: string;
 	private selectedRow = 0;
@@ -115,7 +118,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	get hasModalInput(): boolean {
-		return this.preparingPrompt || this.editingSearch || this.actionPalette !== undefined;
+		return this.preparingPrompt || this.copying || this.editingSearch || this.actionPalette !== undefined;
 	}
 
 	handleInput(data: string): void {
@@ -135,6 +138,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			{ matches: (value) => value === "c", action: () => this.clearMarked() },
 			{ matches: (value) => value === "i", action: () => this.toggleInformational() },
 			{ matches: (value) => value === "d", action: () => this.togglePromptDetail() },
+			{ matches: (value) => value === "y", action: () => this.copySelection() },
 			{ matches: (value) => value === "p", action: () => this.openActionPalette() },
 			{ matches: (value) => value === "o", action: () => this.finishWithOptionalAnalysis() },
 			{ matches: (value) => value === "e" || value === "a", action: () => this.finishWithPrompt() },
@@ -150,11 +154,15 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private routeModalInput(data: string): boolean {
-		if (this.preparingPrompt) return true;
+		if (this.isPreparingOutput()) return true;
 		if (this.routeActionPaletteInput(data)) return true;
 		if (!this.editingSearch) return false;
 		this.handleSearchInput(data);
 		return true;
+	}
+
+	private isPreparingOutput(): boolean {
+		return this.preparingPrompt || this.copying;
 	}
 
 	private routeActionPaletteInput(data: string): boolean {
@@ -417,7 +425,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private footerSelectionLine(): string {
 		const notice = this.actionNotice ? ` ${this.theme.fg("warning", this.actionNotice)}` : "";
-		return `${pill(this.selectionStatus(), purple)} ${this.theme.fg("muted", "e/a loads prompt; p opens safe actions")}${notice}`;
+		return `${pill(this.selectionStatus(), purple)} ${this.theme.fg("muted", "y copies; e/a loads prompt; p opens safe actions")}${notice}`;
 	}
 
 	private selectionStatus(): string {
@@ -438,14 +446,15 @@ export class FallowIssueNavigator implements Component, Focusable {
 
 	private promptDetailLine(): string {
 		const checkbox = this.includeFullDetails ? this.theme.fg("success", "☑") : this.theme.fg("dim", "☐");
-		return `${checkbox} ${this.theme.fg("text", "Include full finding JSON in agent prompt")} ${pill("d toggle", violet)}`;
+		return `${checkbox} ${this.theme.fg("text", "Include full finding JSON in loaded/copied text")} ${pill("d toggle", violet)}`;
 	}
 
 	private promptImplicationLine(): string {
 		const count = this.selection().length;
+		if (this.copying) return this.theme.fg("accent", `Copying ${count} ${this.promptDetail()} finding(s)…`);
 		if (this.preparingPrompt) return this.theme.fg("accent", `Preparing ${this.promptDetail()} prompt for ${count} finding(s)…`);
 		if (this.includeFullDetails) {
-			return this.theme.fg("warning", `Full: embeds raw JSON for ${count} finding(s). Much larger prompt; may consume significant model context.`);
+			return this.theme.fg("warning", `Full: embeds raw JSON for ${count} finding(s) in loaded/copied text. Much larger; may consume significant model context.`);
 		}
 		return this.theme.fg("muted", `Compact: sends ${count} finding(s) with type, severity, location, concise evidence, and action. Lower context; complete JSON stays linked.`);
 	}
@@ -665,6 +674,40 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.preparePrompt(issues);
 	}
 
+	private copySelection(): void {
+		if (this.isInformationalMode() || this.copying) return;
+		const issues = this.selection();
+		if (!issues.length) return;
+		this.copying = true;
+		this.actionNotice = undefined;
+		this.changed();
+		void this.copyIssues(issues);
+	}
+
+	private async copyIssues(issues: FlatIssue[]): Promise<void> {
+		const { resolved, warning } = await this.resolveFullIssues(issues);
+		try {
+			await (this.options.copyText ?? copyToClipboard)(this.promptFor(resolved, warning));
+			this.actionNotice = `Copied ${resolved.length} (${this.promptDetail()}).`;
+		} catch {
+			this.actionNotice = "Copy failed; the system clipboard is unavailable.";
+		} finally {
+			this.copying = false;
+			this.changed();
+		}
+	}
+
+	private async resolveFullIssues(issues: FlatIssue[]): Promise<{ resolved: FlatIssue[]; warning?: string }> {
+		if (!this.needsFullHydration(issues)) return { resolved: issues };
+		if (!this.options.fullOutputPath) return { resolved: issues, warning: "Complete report path is unavailable; using retained finding details." };
+		try { return { resolved: await this.hydrateIssues(issues) }; }
+		catch { return { resolved: issues, warning: "Complete report could not be loaded; using retained finding details." }; }
+	}
+
+	private needsFullHydration(issues: FlatIssue[]): boolean {
+		return this.includeFullDetails && issues.some((entry) => entry.normalized.raw === undefined);
+	}
+
 	private preparePrompt(issues: FlatIssue[]): void {
 		if (!this.includeFullDetails || !issues.some((entry) => entry.normalized.raw === undefined)) {
 			this.emitPrompt(issues);
@@ -700,23 +743,26 @@ export class FallowIssueNavigator implements Component, Focusable {
 	}
 
 	private emitPrompt(issues: FlatIssue[], hydrationWarning?: string): void {
-		const detail = this.promptDetail();
+		this.onDone({
+			type: "prompt",
+			issueCount: issues.length,
+			detail: this.promptDetail(),
+			prompt: this.promptFor(issues, hydrationWarning),
+		});
+	}
+
+	private promptFor(issues: FlatIssue[], hydrationWarning?: string): string {
 		const findings: FallowPromptFinding[] = issues.map((entry) => ({
 			sectionTitle: entry.normalized.section,
 			item: entry.item,
 			normalized: entry.normalized,
 		}));
-		this.onDone({
-			type: "prompt",
-			issueCount: issues.length,
-			detail,
-			prompt: buildFallowPrompt({
-				findings,
-				detail,
-				command: this.options.command,
-				fullOutputPath: this.options.fullOutputPath,
-				hydrationWarning,
-			}),
+		return buildFallowPrompt({
+			findings,
+			detail: this.promptDetail(),
+			command: this.options.command,
+			fullOutputPath: this.options.fullOutputPath,
+			hydrationWarning,
 		});
 	}
 
@@ -821,6 +867,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 			`${key("c")} ${this.theme.fg("muted", "clear selected")}`,
 			`${key("i")} ${this.theme.fg("muted", "informational files")}`,
 			`${key("d")} ${this.theme.fg("muted", "prompt detail")}`,
+			`${key("y")} ${this.theme.fg("muted", "copy selected")}`,
 			`${key("p")} ${this.theme.fg("muted", "actions")}`,
 			...optional,
 			`${key("e/a")} ${this.theme.fg("muted", "load")}`,

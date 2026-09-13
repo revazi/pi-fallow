@@ -13,7 +13,7 @@ const { fallowCompletions } = await jiti.import("../extensions/fallow/autocomple
 const { needsFallowBaseDetection, normalizeFallowArgs } = await jiti.import("../extensions/fallow/command/args.ts");
 const { resolveFallowCommandBaseRef } = await jiti.import("../extensions/fallow/command/base.ts");
 const { detectFallowBaseRef } = await jiti.import("../extensions/fallow/project/git.ts");
-const { registerFallowSessionStart } = await jiti.import("../extensions/fallow/session.ts");
+const { persistSimilarCodeCachePreference, registerFallowSessionStart } = await jiti.import("../extensions/fallow/session.ts");
 
 function labels(items) {
 	return items?.map((item) => item.label) ?? [];
@@ -171,9 +171,9 @@ describe("Fallow autocomplete", () => {
 		const state = { lastArgs: null, baseRefs: new Map(), history: { nextId: 4, entries: [{ id: "r3" }] } };
 		try {
 			registerFallowSessionStart(pi, state);
-			sessionStart({}, { mode: "rpc", cwd: "/rpc-project", ui: { addAutocompleteProvider() { providers++; } } });
+			sessionStart({}, { mode: "rpc", cwd: "/rpc-project", sessionManager: { getBranch: () => [] }, ui: { addAutocompleteProvider() { providers++; } } });
 			state.history.entries.push({ id: "r1" });
-			sessionStart({}, { mode: "tui", cwd: "/tui-project", ui: { addAutocompleteProvider() { providers++; } } });
+			sessionStart({}, { mode: "tui", cwd: "/tui-project", sessionManager: { getBranch: () => [] }, ui: { addAutocompleteProvider() { providers++; } } });
 		} finally {
 			if (previous === undefined) delete process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE;
 			else process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE = previous;
@@ -182,6 +182,24 @@ describe("Fallow autocomplete", () => {
 		assert.equal(calls[0].options.cwd, resolve("/tui-project"));
 		assert.equal(providers, 1);
 		assert.deepEqual(state.history, { nextId: 1, entries: [] });
+	});
+
+	it("restores and records the Similar Code cache preference in session-only entries", () => {
+		let sessionStart;
+		const appended = [];
+		const pi = {
+			on(event, handler) { if (event === "session_start") sessionStart = handler; },
+			appendEntry(customType, data) { appended.push({ type: "custom", customType, data }); },
+		};
+		const state = { lastArgs: null, baseRefs: new Map(), history: { nextId: 1, entries: [] }, similarCodeReuseCache: false };
+		registerFallowSessionStart(pi, state);
+		sessionStart({}, { mode: "rpc", sessionManager: { getBranch: () => [
+			{ type: "custom", customType: "pi-fallow-preferences", data: { similarCodeReuseCache: true } },
+		] } });
+		assert.equal(state.similarCodeReuseCache, true);
+		persistSimilarCodeCachePreference(pi, state, false);
+		assert.equal(state.similarCodeReuseCache, false);
+		assert.deepEqual(appended, [{ type: "custom", customType: "pi-fallow-preferences", data: { similarCodeReuseCache: false } }]);
 	});
 
 	it("contains no synchronous Git or process.cwd call in the completion path", async () => {

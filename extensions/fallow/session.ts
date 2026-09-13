@@ -5,11 +5,14 @@ import type { FallowCommandState } from "./command/types";
 import { resetFallowHistory } from "./history";
 import { scheduleFallowUpdateNotice } from "./update-notice";
 
+const FALLOW_PREFERENCES_ENTRY = "pi-fallow-preferences";
+
 export function registerFallowSessionStart(pi: ExtensionAPI, commandState?: FallowCommandState): void {
 	pi.on("session_start", (_event, ctx) => {
 		fallowCli.clearRunnerCache(pi);
 		if (commandState) {
 			resetFallowHistory(commandState.history);
+			restoreFallowPreferences(commandState, ctx.sessionManager.getBranch());
 		}
 		if (ctx.mode !== "tui") return;
 		void fallowCompletions.preloadGitReferences(pi, ctx.cwd);
@@ -32,6 +35,26 @@ export function registerFallowSessionStart(pi: ExtensionAPI, commandState?: Fall
 			},
 		}));
 	});
+}
+
+export function persistSimilarCodeCachePreference(pi: ExtensionAPI, state: FallowCommandState, enabled: boolean): void {
+	if (state.similarCodeReuseCache === enabled) return;
+	state.similarCodeReuseCache = enabled;
+	pi.appendEntry(FALLOW_PREFERENCES_ENTRY, { similarCodeReuseCache: enabled });
+}
+
+type SessionEntry = { type: string; customType?: string; data?: unknown };
+
+function restoreFallowPreferences(state: FallowCommandState, entries: SessionEntry[]): void {
+	const latest = entries.findLast(isFallowPreferencesEntry);
+	state.similarCodeReuseCache = latest
+		? (latest.data as { similarCodeReuseCache: boolean }).similarCodeReuseCache
+		: false;
+}
+
+function isFallowPreferencesEntry(entry: SessionEntry): boolean {
+	const value = (entry.data as { similarCodeReuseCache?: unknown } | undefined)?.similarCodeReuseCache;
+	return entry.type === "custom" && entry.customType === FALLOW_PREFERENCES_ENTRY && typeof value === "boolean";
 }
 
 function getFallowSlashPrefix(lines: string[], cursorLine: number, cursorCol: number): string {

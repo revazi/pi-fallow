@@ -12,7 +12,6 @@ const { inspectCoverageArtifact, buildRuntimeCoverageRequest, revalidateRuntimeC
 const { RuntimeCoverageForm } = await jiti.import("../extensions/fallow/ui/runtime-coverage-form.ts");
 const { runtimeCoverageExecutor } = await jiti.import("../extensions/fallow/command/runtime-coverage.ts");
 const { openFallowOverviewNavigator } = await jiti.import("../extensions/fallow/command/result-flow.ts");
-const { runFallowNavigatorLoop } = await jiti.import("../extensions/fallow/command/navigator-loop.ts");
 const sidecar = { binaryPath: "/verified/fallow-cov", fingerprint: "verified-binary-digest" };
 const ready = { phase: "ready", summary: "Signed sidecar verified", details: [], next: "Preview local artifact", runtime: sidecar };
 const signal = () => new AbortController().signal;
@@ -107,7 +106,11 @@ it("requires a preview then a distinct Run, displays scope/limitations, and pres
 	await fixture(async (root) => {
 		const requests = []; const form = createForm(root, { onRun: (request) => requests.push(request) });
 		form.focused = true;
-		form.handleInput("a"); for (const char of "v8.json") form.handleInput(char);
+		assert.match(text(form), /coverage\/tmp\/.*coverage\/coverage-final\.json/);
+		assert.match(text(form), /a\/Enter choose coverage path/);
+		form.handleInput("\r"); assert.equal(form.isEditing, true);
+		assert.match(text(form), /Type or paste a local coverage path/);
+		for (const char of "v8.json") form.handleInput(char);
 		assert.ok(text(form).includes(CURSOR_MARKER)); form.focused = false; assert.ok(!text(form).includes(CURSOR_MARKER)); form.focused = true;
 		form.handleInput("\x1b"); assert.equal(form.isEditing, false); assert.equal(form.snapshot().input, "v8.json");
 		form.handleInput("\r"); await until(() => Boolean(form.snapshot().preview)); assert.equal(requests.length, 0);
@@ -183,36 +186,23 @@ it("does not execute after cancelled or timed-out preflight, even if its check c
 	});
 });
 
-it("keeps one overlay through artifact selection, execution, and return to the retained preview", async () => {
+it("keeps Runtime Coverage disabled in the report overlay", async () => {
 	await fixture(async (root) => {
-		let stage = 0; let saved;
 		const overview = { title: "Coverage test report", status: "success", stats: [], notes: [], sections: [] };
 		const ctx = { cwd: root, mode: "tui", ui: { custom: async (factory) => {
 			let result;
 			const shell = factory({ terminal: { rows: 40 }, requestRender() {} }, theme, {}, (value) => { result = value; });
-			shell.focused = true; await tick();
-			shell.handleInput("3"); await tick(); enterPath(shell, "v8.json");
-			await until(() => Boolean(shell.snapshotState().runtimeCoverage.preview));
-			saved = shell.snapshotState().runtimeCoverage;
-			for (const key of ["1", "2", "3"]) shell.handleInput(key);
-			assert.deepEqual(shell.snapshotState().runtimeCoverage, saved);
-			shell.handleInput("\r"); await until(() => text(shell).includes("fixture coverage error"));
-			assert.equal(result, undefined, "Run must not complete the mounted overlay");
-			shell.handleInput("\x1b");
-			assert.equal(shell.snapshotState().runtimeCoverage.preview.fingerprint, saved.preview.fingerprint);
+			assert.doesNotMatch(shell.render(100).join("\n"), /Runtime Coverage/);
+			shell.handleInput("3");
+			assert.equal(shell.snapshotState().view, 0);
+			shell.handleInput("2"); await tick(); shell.handleInput("3");
+			assert.equal(shell.snapshotState().view, 1);
+			assert.doesNotMatch(shell.render(100).join("\n"), /Runtime Coverage/);
 			shell.handleInput("q");
 			return result;
 		} } };
-		await runFallowNavigatorLoop(["issues"], true, async (args, _remember, initialState) => {
-			stage++;
-			return openFallowOverviewNavigator(ctx, overview, { commandArgs: args, initialState, optionalAnalysis: true, checkReadiness: async () => ready,
-				runAnalysis: async (request) => {
-					assert.equal(request.sidecar.fingerprint, sidecar.fingerprint);
-					assert.equal(request.artifact.fingerprint, saved.preview.fingerprint);
-					throw new Error("fixture coverage error");
-				},
-			});
+		await openFallowOverviewNavigator(ctx, overview, { commandArgs: ["issues"], optionalAnalysis: true,
+			checkReadiness: async () => ready, runAnalysis: async () => assert.fail("disabled Runtime Coverage must not run"),
 		});
-		assert.equal(stage, 1);
 	});
 });
