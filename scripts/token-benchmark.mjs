@@ -1,12 +1,11 @@
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { readFile, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getEncoding } from "js-tiktoken";
 import { createJiti } from "jiti";
-import { createFallowBenchmarkProject, runFixtureEngine, writeJsonArtifact } from "./benchmark-utils.mjs";
+import { createFallowBenchmarkProject, readGitSha, requireValue, runFixtureEngine, writeJsonArtifact } from "./benchmark-utils.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -66,7 +65,7 @@ const artifact = {
 	})),
 	environment: {
 		piFallowVersion: packageJson.version,
-		gitSha: readGitSha(),
+		gitSha: readGitSha(ROOT),
 		node: process.version,
 		platform: process.platform,
 		arch: process.arch,
@@ -91,12 +90,6 @@ function applyCliOption(options, args, index) {
 	else if (arg === "--prompt-detail") options.promptDetail = requirePromptDetail(args, ++index, arg);
 	else throw new Error(`Unknown argument: ${arg}`);
 	return index;
-}
-
-function requireValue(args, index, flag) {
-	const value = args[index];
-	if (!value) throw new Error(`${flag} requires a value.`);
-	return value;
 }
 
 function requirePromptDetail(args, index, flag) {
@@ -401,14 +394,6 @@ function percentile(sorted, percentileValue) {
 
 function round(value) {
 	return Math.round(value * 100) / 100;
-}
-
-function readGitSha() {
-	try {
-		return execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
-	} catch {
-		return "unknown";
-	}
 }
 
 function printSummary(artifactValue, outputPath) {
