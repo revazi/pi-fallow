@@ -5,6 +5,7 @@ export type FallowCommandState = {
 	lastArgs: string[] | null;
 	baseRefs: Map<string, string>;
 	history: FallowHistoryState;
+	similarCodeReuseCache: boolean;
 };
 export type FallowRunMode = ExtensionContext["mode"];
 

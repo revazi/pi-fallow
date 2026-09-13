@@ -19,6 +19,10 @@ import { buildFallowTranscriptContent } from "./transcript";
 import type { FallowCommandContext } from "./types";
 
 export type FallowCommandCompleted = (result: FallowCommandResult, commandArgs: string[]) => void | Promise<void>;
+export interface FallowOverlayPreferences {
+	similarCodeReuseCache: boolean;
+	onSimilarCodeCacheChange: (enabled: boolean) => void;
+}
 
 export async function executeFallowResult(
 	pi: ExtensionAPI,
@@ -29,16 +33,17 @@ export async function executeFallowResult(
 	initialNavigatorState?: FallowNavigatorState,
 	onCompleted?: FallowCommandCompleted,
 	executionOptions?: FallowExecutionOptions,
+	overlayPreferences?: FallowOverlayPreferences,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (rawCommandArgs[0] === "issues") {
 		return executeFallowProjectIssuesResult(
-			pi, ctx, rawCommandArgs, rememberLast, setLastFallowArgs, initialNavigatorState, onCompleted,
+			pi, ctx, rawCommandArgs, rememberLast, setLastFallowArgs, initialNavigatorState, onCompleted, overlayPreferences,
 		);
 	}
 	const finalArgs = buildFallowFinalArgs(rawCommandArgs);
 	if (rememberLast) setLastFallowArgs([...finalArgs]);
 	return runFallowResultFlow(
-		pi, ctx, finalArgs, resultExecutor(pi, ctx, finalArgs, executionOptions), initialNavigatorState, onCompleted,
+		pi, ctx, finalArgs, resultExecutor(pi, ctx, finalArgs, executionOptions), initialNavigatorState, onCompleted, overlayPreferences,
 	);
 }
 
@@ -54,6 +59,7 @@ function executeFallowProjectIssuesResult(
 	setLastFallowArgs: (args: string[] | null) => void,
 	initialNavigatorState?: FallowNavigatorState,
 	onCompleted?: FallowCommandCompleted,
+	overlayPreferences?: FallowOverlayPreferences,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	if (rememberLast) setLastFallowArgs([...commandArgs]);
 	return runFallowResultFlow(
@@ -63,6 +69,7 @@ function executeFallowProjectIssuesResult(
 		fallowProjectIssues.buildExecutor(pi, ctx, commandArgs),
 		initialNavigatorState,
 		onCompleted,
+		overlayPreferences,
 	);
 }
 
@@ -73,6 +80,7 @@ async function runFallowResultFlow(
 	executeCommand: FallowCommandExecutor,
 	initialNavigatorState?: FallowNavigatorState,
 	onCompleted?: FallowCommandCompleted,
+	overlayPreferences?: FallowOverlayPreferences,
 ): Promise<FallowNavigatorResult | null | undefined> {
 	const commandResult = await runFallowWithLoaderIfUi(ctx, executeCommand, finalArgs);
 	if (!commandResult) return handleMissingFallowResult(ctx);
@@ -92,6 +100,7 @@ async function runFallowResultFlow(
 		projectState,
 		prSummary,
 		initialNavigatorState,
+		overlayPreferences,
 	);
 }
 
@@ -156,6 +165,7 @@ function openFallowNavigator(
 	projectState: FallowProjectState,
 	prSummary: FallowPrSummary | undefined,
 	initialState?: FallowNavigatorState,
+	overlayPreferences?: FallowOverlayPreferences,
 ): Promise<FallowNavigatorResult | null> {
 	const root = resolveReadinessRoot(ctx.cwd, originCommandArgs);
 	const checkReadiness = createReadinessCheck(pi, root);
@@ -171,6 +181,8 @@ function openFallowNavigator(
 		checkReadiness,
 		runSetup: createOverlaySetupRun(pi, ctx.mode, root, checkReadiness),
 		runAnalysis: createOverlayAnalysisRun(pi, ctx.mode, root),
+		initialSimilarCodeReuseCache: overlayPreferences?.similarCodeReuseCache,
+		onSimilarCodeCacheChange: overlayPreferences?.onSimilarCodeCacheChange,
 	});
 }
 
@@ -186,6 +198,8 @@ interface FallowOverviewNavigatorOptions {
 	checkReadiness?: ReadinessCheck;
 	runSetup?: OverlaySetupRun;
 	runAnalysis?: OverlayAnalysisRun;
+	initialSimilarCodeReuseCache?: boolean;
+	onSimilarCodeCacheChange?: (enabled: boolean) => void;
 }
 
 export function openFallowOverviewNavigator(
@@ -216,6 +230,8 @@ export function openFallowOverviewNavigator(
 			projectRoot: resolveReadinessRoot(ctx.cwd, options.commandArgs), initialState: options.initialState?.overlay,
 			runSetup: options.runSetup,
 			runAnalysis: options.runAnalysis,
+			initialSimilarCodeReuseCache: options.initialSimilarCodeReuseCache,
+			onSimilarCodeCacheChange: options.onSimilarCodeCacheChange,
 			onAnalysisResult: (result) => finish(optionalResultTarget(result, options.commandArgs, navigator)),
 		});
 		return shell;

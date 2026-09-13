@@ -3,6 +3,7 @@ import { fallowCli } from "../cli";
 import { sendFallowCompatibilityMessage } from "../compatibility";
 import { recordFallowHistory } from "../history";
 import { detectFallowBaseRef } from "../project/git";
+import { persistSimilarCodeCachePreference } from "../session";
 import type { FallowExecutionOptions, FallowNavigatorResult, FallowNavigatorState } from "../types";
 import { sendFallowAboutMessage } from "../update-notice";
 import { normalizeFallowArgs, resolveFallowRunArgs } from "./args";
@@ -114,7 +115,10 @@ function runFallowCommandOnce(
 		commandState.lastArgs = updated;
 	}, initialNavigatorState, initialNavigatorState ? undefined : (result, commandArgs) => (
 		recordFallowHistory(pi, commandState.history, ctx.cwd, result, protectedHistoryIds, commandArgs)
-	), executionOptions);
+	), executionOptions, {
+		similarCodeReuseCache: commandState.similarCodeReuseCache,
+		onSimilarCodeCacheChange: (enabled) => persistSimilarCodeCachePreference(pi, commandState, enabled),
+	});
 }
 
 function applyFallowPrompt(ctx: FallowCommandContext, result: FallowNavigatorResult | null | undefined): void {

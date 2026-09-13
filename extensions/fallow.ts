@@ -17,6 +17,7 @@ export default function (pi: ExtensionAPI) {
 		lastArgs: null,
 		baseRefs: new Map(),
 		history: createFallowHistoryState(),
+		similarCodeReuseCache: false,
 	};
 	registerFallowTool(pi);
 	registerFallowCommand(pi, commandState);
