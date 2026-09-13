@@ -272,6 +272,9 @@ describe("buildFallowOverview", () => {
 		assert.deepEqual(overview.stats, [
 			{ label: "candidates", value: 1 },
 			{ label: "completion", value: "complete" },
+			{ label: "identical source", value: 0 },
+			{ label: "bands", value: "1 very-high / 0 high / 0 moderate" },
+			{ label: "cross / same", value: "1 / 0" },
 			{ label: "threshold", value: 0.8 },
 			{ label: "provider", value: "official-local-companion" },
 			{ label: "companion", value: "3.21.0" },
@@ -288,17 +291,72 @@ describe("buildFallowOverview", () => {
 			{ label: "cache misses", value: 0 },
 			{ label: "cache writes", value: 0 },
 		]);
-		assert.equal(overview.sections[0].title, "Unverified semantic candidates");
+		assert.equal(overview.sections[0].title, "Very-high similarity · cross-file");
 		assert.deepEqual(overview.sections[0].items[0], {
 			label: "normalizeA ↔ normalizeB",
 			path: "src/a.ts",
 			line: 10,
-			meta: "id sc_example · similarity 0.934 · very-high · right src/b.ts:30 · enrichment callers unavailable, runtime not-requested · unverified",
+			meta: "id sc_example · similarity 0.934 · very-high · cross-file · right src/b.ts:30 · enrichment callers unavailable, runtime not-requested · unverified",
 			action: "Inspect source-grounded evidence",
 			raw: { ...candidate, enrichment: { callers: "unavailable", runtime: "not-requested" } },
 		});
 		assert.match(overview.notes[0], /advisory and unverified/);
 		assert.match(overview.notes[1], /source did not leave the machine/);
+		assert.match(overview.notes.at(-1), /every reported candidate remains navigable/);
+	});
+
+	it("groups and orders every semantic candidate without dropping the broad tail", () => {
+		const candidate = (id, band, leftPath, rightPath, lines, sourceHash) => ({
+			candidate_id: id,
+			left: { path: leftPath, name: `${id}Left`, start_line: 10, end_line: 9 + lines, source_sha256: sourceHash },
+			right: { path: rightPath, name: `${id}Right`, start_line: 30, end_line: 29 + lines, source_sha256: sourceHash },
+			similarity: band === "very-high" ? 0.97 : band === "high" ? 0.91 : 0.82,
+			similarity_band: band,
+			verification_status: "unverified",
+		});
+		const candidates = [
+			candidate("moderate-same", "moderate", "src/a.ts", "src/a.ts", 8),
+			candidate("identical-small", "very-high", "src/a.ts", "src/b.ts", 3, "same-small"),
+			candidate("high-cross", "high", "src/a.ts", "src/b.ts", 12),
+			candidate("very-high-same", "very-high", "src/a.ts", "src/a.ts", 9),
+			candidate("moderate-cross", "moderate", "src/a.ts", "src/b.ts", 7),
+			candidate("high-same", "high", "src/a.ts", "src/a.ts", 6),
+			candidate("identical-large", "very-high", "src/a.ts", "src/b.ts", 15, "same-large"),
+			{ ...candidate("other", "experimental", "src/a.ts", "src/b.ts", 5), similarity_band: "experimental" },
+		];
+		const overview = buildFallowOverview({
+			kind: "similar-code",
+			generation: {},
+			candidates,
+			completion: {
+				status: "partial",
+				skips: [{ phase: "comparison", reason: "comparison-limit", count: 1234 }],
+			},
+		});
+
+		assert.deepEqual(overview.sections.map((section) => [section.title, section.count]), [
+			["Identical extracted source", 2],
+			["Very-high similarity · same-file", 1],
+			["High similarity · cross-file", 1],
+			["High similarity · same-file", 1],
+			["Moderate similarity · cross-file", 1],
+			["Moderate similarity · same-file", 1],
+			["Other semantic candidates", 1],
+		]);
+		assert.equal(overview.sections.flatMap((section) => section.items).length, candidates.length);
+		assert.deepEqual(overview.sections[0].items.map((item) => item.label), [
+			"identical-largeLeft ↔ identical-largeRight",
+			"identical-smallLeft ↔ identical-smallRight",
+		]);
+		assert.match(overview.sections[0].items[0].meta, /cross-file · spans 15 ↔ 15 lines · identical source/);
+		assert.deepEqual(overview.stats.slice(0, 6), [
+			{ label: "candidates", value: 8 },
+			{ label: "completion", value: "partial" },
+			{ label: "comparisons omitted", value: 1234 },
+			{ label: "identical source", value: 2 },
+			{ label: "bands", value: "3 very-high / 2 high / 2 moderate" },
+			{ label: "cross / same", value: "5 / 3" },
+		]);
 	});
 
 	it("renders source-grounded inspect packets and separately reviewed candidates", () => {

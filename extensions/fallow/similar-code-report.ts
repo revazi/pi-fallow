@@ -16,6 +16,38 @@ import type { FallowIssueLine, FallowOverviewSection } from "./types";
 
 const INLINE_RAW_CANDIDATES = 5;
 type MutableTitle = { value: string };
+type CandidateRelationship = "cross-file" | "same-file" | "unknown-location";
+type CandidateGroupKey =
+	| "identical-source"
+	| "very-high-cross-file"
+	| "very-high-same-file"
+	| "high-cross-file"
+	| "high-same-file"
+	| "moderate-cross-file"
+	| "moderate-same-file"
+	| "other";
+
+interface CandidateGroupSpec {
+	key: CandidateGroupKey;
+	title: string;
+	color: "accent" | "warning" | "muted";
+}
+
+const CANDIDATE_GROUPS: CandidateGroupSpec[] = [
+	{ key: "identical-source", title: "Identical extracted source", color: "accent" },
+	{ key: "very-high-cross-file", title: "Very-high similarity · cross-file", color: "warning" },
+	{ key: "very-high-same-file", title: "Very-high similarity · same-file", color: "warning" },
+	{ key: "high-cross-file", title: "High similarity · cross-file", color: "warning" },
+	{ key: "high-same-file", title: "High similarity · same-file", color: "warning" },
+	{ key: "moderate-cross-file", title: "Moderate similarity · cross-file", color: "muted" },
+	{ key: "moderate-same-file", title: "Moderate similarity · same-file", color: "muted" },
+	{ key: "other", title: "Other semantic candidates", color: "muted" },
+];
+const CANDIDATE_GROUP_KEYS = new Map<string, CandidateGroupKey>(
+	CANDIDATE_GROUPS.filter((group) => group.key !== "identical-source" && group.key !== "other")
+		.map((group) => [group.key, group.key]),
+);
+
 type SimilarCodeOverviewHandler = (
 	root: Record<string, any>,
 	stats: OverviewStat[],
@@ -71,13 +103,118 @@ function addSimilarCodeCandidates(
 	title.value = "Fallow similar code";
 	const candidates = asArray(root.candidates);
 	addSimilarCodeRunMetadata(root, stats, notes, candidates.length);
+	addCandidateDistributionStats(root, stats, candidates);
 	if (!candidates.length) return;
-	sections.push({
-		title: "Unverified semantic candidates",
-		count: candidates.length,
-		color: "warning",
-		items: candidates.map((entry, index) => buildCandidateItem(entry, includeAllRaw || index < INLINE_RAW_CANDIDATES)),
-	});
+	appendCandidateGroups(sections, candidates, includeAllRaw);
+	notes.push("Candidates are grouped and ordered for triage; every reported candidate remains navigable.");
+}
+
+function addCandidateDistributionStats(root: Record<string, any>, stats: OverviewStat[], candidates: unknown[]): void {
+	const omittedComparisons = comparisonLimitSkipCount(root);
+	const distribution: OverviewStat[] = [
+		{ label: "identical source", value: candidates.filter(isSourceIdenticalCandidate).length },
+		{ label: "bands", value: formatBandCounts(candidates) },
+		{ label: "cross / same", value: formatRelationshipCounts(candidates) },
+	];
+	if (omittedComparisons) distribution.unshift({ label: "comparisons omitted", value: omittedComparisons });
+	const completionIndex = stats.findIndex((stat) => stat.label === "completion");
+	stats.splice(statInsertionIndex(completionIndex), 0, ...distribution);
+}
+
+function formatBandCounts(candidates: unknown[]): string {
+	return `${countCandidateBand(candidates, "very-high")} very-high / ${countCandidateBand(candidates, "high")} high / ${countCandidateBand(candidates, "moderate")} moderate`;
+}
+
+function countCandidateBand(candidates: unknown[], band: string): number {
+	return candidates.filter((entry) => stringValue(recordOrEmpty(entry).similarity_band) === band).length;
+}
+
+function formatRelationshipCounts(candidates: unknown[]): string {
+	return `${countCandidateRelationship(candidates, "cross-file")} / ${countCandidateRelationship(candidates, "same-file")}`;
+}
+
+function countCandidateRelationship(candidates: unknown[], relationship: CandidateRelationship): number {
+	return candidates.filter((entry) => candidateRelationship(recordOrEmpty(entry)) === relationship).length;
+}
+
+function statInsertionIndex(completionIndex: number): number {
+	return completionIndex < 0 ? 1 : completionIndex + 1;
+}
+
+function comparisonLimitSkipCount(root: Record<string, any>): number {
+	const completion = recordOrEmpty(root.completion);
+	return asArray(completion.skips)
+		.map(recordOrEmpty)
+		.filter((skip) => skip.phase === "comparison" && skip.reason === "comparison-limit")
+		.reduce((total, skip) => total + (numberValue(skip.count) ?? 0), 0);
+}
+
+function appendCandidateGroups(sections: FallowOverviewSection[], candidates: unknown[], includeAllRaw: boolean): void {
+	const grouped = groupCandidates(candidates);
+	let rawOffset = 0;
+	for (const spec of CANDIDATE_GROUPS) {
+		const entries = grouped.get(spec.key)!;
+		if (!entries.length) continue;
+		sections.push(buildCandidateGroupSection(spec, entries, includeAllRaw, rawOffset));
+		rawOffset += entries.length;
+	}
+}
+
+function groupCandidates(candidates: unknown[]): Map<CandidateGroupKey, unknown[]> {
+	const grouped = new Map(CANDIDATE_GROUPS.map((group) => [group.key, [] as unknown[]]));
+	for (const entry of candidates) grouped.get(candidateGroupKey(entry))!.push(entry);
+	return grouped;
+}
+
+function buildCandidateGroupSection(
+	spec: CandidateGroupSpec,
+	entries: unknown[],
+	includeAllRaw: boolean,
+	rawOffset: number,
+): FallowOverviewSection {
+	entries.sort(compareCandidatesForTriage);
+	return {
+		title: spec.title,
+		count: entries.length,
+		color: spec.color,
+		items: entries.map((entry, index) => buildCandidateItem(entry, shouldIncludeRaw(includeAllRaw, rawOffset + index))),
+	};
+}
+
+function shouldIncludeRaw(includeAllRaw: boolean, index: number): boolean {
+	return includeAllRaw || index < INLINE_RAW_CANDIDATES;
+}
+
+function candidateGroupKey(entry: unknown): CandidateGroupKey {
+	if (isSourceIdenticalCandidate(entry)) return "identical-source";
+	const candidate = recordOrEmpty(entry);
+	const key = `${stringValue(candidate.similarity_band)}-${candidateRelationship(candidate)}`;
+	return CANDIDATE_GROUP_KEYS.get(key) ?? "other";
+}
+
+function compareCandidatesForTriage(leftEntry: unknown, rightEntry: unknown): number {
+	const left = recordOrEmpty(leftEntry);
+	const right = recordOrEmpty(rightEntry);
+	const surfaceDifference = candidateSurfaceLines(right) - candidateSurfaceLines(left);
+	if (surfaceDifference) return surfaceDifference;
+	const similarityDifference = candidateSimilarity(right) - candidateSimilarity(left);
+	return similarityDifference || candidateStableKey(left).localeCompare(candidateStableKey(right));
+}
+
+function candidateSimilarity(candidate: Record<string, any>): number {
+	return numberValue(candidate.similarity) ?? -1;
+}
+
+function candidateSurfaceLines(candidate: Record<string, any>): number {
+	const spans = [functionLineSpan(recordOrEmpty(candidate.left)), functionLineSpan(recordOrEmpty(candidate.right))]
+		.filter((value): value is number => value !== undefined);
+	return spans.length ? Math.min(...spans) : -1;
+}
+
+function candidateStableKey(candidate: Record<string, any>): string {
+	const left = recordOrEmpty(candidate.left);
+	const right = recordOrEmpty(candidate.right);
+	return [left.path, left.start_line, left.name, right.path, right.start_line, right.name].map((value) => String(value ?? "")).join("\n");
 }
 
 function addSimilarCodeInspect(
@@ -135,7 +272,7 @@ function buildCandidateItem(
 		label: `${locationName(left)} ↔ ${locationName(right)}`,
 		path: stringValue(left.path),
 		line: numberValue(left.start_line),
-		meta: candidateMeta(candidate, right, enrichmentOverride ?? candidate.enrichment),
+		meta: candidateMeta(candidate, left, right, enrichmentOverride ?? candidate.enrichment),
 		action: candidateAction(candidate),
 	};
 	retainNormalizedFallowEntry(item, retainedRaw);
@@ -143,15 +280,56 @@ function buildCandidateItem(
 	return item;
 }
 
-function candidateMeta(candidate: Record<string, any>, right: Record<string, any>, enrichment: unknown): string | undefined {
+function candidateMeta(
+	candidate: Record<string, any>,
+	left: Record<string, any>,
+	right: Record<string, any>,
+	enrichment: unknown,
+): string | undefined {
 	return joinParts([
 		stringValue(candidate.candidate_id) ? `id ${candidate.candidate_id}` : undefined,
 		numberWithPrefix(candidate.similarity, "similarity "),
 		candidate.similarity_band,
+		candidateRelationshipLabel(candidate),
+		formatFunctionSpans(left, right),
+		isSourceIdenticalCandidate(candidate) ? "identical source" : undefined,
 		formatRightLocation(right),
 		formatEnrichmentAvailability(enrichment),
 		stringValue(candidate.verification_status) || "unverified",
 	]);
+}
+
+function candidateRelationshipLabel(candidate: Record<string, any>): string | undefined {
+	const relationship = candidateRelationship(candidate);
+	return relationship === "unknown-location" ? undefined : relationship;
+}
+
+function candidateRelationship(candidate: Record<string, any>): CandidateRelationship {
+	const leftPath = stringValue(recordOrEmpty(candidate.left).path);
+	const rightPath = stringValue(recordOrEmpty(candidate.right).path);
+	if (!leftPath || !rightPath) return "unknown-location";
+	return leftPath === rightPath ? "same-file" : "cross-file";
+}
+
+function isSourceIdenticalCandidate(entry: unknown): boolean {
+	const candidate = recordOrEmpty(entry);
+	const leftHash = stringValue(recordOrEmpty(candidate.left).source_sha256);
+	const rightHash = stringValue(recordOrEmpty(candidate.right).source_sha256);
+	return Boolean(leftHash && rightHash && leftHash === rightHash);
+}
+
+function formatFunctionSpans(left: Record<string, any>, right: Record<string, any>): string | undefined {
+	const leftSpan = functionLineSpan(left);
+	const rightSpan = functionLineSpan(right);
+	if (leftSpan === undefined || rightSpan === undefined) return undefined;
+	return `spans ${leftSpan} ↔ ${rightSpan} lines`;
+}
+
+function functionLineSpan(location: Record<string, any>): number | undefined {
+	const start = numberValue(location.start_line);
+	const end = numberValue(location.end_line);
+	if (start === undefined || end === undefined || end < start) return undefined;
+	return end - start + 1;
 }
 
 function formatEnrichmentAvailability(value: unknown): string | undefined {

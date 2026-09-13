@@ -358,12 +358,12 @@ describe("formatToolOutput", () => {
 			const payload = JSON.parse(result.text.slice("Fallow findings:\n".length));
 			assert.equal(payload.finding_count, 1);
 			assert.deepEqual(payload.findings[0], {
-				section: "Unverified semantic candidates",
-				type: "Unverified semantic candidates",
+				section: "Very-high similarity · cross-file",
+				type: "Very-high similarity · cross-file",
 				id: "sc_example",
 				location: { path: "src/a.ts", line: 5 },
 				subject: "left ↔ right",
-				details: "id sc_example · similarity 0.910 · very-high · right src/b.ts:25 · unverified",
+				details: "id sc_example · similarity 0.910 · very-high · cross-file · right src/b.ts:25 · unverified",
 				action: "Inspect this candidate",
 			});
 			assert.match(payload.notes.join("\n"), /advisory and unverified/);

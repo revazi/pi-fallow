@@ -268,6 +268,58 @@ describe("FallowIssueNavigator prompt generation", () => {
 		assert.match(result.prompt, /unused export/);
 	});
 
+	it("triages every Similar Code candidate through generated sections and relationship search", () => {
+		const overview = buildFallowOverview({
+			kind: "similar-code",
+			generation: {},
+			completion: { status: "complete" },
+			candidates: [
+				{
+					candidate_id: "identical",
+					left: { path: "src/a.ts", name: "sameA", start_line: 1, end_line: 5, source_sha256: "same" },
+					right: { path: "src/b.ts", name: "sameB", start_line: 1, end_line: 5, source_sha256: "same" },
+					similarity: 1,
+					similarity_band: "very-high",
+				},
+				{
+					candidate_id: "very-high-cross",
+					left: { path: "src/a.ts", name: "crossA", start_line: 10, end_line: 20 },
+					right: { path: "src/b.ts", name: "crossB", start_line: 10, end_line: 20 },
+					similarity: 0.97,
+					similarity_band: "very-high",
+				},
+				{
+					candidate_id: "moderate-same",
+					left: { path: "src/a.ts", name: "localA", start_line: 30, end_line: 40 },
+					right: { path: "src/a.ts", name: "localB", start_line: 50, end_line: 60 },
+					similarity: 0.82,
+					similarity_band: "moderate",
+				},
+			],
+		});
+		const navigator = new FallowIssueNavigator(overview, theme, () => {}, () => {}, { visibleRows: 20 });
+
+		const all = navigator.render(110).join("\n");
+		assert.match(all, /3 findings/);
+		assert.match(all, /Identical extracted source/);
+		assert.match(all, /Very-high similarity · cross-file/);
+		assert.match(all, /Moderate similarity · same-file/);
+
+		navigator.handleInput("f");
+		const identicalOnly = navigator.render(110).join("\n");
+		assert.match(identicalOnly, /1\/3 findings/);
+		assert.match(identicalOnly, /sameA ↔ sameB/);
+		assert.doesNotMatch(identicalOnly, /crossA ↔ crossB/);
+
+		navigator.handleInput("x");
+		navigator.handleInput("/");
+		for (const character of "same-file") navigator.handleInput(character);
+		navigator.handleInput("\r");
+		const sameFileOnly = navigator.render(110).join("\n");
+		assert.match(sameFileOnly, /1\/3 findings/);
+		assert.match(sameFileOnly, /localA ↔ localB/);
+	});
+
 	it("edits and cancels search without closing the navigator", () => {
 		let doneCalls = 0;
 		const navigator = new FallowIssueNavigator(createFilterOverview(), theme, () => {
