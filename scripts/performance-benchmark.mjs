@@ -6,7 +6,7 @@ import { performance } from "node:perf_hooks";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
-import { populateFallowProject, runFixtureEngine, writeJsonArtifact } from "./benchmark-utils.mjs";
+import { populateFallowProject, readGitSha, requireValue, runFixtureEngine, writeJsonArtifact } from "./benchmark-utils.mjs";
 
 const execFileAsync = promisify(execFile);
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -76,12 +76,6 @@ function parseCli(args) {
 		setter(options, requireValue(args, index + 1, flag));
 	}
 	return options;
-}
-
-function requireValue(args, index, flag) {
-	const value = args[index];
-	if (!value) throw new Error(`${flag} requires a value.`);
-	return value;
 }
 
 function parsePositiveInteger(rawValue, flag, allowZero = false) {
@@ -467,7 +461,7 @@ function buildEnvironment(manifest) {
 	const cpu = cpus()[0];
 	return {
 		piFallowVersion: manifest.version,
-		gitSha: readGitSha(),
+		gitSha: readGitSha(ROOT),
 		node: process.version,
 		platform: process.platform,
 		arch: process.arch,
@@ -475,14 +469,6 @@ function buildEnvironment(manifest) {
 		logicalCpuCount: cpus().length,
 		totalMemoryBytes: totalmem(),
 	};
-}
-
-function readGitSha() {
-	try {
-		return execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
-	} catch {
-		return "unknown";
-	}
 }
 
 function buildPerformanceFindings(items) {
