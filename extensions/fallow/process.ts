@@ -1,3 +1,5 @@
+// fallow-ignore-file security-sink
+// Executable paths come from trusted host configuration or verified discovery; argv is always passed with no shell.
 import { spawn } from "node:child_process";
 import type { ExecResult } from "@earendil-works/pi-coding-agent";
 

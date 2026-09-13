@@ -1,3 +1,5 @@
+// fallow-ignore-file security-sink
+// Certification invokes fixed runtimes or integrity-verified local binaries as argv, never through a shell.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -39,7 +41,7 @@ function resolveSidecar() {
 
 function run(command, args, options) {
 	const result = spawnSync(command, args, {
-		encoding: "utf8", timeout: 60_000, maxBuffer: 4 * 1024 * 1024, ...options,
+		encoding: "utf8", timeout: 60_000, maxBuffer: 4 * 1024 * 1024, ...options, shell: false,
 	});
 	assert.ifError(result.error);
 	assert.equal(result.signal, null, `${basename(command)} ${args.join(" ")}: terminated by a signal`);

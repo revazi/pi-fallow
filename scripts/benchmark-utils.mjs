@@ -1,6 +1,21 @@
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+
+export function requireValue(args, index, flag) {
+	const value = args[index];
+	if (!value) throw new Error(`${flag} requires a value.`);
+	return value;
+}
+
+export function readGitSha(root) {
+	try {
+		return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+	} catch {
+		return "unknown";
+	}
+}
 
 export async function writeJsonArtifact(artifact, outputPath) {
 	if (!outputPath) return;

@@ -1,3 +1,5 @@
+// fallow-ignore-file security-sink
+// Certification invokes only the repository-local pinned Fallow binary with internally defined argv and no shell.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -39,7 +41,7 @@ function execute(args, root) {
 	// user's home/config. PATH only exposes the pinned package and this Node.
 	const home = join(root, "home");
 	const result = spawnSync(join(repository, "node_modules/.bin/fallow"), args, {
-		cwd: root, encoding: "utf8", timeout: 30_000, maxBuffer: 2 * 1024 * 1024,
+		cwd: root, encoding: "utf8", timeout: 30_000, maxBuffer: 2 * 1024 * 1024, shell: false,
 		env: {
 			PATH: [join(repository, "node_modules/.bin"), dirname(process.execPath)].join(delimiter),
 			HOME: home, XDG_CACHE_HOME: join(home, "cache"), XDG_CONFIG_HOME: join(home, "config"),

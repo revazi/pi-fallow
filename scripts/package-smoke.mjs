@@ -1,3 +1,5 @@
+// fallow-ignore-file security-sink
+// Package smoke invokes the fixed Node runtime and lock-resolved Pi entrypoint as argv, never through a shell.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -245,6 +247,7 @@ function runIsolatedPi(cliPath, args, agentDir) {
 	mkdirSync(tempDir, { recursive: true });
 	const result = spawnSync(process.execPath, [cliPath, ...args], {
 		cwd: root,
+		shell: false,
 		env: isolatedProcessEnvironment(agentDir, homeDir, tempDir),
 		encoding: "utf8",
 		timeout: 120_000,
