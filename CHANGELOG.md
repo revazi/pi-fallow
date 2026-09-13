@@ -24,6 +24,7 @@ All notable changes to Pi Fallow are documented here.
 - Updated the pinned Fallow compatibility target to 3.22.0 and re-certified the current command/schema, report-fixture, runtime-coverage, type-aware, quality, and packaged host surfaces, including 3.22's conservative best-effort type-aware timeout behavior and module-scope complexity accounting.
 
 ### Fixed
+- Kept advisory health refactoring targets out of `/fallow issues` counts and actionable navigator rows while preserving them as informational context under `/fallow health`.
 - Polished optional-analysis overlays by hiding machine-readable companion/report streams behind concise progress, keeping numbered tabs visible during setup and analysis, restoring completed per-view results after tab switches, remembering the Similar Code cache opt-in across overlay launches and session reloads, and adding `y` clipboard copy for selected Findings or Similar Code candidates in compact or full-JSON mode.
 - Temporarily disabled the Runtime Coverage overlay tab because the current sidecar's licensed continuous/multi-capture boundary is not modeled clearly enough in the interactive workflow; low-level validation remains internal.
 - Normalized `coverage-analyze` runtime findings, uncertainty discriminators, capture quality, provenance, blast radius, and importance into bounded output and the navigator, keeping informational context out of finding counts and incomplete evidence explicitly non-authoritative.

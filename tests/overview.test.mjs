@@ -86,7 +86,7 @@ describe("buildFallowOverview", () => {
 		});
 	});
 
-	it("classifies file scores and hotspots as informational context", () => {
+	it("classifies file scores, hotspots, and advisory refactoring targets as informational context", () => {
 		const overview = buildFallowOverview({
 			kind: "health",
 			findings: [],
@@ -95,11 +95,13 @@ describe("buildFallowOverview", () => {
 				{ path: "src/risky.ts", maintainability_index: 55, lines: 200, dead_code_ratio: 0.2, crap_max: 25 },
 			],
 			hotspots: [{ path: "src/busy.ts", score: 30, commits: 12, lines_added: 100, lines_deleted: 50 }],
+			targets: [{ path: "src/shared.ts", category: "split_high_impact", recommendation: "Split shared module" }],
 		});
 
 		assert.equal(overview.status, "success");
 		assert.deepEqual(overview.sections.map((section) => [section.title, section.role, section.items.length]), [
 			["Worst file scores", "context", 2],
+			["Refactoring targets", "context", 1],
 			["Hotspots", "context", 1],
 		]);
 	});

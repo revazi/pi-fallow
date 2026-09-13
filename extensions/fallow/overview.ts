@@ -208,7 +208,7 @@ function buildHealthSections(data: Record<string, any>, includeAllRaw = false): 
 	const sections: FallowOverviewSection[] = [];
 	appendHealthSection(sections, "Complexity findings", "error", "finding", asArray(data.findings), INLINE_RAW_EXTENDED, includeAllRaw, buildComplexityIssue);
 	appendHealthSection(sections, "Worst file scores", "accent", "context", asArray(data.file_scores), INLINE_RAW_DEFAULT, includeAllRaw, buildFileScoreIssue);
-	appendHealthSection(sections, "Refactoring targets", "warning", "finding", asArray(data.targets), INLINE_RAW_DEFAULT, includeAllRaw, buildRefactoringTargetIssue);
+	appendHealthSection(sections, "Refactoring targets", "warning", "context", asArray(data.targets), INLINE_RAW_DEFAULT, includeAllRaw, buildRefactoringTargetIssue);
 	appendHealthSection(sections, "Hotspots", "muted", "context", asArray(data.hotspots), INLINE_RAW_DEFAULT, includeAllRaw, buildHotspotIssue);
 	return sections;
 }
@@ -334,6 +334,7 @@ function addProjectIssuesMetadata(
 	const summary = asRecord(root.summary);
 	addProjectIssueStats(stats, summary);
 	addSecurityCandidateNote(notes, summary);
+	addOmittedHealthTargetNote(root, notes);
 }
 
 function addProjectIssueStats(
@@ -347,6 +348,23 @@ function addProjectIssueStats(
 function addSecurityCandidateNote(notes: string[], summary: Record<string, any> | undefined): void {
 	if (projectIssueSummaryValue(summary, "security_candidates") === 0) return;
 	notes.push("Security candidates require agent verification and are not confirmed vulnerabilities.");
+}
+
+function addOmittedHealthTargetNote(root: Record<string, any>, notes: string[]): void {
+	const count = omittedHealthTargetCount(root);
+	if (!count) return;
+	notes.push(`${count} advisory health refactoring target(s) are excluded from the issue count; run /fallow health to review them.`);
+}
+
+function omittedHealthTargetCount(root: Record<string, any>): number {
+	const metadata = asRecord(root._meta);
+	const projectIssues = asRecord(metadata?.project_issues);
+	const omitted = asRecord(projectIssues?.omitted_informational_context);
+	return numericOverviewValue(omitted?.refactoring_targets);
+}
+
+function numericOverviewValue(value: unknown): number {
+	return typeof value === "number" ? value : 0;
 }
 
 function projectIssueSummaryValue(summary: Record<string, any> | undefined, key: string): number {
