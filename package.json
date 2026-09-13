@@ -65,6 +65,7 @@
     "SECURITY.md",
     "LICENSE",
     "pi-fallow.png",
+    "pi-fallow-similar-code.png",
     "extensions/**/*.ts"
   ],
   "peerDependencies": {

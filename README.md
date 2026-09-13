@@ -14,11 +14,15 @@ Use it when you want Pi to verify changes, review a PR, find dead code, inspect 
 
 *Pi Fallow checking the pi-fallow package itself.*
 
+![Pi Fallow Similar Code analysis results grouped in the persistent overlay](./pi-fallow-similar-code.png)
+
+*The Similar Code result view keeps every semantic candidate available while grouping the review queue by source identity, similarity band, and file locality.*
+
 ## Highlights
 
 - **Compact agent tool:** `fallow_run` uses a small command-plus-args contract while preserving internal validation and older-session compatibility.
 - **Synchronized command contract:** one typed registry drives tool commands, compact CLI prefixes, slash aliases, autocomplete, and the `/fallow` argument hint.
-- **Useful default:** `/fallow`, `/fallow run`, and `/fallow issues` aggregate project-wide dead-code, duplication, health, and security findings into one issue-focused report; per-file health context is omitted.
+- **Useful default:** `/fallow`, `/fallow run`, and `/fallow issues` aggregate project-wide dead-code, duplication, health, and security findings into one issue-focused report; per-file health context and advisory refactoring targets are omitted from the issue count.
 - **Slash command:** `/fallow ...` runs Fallow from inside Pi, with direct subcommands retained and a configurable default command.
 - **PR shortcut:** `/fallow pr` maps to `audit --base <detected-base> --gate new-only`.
 - **Rerun shortcut:** `/fallow rerun` repeats the last `/fallow` command.
@@ -110,7 +114,7 @@ Manual slash command examples:
 /fallow coverage analyze
 ```
 
-`/fallow`, `/fallow run`, and `/fallow issues` run Pi Fallow's project-issue aggregation by default. It executes Fallow's combined dead-code, duplication, and health analysis followed by the opt-in security-candidate analysis, then opens one navigator containing only actionable findings. Informational health file scores and hotspots are intentionally omitted so a clean project does not produce a browser full of files. Security entries remain candidates that require agent verification, not confirmed vulnerabilities.
+`/fallow`, `/fallow run`, and `/fallow issues` run Pi Fallow's project-issue aggregation by default. It executes Fallow's combined dead-code, duplication, and health analysis followed by the opt-in security-candidate analysis, then opens one navigator containing only actionable findings. Informational health file scores, hotspots, and advisory refactoring targets are intentionally omitted so a clean project does not produce a browser full of guidance. The aggregate notes how many refactoring targets were omitted and keeps them available under explicit `/fallow health`. Security entries remain candidates that require agent verification, not confirmed vulnerabilities.
 
 The aggregate accepts curated options that can be applied safely to one or both analyses, including `--changed-since`, `--workspace`, `--production`, `--score`, type-aware controls, runtime coverage, and `--surface`. Use an explicit command such as `/fallow health --file-scores` for command-specific informational output. `/fallow all` remains direct access to Fallow's native combined root report and does not add the separate security scan.
 
@@ -213,7 +217,7 @@ In the interactive navigator:
 - `/` — search section, label, path, severity, details, and suggested action
 - `f` / `v` — cycle section/severity filters
 - `x` — clear filters; `c` — clear explicit selections
-- `i` — show/hide informational file scores and hotspots; they are hidden by default and never counted as findings
+- `i` — show/hide informational health context, including file scores, hotspots, and refactoring targets; it is hidden by default and never counted as findings
 - `d` — toggle full raw finding JSON in the agent prompt; it is deselected by default
 - `p` — open the current finding's command-aware action palette
 - `e` or `a` — load selected findings into the editor
@@ -224,7 +228,7 @@ The action palette derives only shell-free argument arrays supported by the curr
 
 The navigator defaults to compact prompts. Compact mode includes every selected finding with type, severity, location, subject, concise evidence/details, and suggested action, plus the complete-report path. Selecting the full-details checkbox additionally embeds complete raw JSON for every selected finding; the overlay warns that this can use substantially more model context.
 
-Plain `fallow health` can return actionable findings alongside informational per-file scores and hotspots. Pi Fallow hides those informational records by default and reports their count separately. Explicit informational commands such as `health --file-scores` and `flags` show their records directly without finding-selection or agent-prompt controls. The overlay stays centered at 90% terminal width, can use up to 95% of terminal height, and expands large virtualized result sets to as many as 30 visible rows.
+Plain `fallow health` can return actionable threshold findings alongside informational per-file scores, hotspots, and advisory refactoring targets. Pi Fallow hides informational context by default and reports its count separately. Explicit informational commands such as `health --file-scores` and `flags` show their records directly without finding-selection or agent-prompt controls. The overlay stays centered at 90% terminal width, can use up to 95% of terminal height, and expands large virtualized result sets to as many as 30 visible rows.
 
 ## Tested compatibility
 
