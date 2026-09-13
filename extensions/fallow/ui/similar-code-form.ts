@@ -13,6 +13,7 @@ interface FormOptions {
 	initialValues?: SimilarCodeFormValues;
 	isReady: () => boolean;
 	onRun?: (request: SimilarCodeRunRequest) => void;
+	onCacheChange?: (enabled: boolean) => void;
 	validate?: typeof validateSimilarCodeOptions;
 	validationTimeoutMs?: number;
 }
@@ -63,6 +64,7 @@ export class SimilarCodeForm implements Component, Focusable {
 	private toggleCache(): void {
 		this.cancelPending();
 		this.values.reuseCache = this.values.reuseCache !== true;
+		this.options.onCacheChange?.(this.values.reuseCache);
 		this.notice = "";
 		this.changed();
 	}

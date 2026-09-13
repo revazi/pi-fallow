@@ -20,14 +20,14 @@ function overview(role = "finding", count = 40) {
 	};
 }
 
-function create(role = "finding", count = 40, checkReadiness) {
+function create(role = "finding", count = 40, checkReadiness, options = {}) {
 	const results = [];
 	let renders = 0;
 	let rows = 24;
 	const findings = new FallowIssueNavigator(overview(role, count), theme, (result) => results.push(result), () => { renders++; }, {
 		optionalAnalysis: true, commandArgs: ["issues"], visibleRows: 3, informationalMode: role === "context",
 	});
-	const shell = new FallowOverlayShell(findings, theme, () => { renders++; }, () => rows, checkReadiness);
+	const shell = new FallowOverlayShell(findings, theme, () => { renders++; }, () => rows, checkReadiness, options);
 	shell.focused = true;
 	return { shell, findings, results, renders: () => renders, resize: (value) => { rows = value; } };
 }
@@ -35,19 +35,17 @@ function create(role = "finding", count = 40, checkReadiness) {
 function text(shell, width = 100) { return shell.render(width).join("\n"); }
 
 function assertOptionalPagesAtSize(shell, width, rows) {
-	for (const view of ["2", "3"]) {
-		shell.handleInput(view);
-		for (const key of ["\u001b[H", "\u001b[F"]) {
-			shell.handleInput(key);
-			const lines = shell.render(width);
-			const plain = lines.map((line) => line.replace(/\u001b\[[0-9;]*m/g, ""));
-			assert.match(plain[0], /^╭ ✦ (Similar Code|Runtime Coverage) ─+╮$/);
-			assert.match(plain.at(-1), /^╰─+╯$/);
-			assert.ok(plain.slice(1, -1).every((line) => (line.startsWith("│ ") && line.endsWith(" │")) || /^├─+┤$/.test(line)));
-			assert.ok(plain[1].includes(`[${view} `));
-			assert.ok(lines.every((line) => visibleWidth(line) === width));
-			assert.ok(lines.length <= Math.floor(rows * 0.95));
-		}
+	shell.handleInput("2");
+	for (const key of ["\u001b[H", "\u001b[F"]) {
+		shell.handleInput(key);
+		const lines = shell.render(width);
+		const plain = lines.map((line) => line.replace(/\u001b\[[0-9;]*m/g, ""));
+		assert.match(plain[0], /^╭ ✦ Similar Code ─+╮$/);
+		assert.match(plain.at(-1), /^╰─+╯$/);
+		assert.ok(plain.slice(1, -1).every((line) => (line.startsWith("│ ") && line.endsWith(" │")) || /^├─+┤$/.test(line)));
+		assert.ok(plain[1].includes("[2 Similar"));
+		assert.ok(lines.every((line) => visibleWidth(line) === width));
+		assert.ok(lines.length <= Math.floor(rows * 0.95));
 	}
 }
 
@@ -68,19 +66,36 @@ describe("persistent Fallow overlay shell", () => {
 			const original = text(shell);
 			assert.match(original.split("\n")[0], /╭/);
 			assert.ok(!original.split("\n")[0].includes("[1 Findings]"), "navigation belongs inside the report, not above it");
-			for (const label of ["Findings", "Similar Code", "Runtime Coverage"]) assert.ok(original.includes(label));
+			for (const label of ["Findings", "Similar Code"]) assert.ok(original.includes(label));
+			assert.doesNotMatch(original, /Runtime Coverage/);
 			shell.handleInput("2");
 			assert.match(text(shell), /\[2 Similar Code\]/);
 			assert.equal(findings.focused, false);
 			shell.handleInput("3");
-			assert.match(text(shell), /\[3 Runtime Coverage\]/);
+			assert.match(text(shell), /\[2 Similar Code\]/);
 			shell.handleInput("1");
 			assert.equal(findings.focused, true);
 			assert.equal(text(shell), original);
 			assert.deepEqual(results, []);
-			assert.equal(renders(), 5);
+			assert.equal(renders(), 3);
 		});
 	}
+
+	it("reuses the persisted cache choice when a new overlay is mounted", () => {
+		let preference = false;
+		const first = create("finding", 1, undefined, {
+			initialSimilarCodeReuseCache: preference,
+			onSimilarCodeCacheChange: (enabled) => { preference = enabled; },
+		});
+		first.shell.handleInput("2"); first.shell.handleInput("c");
+		assert.equal(preference, true);
+		first.shell.dispose();
+		const second = create("finding", 1, undefined, { initialSimilarCodeReuseCache: preference });
+		second.shell.handleInput("2");
+		assert.equal(second.shell.snapshotState().similarCode.reuseCache, true);
+		assert.match(text(second.shell), /Run reads\/writes user-local cache/);
+		second.shell.dispose();
+	});
 
 	it("retains the explicit cache choice across optional views without clearing findings", () => {
 		const { shell, findings, results } = create();
@@ -88,7 +103,7 @@ describe("persistent Fallow overlay shell", () => {
 		const before = findings.snapshotState();
 		shell.handleInput("2"); shell.handleInput("c");
 		assert.equal(shell.snapshotState().similarCode.reuseCache, true);
-		shell.handleInput("3"); shell.handleInput("2");
+		shell.handleInput("1"); shell.handleInput("2");
 		assert.match(text(shell), /Run reads\/writes user-local cache/);
 		shell.handleInput("1");
 		assert.deepEqual(findings.snapshotState(), before);
@@ -105,7 +120,7 @@ describe("persistent Fallow overlay shell", () => {
 		assert.match(original, /Verify usage before removal/);
 		assert.match(original, /1 selected/);
 		assert.match(original, /search: helper/);
-		for (const key of ["2", "3", "1"]) shell.handleInput(key);
+		for (const key of ["2", "1"]) shell.handleInput(key);
 		assert.equal(text(shell), original);
 		shell.handleInput("o");
 		assert.equal(results.length, 0);
@@ -158,7 +173,7 @@ describe("persistent Fallow overlay shell", () => {
 		assert.deepEqual(other.results, [null]);
 	});
 
-	it("retains independent optional-view scroll positions with bounded responsive output", () => {
+	it("retains Similar Code scroll through Findings with bounded responsive output", () => {
 		const { shell, resize, results } = create();
 		resize(14);
 		shell.handleInput("2");
@@ -166,8 +181,8 @@ describe("persistent Fallow overlay shell", () => {
 		shell.handleInput("\x1b[F");
 		const scrolled = text(shell, 50);
 		assert.notEqual(scrolled, first);
-		shell.handleInput("3");
-		assert.match(text(shell, 50), /Local\/unknown-production/);
+		shell.handleInput("1");
+		assert.doesNotMatch(text(shell, 50), /Runtime Coverage/);
 		shell.handleInput("2");
 		assert.equal(text(shell, 50), scrolled);
 		for (const width of [1, 20, 50, 80, 120]) {
@@ -207,10 +222,10 @@ describe("persistent Fallow overlay shell", () => {
 		shell.handleInput("r");
 		assert.match(text(shell), /Readiness: loading/);
 		await tick();
-		for (const key of ["3", "1", "2"]) shell.handleInput(key);
+		for (const key of ["1", "2"]) shell.handleInput(key);
 		await tick();
 		assert.match(text(shell), /Location:/);
-		assert.deepEqual(calls, ["similar-code", "similar-code", "runtime-coverage"]);
+		assert.deepEqual(calls, ["similar-code", "similar-code"]);
 		assert.deepEqual(results, []);
 		shell.dispose();
 	});

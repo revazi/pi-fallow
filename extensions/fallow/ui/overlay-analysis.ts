@@ -127,7 +127,7 @@ export class OverlayAnalysis implements Focusable {
 	}
 
 	private handleResult(data: string, entry: AnalysisView): boolean {
-		if (["1", "2", "3"].includes(data)) return false;
+		if (["1", "2"].includes(data)) return false;
 		if (isBack(data)) this.hide();
 		else if (data === "q") this.done(null);
 		else this.handleResultControls(data, entry);
@@ -157,11 +157,12 @@ export class OverlayAnalysis implements Focusable {
 		return true;
 	}
 
-	render(width: number, rows: number): string[] {
+	render(width: number, rows: number, navigation?: string): string[] {
 		const entry = this.current;
 		if (!entry || width < 1) return [];
 		const separator = this.theme.fg("border", "─".repeat(width));
-		const heading = [...new Text(this.analysisHeading(entry), 0, 0).render(width), separator];
+		const tabs = navigation ? new Text(navigation, 0, 0).render(width) : [];
+		const heading = [...tabs, ...new Text(this.analysisHeading(entry), 0, 0).render(width), separator];
 		const footer = [separator, ...new Text(this.theme.fg("muted", this.footerHelp(entry)), 0, 0).render(width)];
 		const frame = overlayFrame(width, rows, heading, this.content(entry, width, rows), footer, entry.scroll, this.resultAnchor(entry));
 		this.pageRows = frame.pageRows;
@@ -188,7 +189,7 @@ export class OverlayAnalysis implements Focusable {
 
 	private footerHelp(entry: AnalysisView): string {
 		if (this.pending) return "Esc/b/q/Ctrl+C cancel & wait · PgUp/PgDn output";
-		return entry.navigator?.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "Esc/b form · r retry · I details/output · q close · 1/2/3 views · PgUp/PgDn scroll";
+		return entry.navigator?.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "Esc/b form · r retry · I details/output · q close · 1/2 views · PgUp/PgDn scroll";
 	}
 
 	private resultAnchor(entry: AnalysisView): number | undefined {
@@ -272,5 +273,10 @@ function resultDetails(result: FallowCommandResult): string[] {
 }
 function detailText(entry: AnalysisView): string {
 	const lines = entry.result ? resultDetails(entry.result) : [];
-	return [entry.label, ...lines, "Output tail (last 12000 characters; no automatic retry or installation):", entry.output].join("\n\n");
+	return [...lines, ...progressDetails(entry)].join("\n\n");
+}
+function progressDetails(entry: AnalysisView): string[] {
+	if (entry.output) return ["Diagnostic output tail (last 12000 characters):", entry.output];
+	if (!entry.result && !/failed|cancelled/iu.test(entry.label)) return ["Fallow is working locally. Quiet periods are normal; the elapsed timer will continue."];
+	return [];
 }

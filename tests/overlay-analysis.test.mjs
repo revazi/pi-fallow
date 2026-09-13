@@ -79,8 +79,8 @@ describe("optional analysis execution gate", () => {
 					assert.doesNotMatch(command, /npx|npm/);
 					assert.deepEqual(args, [...request(root).commandArgs, "--no-cache", "--format", "json"]);
 					assert.equal(cwd, root); assert.ok(timeout > 0); assert.equal(environment, undefined);
-					output("fixture progress");
-					return { stdout: JSON.stringify(semantic()), stderr: "", code: 1, killed: false };
+					assert.equal(output, undefined, "machine streams must not be wired into progress");
+					return { stdout: JSON.stringify(semantic()), stderr: `${JSON.stringify({ kind: "similar-code-status", model_ready: true })}\nUncached local inference may take minutes.`, code: 1, killed: false };
 				},
 			});
 			const progress = [];
@@ -89,8 +89,8 @@ describe("optional analysis execution gate", () => {
 			assert.equal(result.reportMetadata.complete, true);
 			assert.equal(result.reportMetadata.fallowVersion, "3.22.0");
 			assert.match(await readFile(result.formatted.fullOutputPath, "utf8"), /pinned-fixture-revision/);
-			assert.ok(progress.some((args) => args[1] === "fixture progress" && /timeout/.test(args[0])));
-			assert.ok(progress.some((args) => /may take minutes/.test(args[1] ?? "")));
+			assert.ok(progress.some((args) => /Finding similar code locally · cache off · timeout/.test(args[0])));
+			assert.doesNotMatch(JSON.stringify(progress), /similar-code-status|Uncached local inference/);
 		});
 	});
 
@@ -107,8 +107,8 @@ describe("optional analysis execution gate", () => {
 						return { stdout: JSON.stringify(semantic()), stderr: "", code: 0, killed: false };
 					},
 				});
-				await run(input, signal(), (_label, output) => progress.push(output ?? ""));
-				assert.equal(progress.join("").includes("may read/write"), reuseCache === true);
+				await run(input, signal(), (label, output) => progress.push(`${label}${output ?? ""}`));
+				assert.equal(progress.join("").includes("cache on"), reuseCache === true);
 			}
 		});
 	});
@@ -191,12 +191,14 @@ describe("optional analysis execution gate", () => {
 		const controller = new AbortController();
 		const run = createOverlayAnalysisRun({}, "tui", process.cwd(), async () => ready, {
 			timeoutSecs: outcome === "cancelled" ? 5 : .1,
-			executeProcess: (_command, _args, cwd, abort, timeout, _env, output) => execFallowProcess(process.execPath,
-				["-e", "process.stdout.write('fake local analysis'); setInterval(() => {}, 1000)"], cwd, abort, timeout, undefined, output),
+			executeProcess: (_command, _args, cwd, abort, timeout) => {
+				const work = execFallowProcess(process.execPath,
+					["-e", "process.stdout.write('fake local analysis'); setInterval(() => {}, 1000)"], cwd, abort, timeout);
+				if (outcome === "cancelled") setTimeout(() => controller.abort(), 20);
+				return work;
+			},
 		});
-		const result = await run(request(), controller.signal, (_label, output) => {
-			if (outcome === "cancelled" && output) controller.abort();
-		});
+		const result = await run(request(), controller.signal, () => {});
 		assert.equal(result.execution.terminationReason, outcome);
 		assert.equal(result.reportMetadata.complete, false);
 		assert.ok(result.formatted.fullOutputPath);
@@ -339,11 +341,17 @@ describe("persistent analysis and result views", () => {
 			shell.handleInput("t"); shell.handleInput(".8"); shell.handleInput("\x1b");
 			const form = shell.snapshotState();
 			shell.handleInput("\r"); await until(() => shell.render(120).join("\n").includes("Analysis complete"));
+			assert.match(shell.render(120).join("\n"), /1 Findings.*2 Similar Code/);
+			assert.doesNotMatch(shell.render(120).join("\n"), /Runtime Coverage/);
 			assert.equal(done, undefined); assert.equal(runs, 1);
 			for (const width of [1, 20, 50, 120]) assert.ok(shell.render(width).every((line) => visibleWidth(line) <= width));
 			shell.handleInput("b"); assert.deepEqual(shell.snapshotState(), form);
 			shell.handleInput("R"); assert.match(shell.render(120).join("\n"), /Analysis complete/);
 			shell.handleInput("1"); assert.equal(shell.render(120).join("\n"), original);
+			shell.handleInput("2"); assert.match(shell.render(120).join("\n"), /Analysis complete/);
+			shell.handleInput("b"); assert.match(shell.render(120).join("\n"), /Analysis options/);
+			shell.handleInput("1"); shell.handleInput("2"); assert.match(shell.render(120).join("\n"), /Analysis options/);
+			shell.handleInput("1");
 			shell.handleInput("q"); return done;
 		} } };
 		await openFallowOverviewNavigator(ctx, overview, { commandArgs: ["issues"], optionalAnalysis: true, checkReadiness: async () => ready,

@@ -120,7 +120,7 @@ describe("in-overlay setup safety and lifecycle", () => {
 		let checks = 0;
 		const findings = { focused: true, invalidate() {}, render() { return ["unchanged report"]; }, handleInput() { throw new Error("setup leaked input to findings"); } };
 		const shell = new FallowOverlayShell(findings, theme, () => {}, () => 30, async () => { checks++; return report; }, {
-			projectRoot: "/project", initialState: { view: 2, similarCode: { threshold: "0.85" } },
+			projectRoot: "/project", initialState: { view: 1, similarCode: { threshold: "0.85" } },
 			runSetup: async (_view, abort, confirm, progress) => {
 				signal = abort;
 				if (!await confirm("Install?", "Preview")) return "declined";
@@ -132,7 +132,10 @@ describe("in-overlay setup safety and lifecycle", () => {
 		});
 		await tick();
 		const before = shell.snapshotState();
-		shell.handleInput("S"); await tick(); shell.handleInput("y"); await tick();
+		shell.handleInput("S"); await tick();
+		assert.match(shell.render(110).join("\n"), /1 Findings.*2 Similar Code/);
+		assert.doesNotMatch(shell.render(110).join("\n"), /Runtime Coverage/);
+		shell.handleInput("y"); await tick();
 		for (const width of [1, 20, 80, 120]) assert.ok(shell.render(width).every((line) => visibleWidth(line) <= width));
 		for (const key of ["q", "\x1b", "\x7f", "1", "o", "s", "y"]) shell.handleInput(key);
 		assert.equal(signal.aborted, true);

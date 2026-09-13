@@ -118,9 +118,10 @@ export class OverlaySetup {
 		this.title = "Cancelling… waiting for process cleanup. Back/close disabled until settled.";
 	}
 
-	render(width: number, rows: number, readiness: string[]): string[] {
+	render(width: number, rows: number, readiness: string[], navigation?: string): string[] {
 		const separator = this.theme.fg("border", "─".repeat(width));
-		const heading = [...new Text(this.setupHeading(), 0, 0).render(width), separator];
+		const tabs = navigation ? new Text(navigation, 0, 0).render(width) : [];
+		const heading = [...tabs, ...new Text(this.setupHeading(), 0, 0).render(width), separator];
 		const footer = [separator, ...new Text(this.theme.fg("muted", this.help()), 0, 0).render(width)];
 		const content = new Text(this.theme.fg("text", clean(this.setupBody(readiness))), 0, 0).render(width);
 		const frame = overlayFrame(width, rows, heading, content, footer, this.scroll);

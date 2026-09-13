@@ -23,7 +23,7 @@ export class RuntimeCoverageForm implements Component, Focusable {
 	private disposed = false;
 
 	constructor(private options: CoverageFormOptions, private changed: () => void) {
-		this.state = { input: "", feedback: "No artifact selected.", ...options.initialState };
+		this.state = { input: "", feedback: "Choose a local V8/Istanbul coverage file or directory.", ...options.initialState };
 		this.editor = new InlineTextEditor((value) => this.updateInput(value), (validate) => this.finishEditing(validate), () => {});
 		this.task = new LatestFormTask(changed, (message) => { this.state.feedback = `Check failed: ${message}`; }, options.timeoutMs);
 	}
@@ -40,10 +40,22 @@ export class RuntimeCoverageForm implements Component, Focusable {
 	}
 
 	private handleControls(data: string): boolean {
-		if (data === "a") { this.cancelPending(); this.editor.start(this.state.input); this.changed(); return true; }
+		if (data === "a") { this.startPathEditing(); return true; }
 		if (data === "v") { this.preview(); return true; }
-		if (matchesKey(data, "enter")) { this.confirmRun(); return true; }
+		if (matchesKey(data, "enter")) { this.handleEnter(); return true; }
 		return false;
+	}
+
+	private handleEnter(): void {
+		if (!this.state.input.trim()) this.startPathEditing();
+		else this.confirmRun();
+	}
+
+	private startPathEditing(): void {
+		this.cancelPending();
+		this.editor.start(this.state.input);
+		if (!this.state.input.trim()) this.state.feedback = "Type or paste a local coverage path, then press Enter to preview it.";
+		this.changed();
 	}
 
 	private updateInput(value: string): void {
@@ -106,7 +118,7 @@ export class RuntimeCoverageForm implements Component, Focusable {
 	render(width: number, theme?: any): string[] {
 		if (width < 1) return [];
 		const ui = theme ?? PLAIN_THEME;
-		const lines = new Text(`${this.titleLine(width, ui)}\n${ui.fg("dim", "Local/unknown-production evidence only; cold code is not proof of safe deletion.")}`, 0, 0).render(width);
+		const lines = new Text(`${this.titleLine(width, ui)}\n${ui.fg("dim", "Examples: coverage/tmp/ (c8/V8) · coverage/coverage-final.json (Istanbul) · .nyc_output/")}\n${ui.fg("dim", "Local/unknown-production evidence only; cold code is not proof of safe deletion.")}`, 0, 0).render(width);
 		lines.push(...this.pathLines(width, ui));
 		if (this.state.preview) lines.push("", ...this.styledPreviewLines(width, ui));
 		lines.push(...new Text(`\n${this.feedbackLine(ui)}\n${ui.fg("dim", this.controls())}`, 0, 0).render(width));
@@ -115,7 +127,7 @@ export class RuntimeCoverageForm implements Component, Focusable {
 
 	private titleLine(width: number, theme: any): string {
 		const context = width < 50 ? "" : ` ${theme.fg("dim", "· local V8/Istanbul capture")}`;
-		return `${theme.fg("accent", "●")} ${theme.fg("accent", theme.bold("Evidence source"))}${context}`;
+		return `${theme.fg("accent", "●")} ${theme.fg("accent", theme.bold("Select coverage artifact"))}${context}`;
 	}
 
 	private feedbackLine(theme: any): string {
@@ -127,11 +139,12 @@ export class RuntimeCoverageForm implements Component, Focusable {
 
 	private pathLines(width: number, theme: any): string[] {
 		if (this.isEditing) {
-			const label = `  ${theme.fg("accent", "a")} ${theme.fg("text", "Artifact path")} ${theme.fg("accent", "editing")}`;
+			const label = `  ${theme.fg("accent", "a")} ${theme.fg("text", "Coverage path")} ${theme.fg("accent", "editing")}`;
 			return [...new Text(label, 0, 0).render(width), ...this.editor.render(width)];
 		}
-		const value = boundedReadinessText(this.state.input) || "not selected";
-		const label = `  ${theme.fg("accent", "a")} ${theme.fg("text", "Artifact".padEnd(labelWidth(width)))} ${theme.fg("accent", value)}`;
+		const value = boundedReadinessText(this.state.input);
+		const selection = value || theme.fg("warning", "press a or Enter, then type/paste a path");
+		const label = `  ${theme.fg("accent", "a")} ${theme.fg("text", "Coverage path".padEnd(labelWidth(width)))} ${selection}`;
 		return new Text(label, 0, 0).render(width);
 	}
 
@@ -161,6 +174,11 @@ export class RuntimeCoverageForm implements Component, Focusable {
 	private canRun(): boolean { return Boolean(this.state.sidecar && readyRuntimeBinding(this.options.readiness())); }
 
 	private runControls(): string {
+		if (!this.state.input.trim()) return "a/Enter choose coverage path · type or paste a local file/directory";
+		return this.selectedPathControls();
+	}
+
+	private selectedPathControls(): string {
 		if (!this.state.preview) return "a edit path · v/Enter preview (no Run yet)";
 		if (!this.canRun()) return "a edit · v preview · Run disabled: r refresh readiness, then v preview again";
 		if (!this.options.onRun) return "a edit · v preview · Run unavailable in this context";
