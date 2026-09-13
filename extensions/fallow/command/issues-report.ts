@@ -81,7 +81,7 @@ function duplicationIssueCount(report: Record<string, any> | undefined): number 
 }
 
 function healthIssueCount(report: Record<string, any> | undefined): number {
-	return arrayValue(report?.findings).length + arrayValue(report?.targets).length;
+	return arrayValue(report?.findings).length;
 }
 
 function projectIssueSummary(counts: ProjectIssueCounts): Record<string, number> {
@@ -105,7 +105,14 @@ function keepIssueReportField(value: unknown): boolean {
 
 function compactHealthIssueReport(report: Record<string, any> | undefined): Record<string, any> | undefined {
 	if (!report) return undefined;
-	const { file_scores: _fileScores, hotspots: _hotspots, hotspot_summary: _hotspotSummary, target_thresholds: _targetThresholds, ...issues } = report;
+	const {
+		file_scores: _fileScores,
+		hotspots: _hotspots,
+		hotspot_summary: _hotspotSummary,
+		targets: _targets,
+		target_thresholds: _targetThresholds,
+		...issues
+	} = report;
 	return compactIssueArrays(issues);
 }
 
@@ -170,6 +177,7 @@ function omittedHealthContext(combined: Record<string, any>): Record<string, num
 	return {
 		file_scores: arrayValue(health.file_scores).length,
 		hotspots: arrayValue(health.hotspots).length,
+		refactoring_targets: arrayValue(health.targets).length,
 	};
 }
 

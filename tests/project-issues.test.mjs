@@ -31,6 +31,7 @@ function combinedReport() {
 			findings: [{ kind: "complexity", name: "hard", path: "src/hard.ts", cyclomatic: 21 }],
 			file_scores: [{ path: "src/healthy.ts", maintainability_index: 99, lines: 10, dead_code_ratio: 0, crap_max: 1 }],
 			hotspots: [{ path: "src/busy.ts", score: 20, commits: 5 }],
+			targets: [{ path: "src/shared.ts", category: "split_high_impact", recommendation: "Split shared module" }],
 			summary: { files_analyzed: 5, functions_above_threshold: 1 },
 		},
 	};
@@ -74,7 +75,9 @@ describe("project issue aggregation", () => {
 		assert.equal(report.total_issues, 4);
 		assert.equal(report.health.file_scores, undefined);
 		assert.equal(report.health.hotspots, undefined);
+		assert.equal(report.health.targets, undefined);
 		assert.equal(report.security.security_findings, undefined);
+		assert.equal(report._meta.project_issues.omitted_informational_context.refactoring_targets, 1);
 		assert.equal(overview.title, "Fallow project issues");
 		assert.equal(normalized.findingCount, 4);
 		assert.equal(normalized.contextCount, 0);
@@ -85,6 +88,7 @@ describe("project issue aggregation", () => {
 			"Security candidates",
 		]);
 		assert.match(overview.notes[0], /not confirmed vulnerabilities/);
+		assert.match(overview.notes[1], /1 advisory health refactoring target/);
 	});
 
 	it("does not fall back to listing every health file when the project has no issues", () => {
@@ -96,6 +100,7 @@ describe("project issue aggregation", () => {
 		assert.deepEqual(overview.sections, []);
 		assert.equal(normalized.entryCount, 0);
 		assert.equal(overview.status, "success");
+		assert.match(overview.notes.join("\n"), /1 advisory health refactoring target/);
 	});
 
 	it("partitions curated options across combined and security analyses", () => {
