@@ -4,6 +4,11 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-13
+
+### Fixed
+- Reused the direct Fallow executable already resolved by a completed npx-backed report for read-only Similar Code readiness, setup, and analysis, without invoking an installing npx fallback during status checks.
+
 ## [0.6.0] - 2026-09-13
 
 ### Added
@@ -124,7 +129,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/revazi/pi-fallow/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/revazi/pi-fallow/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/revazi/pi-fallow/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/revazi/pi-fallow/compare/v0.4.0...v0.5.0

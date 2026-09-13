@@ -5,7 +5,7 @@ import { execFallowProcess } from "../process";
 import type { ReadinessCheck, ReadinessView } from "../readiness-report";
 import { createReadinessCheck } from "../readiness";
 import { revalidateRuntimeCoverageRequest, type RuntimeCoverageRunRequest } from "../runtime-coverage-options";
-import { createFallowRunner } from "../runner";
+import { sharedFallowRunner } from "../runner";
 import { SIMILAR_CODE_DEFAULT_TIMEOUT_SECS } from "../similar-code";
 import { validateSimilarCodeOptions, type SimilarCodeRunRequest } from "../similar-code-options";
 import { buildFallowFinalArgs, type FallowCommandResult } from "./loader";
@@ -39,10 +39,16 @@ async function executeOverlayAnalysis(
 	const view = analysisView(request);
 	progress("Rechecking readiness and validated inputs…");
 	const processes = new Set<Promise<unknown>>();
-	const runner = createFallowRunner({ allowNpxFallback: false, executeProcess: (command, args, cwd, abort, timeout, environment) =>
+	const processExecutor = (command: string, args: string[], cwd: string, abort: AbortSignal | undefined, timeout: number, environment?: NodeJS.ProcessEnv) =>
 		// JSON reports and companion status probes are machine output, not progress UI.
-		trackProcess(processes, executeProcess(command, args, cwd, abort, timeout, environment)),
-	});
+		trackProcess(processes, executeProcess(command, args, cwd, abort, timeout, environment));
+	const runner = {
+		clear: sharedFallowRunner.clear,
+		execute: (host: ExtensionAPI, args: string[], cwd: string, abort: AbortSignal | undefined, timeout: number, environment?: NodeJS.ProcessEnv) =>
+			sharedFallowRunner.executeInstalled(host, args, cwd, abort, timeout, environment, processExecutor),
+		refreshInstalled: (host: ExtensionAPI, args: string[], cwd: string, abort: AbortSignal | undefined, timeout: number, environment?: NodeJS.ProcessEnv) =>
+			sharedFallowRunner.refreshInstalled(host, args, cwd, abort, timeout, environment, processExecutor),
+	};
 	const readiness = check ?? createReadinessCheck(pi, root, runner);
 	await preflightAndDrain(() => checkedWithinBudget((abort) => preflight(root, request, readiness, abort, options), signal, preflightMs, "Analysis preflight timed out; no analysis started."), processes);
 	signal.throwIfAborted();

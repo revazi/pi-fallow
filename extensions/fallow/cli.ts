@@ -4,7 +4,7 @@ import { fallowEngine } from "./engine";
 import { isPositionalCliArg, stripAtPrefix } from "./path";
 import { execFallowProcess } from "./process";
 import { getFallowToolCommandSpec, type FallowToolCommandSpec } from "./registry";
-import { createFallowRunner } from "./runner";
+import { sharedFallowRunner } from "./runner";
 import type { FallowRunParams as CompactFallowRunParams } from "./schema";
 import { prepareSimilarCodeArgs, SIMILAR_CODE_DEFAULT_TIMEOUT_SECS } from "./similar-code";
 import type { FallowOutputDetail } from "./types";
@@ -464,7 +464,7 @@ function isRecord(value: unknown): value is Record<string, any> {
 	return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-const fallowRunner = createFallowRunner();
+const fallowRunner = sharedFallowRunner;
 
 function execFallow(
 	pi: ExtensionAPI,

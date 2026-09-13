@@ -246,7 +246,7 @@ describe("Fallow runner resolution", { concurrency: false }, () => {
 		}
 	});
 
-	it("resolves the npx package once and then runs its executable directly", async () => {
+	it("reuses a directly resolved npx package for read-only refreshes without invoking npx again", async () => {
 		const workspace = await mkdtemp(join(tmpdir(), "pi-fallow-runner-npx-package-"));
 		const pathBin = join(workspace, "path");
 		const packageBin = join(workspace, "npx-cache", "node_modules", ".bin");
@@ -266,11 +266,43 @@ describe("Fallow runner resolution", { concurrency: false }, () => {
 			const pi = {};
 			await runner.execute(pi, ["health"], workspace, undefined, 10);
 			await runner.execute(pi, ["dupes"], workspace, undefined, 10);
+			await runner.refreshInstalled(pi, ["similar-code", "status"], workspace, undefined, 10);
+			await runner.executeInstalled(pi, ["schema"], workspace, undefined, 10);
 			assert.deepEqual(calls, [
 				{ command: npx, args: ["-y", "--package=fallow", process.execPath, "-e", "process.stdout.write(process.env.PATH || '')"] },
 				{ command: fallow, args: ["health"] },
 				{ command: fallow, args: ["dupes"] },
+				{ command: fallow, args: ["similar-code", "status"] },
+				{ command: fallow, args: ["schema"] },
 			]);
+		} finally {
+			restore();
+			await rm(workspace, { recursive: true, force: true });
+		}
+	});
+
+	it("does not reuse an unresolved npx launcher for an installed-only check", async () => {
+		const workspace = await mkdtemp(join(tmpdir(), "pi-fallow-runner-npx-readonly-"));
+		const bin = join(workspace, "bin");
+		const npx = await createExecutable(bin, "npx");
+		const calls = [];
+		const runner = createFallowRunner({
+			packageRoot: null,
+			resolveNpxPackage: false,
+			executeProcess: async (command, args) => {
+				calls.push({ command, args });
+				return executionResult();
+			},
+		});
+		const restore = setEnvironment({ FALLOW_BIN: undefined, PATH: bin });
+		try {
+			const pi = {};
+			await runner.execute(pi, ["health"], workspace, undefined, 10);
+			await assert.rejects(
+				runner.refreshInstalled(pi, ["similar-code", "status"], workspace, undefined, 10),
+				/Automatic installation is disabled/,
+			);
+			assert.deepEqual(calls, [{ command: npx, args: ["-y", "fallow", "health"] }]);
 		} finally {
 			restore();
 			await rm(workspace, { recursive: true, force: true });
