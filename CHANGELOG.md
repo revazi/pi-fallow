@@ -4,12 +4,14 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-13
+
 ### Added
 - Added `/fallow config-assist` for bounded read-only configuration inspection and schema-checked rule-severity previews. Applying is TUI-only and requires direct confirmation followed by discovery/schema/content drift checks; project-root JSON, JSONC, and TOML updates preserve unrelated text, back up existing files, and commit atomically without copying inherited values or secrets into transcripts.
 - Added explicit `/fallow compatibility` diagnostics that compare the installed read-only capability schema with the frozen certified surface, distinguish bounded additive guidance from modeled incompatibilities, identify affected Pi Fallow commands, and never install, gate execution, or run during startup/autocomplete.
-- Added inline Similar Code scope, threshold, and result-limit editing with field validation, readiness-gated shell-free run requests through the existing loader, and form-state restoration when returning from results. Configuration prompts remain only in the legacy `o` workflow; shared in-overlay execution is follow-up work.
+- Added inline Similar Code scope, threshold, and result-limit editing with field validation, readiness-gated shell-free run requests through the existing loader, form-state restoration, and completed result retention inside the persistent overlay.
 - Added read-only optional-component readiness inside the overlay, with refresh, expandable installation details, supported external sidecar discovery, signature verification, bounded failures, and cancellation/stale-response protection. Status never installs components or changes setup state.
-- Added a persistent TUI overlay shell with Findings, Similar Code, and Runtime Coverage views, state-preserving navigation, and explicit placeholder guidance while inline optional workflows are developed; the existing `o` dialog workflow remains available.
+- Added a persistent TUI overlay shell with state-preserving Findings and Similar Code workflows, in-place readiness/setup/analysis progress, and retained results; Runtime Coverage remains represented by its legacy workflow while the overlay tab is disabled pending clearer sidecar boundary modeling.
 - Added TUI-only Optional Analysis controls with separate Status, previewed/confirmed Setup, and Run actions for Similar Code and local runtime coverage; setup is cancellable, drift-checked, user-global, and unavailable to tools or non-interactive modes.
 - Added bounded, project-isolated `/fallow history` for reopening digest-validated session reports and conservatively comparing compatible runs as new, unchanged, resolved, or unavailable without retaining raw reports in memory or treating resolved findings as current work.
 - Added a command-aware TUI navigator action palette with safe inspect, explain, trace, symbol-impact, and architecture queries; action results return to preserved navigator state, while fix actions are limited to explicitly previewable project-wide dry runs and can never apply changes.
@@ -17,6 +19,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Changed
 - Grouped every Similar Code candidate into source-identical or similarity-band/file-locality triage sections, surfaced distribution and omitted-comparison counts, and added deterministic size-aware ordering and function-span metadata without truncating the candidate set.
+- Added a packaged README screenshot showcasing the complete grouped Similar Code review queue.
 - Updated the coordinated Pi development lock and package-boundary certification to 0.84.4 while retaining host-provided wildcard Pi peer dependencies.
 - Added an isolated opt-in certification lane for successful local runtime coverage using a real Node 24 V8 capture and the exact signed `@fallow-cli/fallow-cov` 0.4.1 sidecar, fetched ephemerally with install scripts disabled and never added to normal dependencies.
 - Extended development certification with reproducible dead-code, duplication, health, security, combined, real unavailable/partial type-aware, signed runtime-coverage, and model-backed Similar Code reports; added nested help and missing-input contracts, new-required-argument checks, complete local discovery/inspect/review evidence, and parsing/normalization/complete-output regressions. Model certification remains a manual, existing-installation-only lane that cannot run setup or write embedding caches.
@@ -121,7 +124,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/revazi/pi-fallow/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/revazi/pi-fallow/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/revazi/pi-fallow/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/revazi/pi-fallow/compare/v0.3.1...v0.4.0
