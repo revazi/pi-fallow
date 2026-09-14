@@ -4,6 +4,13 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Added
+- Added a reproducible `/fallow issues` benchmark over generated 10-file and 500-file projects, covering cold/warm child execution, contention, navigator readiness, process concurrency, and sampled descendant RSS, with a checked-in sequential-versus-concurrent baseline.
+
+### Changed
+- Run the combined code-quality and security analyses concurrently, capped at two child processes. The measured baseline reduces warm median aggregate latency by 28.64–36.05% while preserving deterministic report order and coordinated sibling cancellation.
+- Reorganized the README around installation, common tasks, the agent tool, interactive workflows, safety, and compatibility while removing release-history-level implementation detail.
+
 ## [0.6.1] - 2026-09-13
 
 ### Fixed

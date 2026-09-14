@@ -9,6 +9,33 @@ export function requireValue(args, index, flag) {
 	return value;
 }
 
+export function parseBenchmarkInteger(rawValue, flag, allowZero = false) {
+	const value = Number(rawValue);
+	const minimum = allowZero ? 0 : 1;
+	if (!Number.isInteger(value) || value < minimum) throw new Error(`${flag} must be an integer >= ${minimum}.`);
+	return value;
+}
+
+export function aggregateBenchmarkValues(values) {
+	const sorted = [...values].sort((left, right) => left - right);
+	return {
+		min: roundBenchmarkValue(sorted[0] ?? 0),
+		median: roundBenchmarkValue(benchmarkPercentile(sorted, 0.5)),
+		p95: roundBenchmarkValue(benchmarkPercentile(sorted, 0.95)),
+		max: roundBenchmarkValue(sorted.at(-1) ?? 0),
+		mean: roundBenchmarkValue(sorted.reduce((sum, value) => sum + value, 0) / Math.max(1, sorted.length)),
+	};
+}
+
+function benchmarkPercentile(sorted, value) {
+	if (!sorted.length) return 0;
+	return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * value) - 1)];
+}
+
+export function roundBenchmarkValue(value) {
+	return Math.round(value * 100) / 100;
+}
+
 export function readGitSha(root) {
 	try {
 		return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();

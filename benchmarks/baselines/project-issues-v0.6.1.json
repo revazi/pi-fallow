@@ -1,0 +1,400 @@
+{
+  "benchmarkVersion": 1,
+  "label": "v0.6.1-sequential-vs-concurrent",
+  "generatedAt": "2026-09-14T00:53:40.638Z",
+  "config": {
+    "warmups": 1,
+    "iterations": 5,
+    "smallFiles": 10,
+    "largeFiles": 500,
+    "sampleIntervalMs": 10
+  },
+  "environment": {
+    "gitSha": "be5309c18a36295b9b662a2d6698cb13727105e2",
+    "node": "v24.12.0",
+    "fallow": "fallow 3.22.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuModel": "Apple M1 Pro",
+    "logicalCpuCount": 10,
+    "totalMemoryBytes": 17179869184
+  },
+  "measurements": [
+    {
+      "key": "project-issues/small/sequential",
+      "category": "project-issues",
+      "scenario": "small",
+      "schedule": "sequential",
+      "fileCount": 10,
+      "cold": {
+        "wallMs": 341.05,
+        "parentCpuMs": 33.84,
+        "combinedChildMs": 239.44,
+        "securityChildMs": 100.81,
+        "navigatorReadyMs": 0.94,
+        "maxConcurrentChildren": 1,
+        "outputBytes": 3318,
+        "findingCount": 0,
+        "exitCode": 0
+      },
+      "warm": {
+        "wallMs": {
+          "min": 275.38,
+          "median": 287.65,
+          "p95": 425.07,
+          "max": 425.07,
+          "mean": 317.07
+        },
+        "parentCpuMs": {
+          "min": 2.8,
+          "median": 2.98,
+          "p95": 3.48,
+          "max": 3.48,
+          "mean": 3.04
+        },
+        "combinedChildMs": {
+          "min": 179.7,
+          "median": 189.23,
+          "p95": 303.7,
+          "max": 303.7,
+          "mean": 212.37
+        },
+        "securityChildMs": {
+          "min": 95.5,
+          "median": 100.48,
+          "p95": 121.17,
+          "max": 121.17,
+          "mean": 104.52
+        },
+        "navigatorReadyMs": {
+          "min": 0.1,
+          "median": 0.15,
+          "p95": 0.29,
+          "max": 0.29,
+          "mean": 0.17
+        },
+        "maxConcurrentChildren": {
+          "min": 1,
+          "median": 1,
+          "p95": 1,
+          "max": 1,
+          "mean": 1
+        },
+        "outputBytes": {
+          "min": 3317,
+          "median": 3317,
+          "p95": 3319,
+          "max": 3319,
+          "mean": 3317.4
+        },
+        "findingCount": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "exitCode": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        }
+      },
+      "resources": {
+        "available": true,
+        "peakDescendantRssBytes": 121405440,
+        "peakDescendantProcesses": 3,
+        "sampleIntervalMs": 10
+      }
+    },
+    {
+      "key": "project-issues/small/concurrent",
+      "category": "project-issues",
+      "scenario": "small",
+      "schedule": "concurrent",
+      "fileCount": 10,
+      "cold": {
+        "wallMs": 209.71,
+        "parentCpuMs": 2.42,
+        "combinedChildMs": 209.45,
+        "securityChildMs": 130.31,
+        "navigatorReadyMs": 0.1,
+        "maxConcurrentChildren": 2,
+        "outputBytes": 3319,
+        "findingCount": 0,
+        "exitCode": 0
+      },
+      "warm": {
+        "wallMs": {
+          "min": 181.62,
+          "median": 183.94,
+          "p95": 196.98,
+          "max": 196.98,
+          "mean": 187.08
+        },
+        "parentCpuMs": {
+          "min": 2.03,
+          "median": 2.53,
+          "p95": 3.16,
+          "max": 3.16,
+          "mean": 2.49
+        },
+        "combinedChildMs": {
+          "min": 181.5,
+          "median": 183.82,
+          "p95": 196.84,
+          "max": 196.84,
+          "mean": 186.94
+        },
+        "securityChildMs": {
+          "min": 97.26,
+          "median": 102.63,
+          "p95": 105.09,
+          "max": 105.09,
+          "mean": 101.45
+        },
+        "navigatorReadyMs": {
+          "min": 0.09,
+          "median": 0.09,
+          "p95": 0.14,
+          "max": 0.14,
+          "mean": 0.1
+        },
+        "maxConcurrentChildren": {
+          "min": 2,
+          "median": 2,
+          "p95": 2,
+          "max": 2,
+          "mean": 2
+        },
+        "outputBytes": {
+          "min": 3317,
+          "median": 3317,
+          "p95": 3317,
+          "max": 3317,
+          "mean": 3317
+        },
+        "findingCount": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "exitCode": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        }
+      },
+      "resources": {
+        "available": true,
+        "peakDescendantRssBytes": 225935360,
+        "peakDescendantProcesses": 4,
+        "sampleIntervalMs": 10
+      }
+    },
+    {
+      "key": "project-issues/large/sequential",
+      "category": "project-issues",
+      "scenario": "large",
+      "schedule": "sequential",
+      "fileCount": 500,
+      "cold": {
+        "wallMs": 353.67,
+        "parentCpuMs": 2.71,
+        "combinedChildMs": 238.8,
+        "securityChildMs": 114.53,
+        "navigatorReadyMs": 0.09,
+        "maxConcurrentChildren": 1,
+        "outputBytes": 3332,
+        "findingCount": 0,
+        "exitCode": 0
+      },
+      "warm": {
+        "wallMs": {
+          "min": 333.01,
+          "median": 333.84,
+          "p95": 336.71,
+          "max": 336.71,
+          "mean": 334.31
+        },
+        "parentCpuMs": {
+          "min": 2.37,
+          "median": 3.19,
+          "p95": 3.45,
+          "max": 3.45,
+          "mean": 2.97
+        },
+        "combinedChildMs": {
+          "min": 219.65,
+          "median": 220.45,
+          "p95": 221.84,
+          "max": 221.84,
+          "mean": 220.58
+        },
+        "securityChildMs": {
+          "min": 110.84,
+          "median": 113.05,
+          "p95": 116.05,
+          "max": 116.05,
+          "mean": 113.39
+        },
+        "navigatorReadyMs": {
+          "min": 0.08,
+          "median": 0.09,
+          "p95": 0.11,
+          "max": 0.11,
+          "mean": 0.09
+        },
+        "maxConcurrentChildren": {
+          "min": 1,
+          "median": 1,
+          "p95": 1,
+          "max": 1,
+          "mean": 1
+        },
+        "outputBytes": {
+          "min": 3331,
+          "median": 3331,
+          "p95": 3331,
+          "max": 3331,
+          "mean": 3331
+        },
+        "findingCount": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "exitCode": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        }
+      },
+      "resources": {
+        "available": true,
+        "peakDescendantRssBytes": 129548288,
+        "peakDescendantProcesses": 3,
+        "sampleIntervalMs": 10
+      }
+    },
+    {
+      "key": "project-issues/large/concurrent",
+      "category": "project-issues",
+      "scenario": "large",
+      "schedule": "concurrent",
+      "fileCount": 500,
+      "cold": {
+        "wallMs": 256.32,
+        "parentCpuMs": 2.42,
+        "combinedChildMs": 255.96,
+        "securityChildMs": 146.33,
+        "navigatorReadyMs": 0.1,
+        "maxConcurrentChildren": 2,
+        "outputBytes": 3332,
+        "findingCount": 0,
+        "exitCode": 0
+      },
+      "warm": {
+        "wallMs": {
+          "min": 224.05,
+          "median": 238.24,
+          "p95": 246.82,
+          "max": 246.82,
+          "mean": 235.64
+        },
+        "parentCpuMs": {
+          "min": 2.02,
+          "median": 2.33,
+          "p95": 47.93,
+          "max": 47.93,
+          "mean": 18.08
+        },
+        "combinedChildMs": {
+          "min": 223.71,
+          "median": 237.78,
+          "p95": 246.51,
+          "max": 246.51,
+          "mean": 235.27
+        },
+        "securityChildMs": {
+          "min": 115.83,
+          "median": 127.61,
+          "p95": 146,
+          "max": 146,
+          "mean": 128.78
+        },
+        "navigatorReadyMs": {
+          "min": 0.08,
+          "median": 0.13,
+          "p95": 0.44,
+          "max": 0.44,
+          "mean": 0.18
+        },
+        "maxConcurrentChildren": {
+          "min": 2,
+          "median": 2,
+          "p95": 2,
+          "max": 2,
+          "mean": 2
+        },
+        "outputBytes": {
+          "min": 3331,
+          "median": 3332,
+          "p95": 3332,
+          "max": 3332,
+          "mean": 3331.8
+        },
+        "findingCount": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "exitCode": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "max": 0,
+          "mean": 0
+        }
+      },
+      "resources": {
+        "available": true,
+        "peakDescendantRssBytes": 223313920,
+        "peakDescendantProcesses": 4,
+        "sampleIntervalMs": 10
+      }
+    }
+  ],
+  "comparisons": {
+    "small": {
+      "sequentialWarmMedianMs": 287.65,
+      "concurrentWarmMedianMs": 183.94,
+      "wallTimeReductionPercent": 36.05,
+      "combinedChildContentionPercent": -2.86,
+      "securityChildContentionPercent": 2.14,
+      "sequentialPeakRssBytes": 121405440,
+      "concurrentPeakRssBytes": 225935360
+    },
+    "large": {
+      "sequentialWarmMedianMs": 333.84,
+      "concurrentWarmMedianMs": 238.24,
+      "wallTimeReductionPercent": 28.64,
+      "combinedChildContentionPercent": 7.86,
+      "securityChildContentionPercent": 12.88,
+      "sequentialPeakRssBytes": 129548288,
+      "concurrentPeakRssBytes": 223313920
+    }
+  }
+}
