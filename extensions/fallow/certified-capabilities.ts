@@ -1,7 +1,7 @@
-/** Frozen projection of Fallow 3.22.0; update only with reviewed certification evidence. */
+/** Frozen projection of Fallow 3.24.1; update only with reviewed certification evidence. */
 export const certifiedFallowCapabilities = {
 	name: "fallow",
-	certifiedVersion: "3.22.0",
+	certifiedVersion: "3.24.1",
 	manifestVersion: "1",
 	defaultCommand: null,
 	outputFormats: ["human","json","sarif","compact","markdown","md","codeclimate","gitlab-codequality","gitlab-code-quality","pr-comment-github","pr-comment-gitlab","review-github","review-gitlab","badge","github-annotations","github-summary"],
@@ -10,9 +10,11 @@ export const certifiedFallowCapabilities = {
 		"dead-code": ["--unused-files","--unused-exports","--unused-deps","--unused-types","--private-type-leaks","--unused-enum-members","--unused-class-members","--unused-store-members","--unprovided-injects","--unrendered-components","--unused-component-props","--unused-component-emits","--unused-component-inputs","--unused-component-outputs","--unused-svelte-events","--unused-server-actions","--unused-load-data-keys","--unresolved-imports","--unlisted-deps","--duplicate-exports","--circular-deps","--re-export-cycles","--boundary-violations","--policy-violations","--stale-suppressions","--unused-catalog-entries","--empty-catalog-groups","--unresolved-catalog-references","--unused-dependency-overrides","--misconfigured-dependency-overrides","--include-dupes","--trace","--trace-file","--trace-dependency","--impact-closure","--symbol-impact","--top","--file"],
 		"watch": ["--no-clear"],
 		"type-aware": [],
+		"doctor": [],
 		"similar-code": ["--threshold","--min-lines","--top","--file"],
 		"inspect": ["--file","--symbol","--symbol-chain","--churn"],
-		"trace": ["symbol","--callers","--callees","--depth"],
+		"trace": ["symbol","--path","--callers","--callees","--depth"],
+		"trace-error": ["trace_file"],
 		"fix": ["--dry-run","--yes","--no-create-config"],
 		"init": ["--toml","--agents","--hooks","--branch","--decline"],
 		"hooks": [],
@@ -28,7 +30,7 @@ export const certifiedFallowCapabilities = {
 		"recommend": [],
 		"list": ["--entry-points","--files","--plugins","--boundaries","--workspaces"],
 		"workspaces": [],
-		"dupes": ["--mode","--near","--min-tokens","--min-lines","--min-occurrences","--threshold","--skip-local","--cross-language","--ignore-imports","--no-ignore-imports","--top","--trace"],
+		"dupes": ["--mode","--near","--min-tokens","--min-lines","--min-occurrences","--threshold","--skip-local","--cross-language","--ignore-imports","--no-ignore-imports","--top","--no-fragments","--trace"],
 		"health": ["--max-cyclomatic","--max-cognitive","--max-crap","--top","--sort","--complexity","--complexity-breakdown","--file-scores","--coverage-gaps","--hotspots","--ownership","--ownership-emails","--targets","--type-coupling","--css","--effort","--score","--min-score","--min-severity","--report-only","--since","--min-commits","--save-snapshot","--trend","--coverage","--coverage-root","--runtime-coverage","--min-invocations-hot","--min-observation-volume","--low-traffic-threshold"],
 		"flags": ["--top"],
 		"suppressions": ["--file"],
@@ -168,6 +170,6 @@ export const certifiedFallowCapabilities = {
 		["llm-call-injection","security",null],
 	],
 	relatedSchemaCommands: ["fallow config-schema","fallow rule-pack-schema","fallow plugin-schema","fallow plugin-check"],
-	resourceUris: ["fallow://tools","fallow://issue-types","fallow://explain","fallow://task-matrix","fallow://schema/config","fallow://schema/plugin","fallow://schema/rule-pack","fallow://explain/{issue_type}"],
-	reportSchemas: {"combined":"11","dead-code":"9","dupes":"9","health":"11","security":"8","similar-code":"1","runtime-coverage":"2"},
+	resourceUris: ["fallow://tools","fallow://issue-types","fallow://explain","fallow://task-matrix","fallow://schema/config","fallow://schema/plugin","fallow://schema/rule-pack","fallow://schema/similar-code-snapshot","fallow://tools/{name}","fallow://explain/{issue_type}"],
+	reportSchemas: {"combined":"12","dead-code":"9","dupes":"10","health":"11","security":"8","similar-code":"1","runtime-coverage":"2"},
 } as const;

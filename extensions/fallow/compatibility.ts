@@ -305,7 +305,7 @@ function checkPositionalTarget(
 ): void {
 	if (!hasManifestPositionalTarget(spec, suffix)) return;
 	const positionals = recordArray(command?.flags).filter(isPositionalFlag);
-	if (!isRequiredStringTarget(positionals)) addDiagnostic(diagnostics, `${spec.name} positional target`, "expected one required string target", affected);
+	if (!isStringTarget(positionals)) addDiagnostic(diagnostics, `${spec.name} positional target`, "expected one string target", affected);
 }
 
 function hasManifestPositionalTarget(spec: FallowToolCommandSpec, suffix: readonly string[]): boolean {
@@ -317,11 +317,8 @@ function isPositionalFlag(flag: Record<string, any>): boolean {
 	return !text(flag.name)?.startsWith("-");
 }
 
-function isRequiredStringTarget(positionals: Record<string, any>[]): boolean {
-	if (positionals.length !== 1) return false;
-	const target = positionals[0]!;
-	if (target.type !== "string") return false;
-	return target.required === true;
+function isStringTarget(positionals: Record<string, any>[]): boolean {
+	return positionals.length === 1 && positionals[0]!.type === "string";
 }
 
 function checkRequiredInputs(

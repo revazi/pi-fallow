@@ -1,5 +1,5 @@
 {
-  "fallowVersion": "3.22.0",
+  "fallowVersion": "3.24.1",
   "model": {
     "id": "jinaai/jina-embeddings-v2-base-code",
     "revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
@@ -59,7 +59,7 @@
     ]
   },
   "inputs": {
-    "candidatesSha256": "16e6c2d4d8b4bbcc44febfc5cdb9abdd6eb2da0b74c2cc57f7dc0f22f22e17aa",
+    "candidatesSha256": "20f6f5f89c89daf256ab259e4adfdaf24c7988adc7b44f6fbd6489e869941a12",
     "verdictsSha256": "d9f74c65ccea57def936d7565d4dbd27b9a44414bf75f14b85e7de8ad7a96c97",
     "verdicts": {
       "schema_version": "1",
@@ -80,10 +80,10 @@
     "status": {
       "kind": "similar-code-status",
       "schema_version": "1",
-      "version": "3.22.0",
+      "version": "3.24.1",
       "protocol_version": 2,
       "embedding_semantics_version": 1,
-      "companion_version": "3.22.0",
+      "companion_version": "3.24.1",
       "model_ready": true,
       "model_id": "jinaai/jina-embeddings-v2-base-code",
       "model_revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
@@ -98,14 +98,14 @@
     "discovery": {
       "kind": "similar-code",
       "schema_version": "1",
-      "version": "3.22.0",
+      "version": "3.24.1",
       "elapsed_ms": 0,
       "generation": {
         "extraction_semantics_version": 1,
         "embedding_semantics_version": 1,
         "provider": {
           "provider": "official-local-companion",
-          "companion_version": "3.22.0",
+          "companion_version": "3.24.1",
           "protocol_version": 2,
           "source_left_machine": false
         },
@@ -261,14 +261,14 @@
     "inspect": {
       "kind": "similar-code-inspect",
       "schema_version": "1",
-      "version": "3.22.0",
+      "version": "3.24.1",
       "elapsed_ms": 0,
       "generation": {
         "extraction_semantics_version": 1,
         "embedding_semantics_version": 1,
         "provider": {
           "provider": "official-local-companion",
-          "companion_version": "3.22.0",
+          "companion_version": "3.24.1",
           "protocol_version": 2,
           "source_left_machine": false
         },
@@ -503,14 +503,14 @@
     "review": {
       "kind": "similar-code-review",
       "schema_version": "1",
-      "version": "3.22.0",
+      "version": "3.24.1",
       "elapsed_ms": 0,
       "generation": {
         "extraction_semantics_version": 1,
         "embedding_semantics_version": 1,
         "provider": {
           "provider": "official-local-companion",
-          "companion_version": "3.22.0",
+          "companion_version": "3.24.1",
           "protocol_version": 2,
           "source_left_machine": false
         },
@@ -537,7 +537,7 @@
         "min_lines": 4
       },
       "review": {
-        "candidates_sha256": "16e6c2d4d8b4bbcc44febfc5cdb9abdd6eb2da0b74c2cc57f7dc0f22f22e17aa",
+        "candidates_sha256": "20f6f5f89c89daf256ab259e4adfdaf24c7988adc7b44f6fbd6489e869941a12",
         "verdicts_sha256": "d9f74c65ccea57def936d7565d4dbd27b9a44414bf75f14b85e7de8ad7a96c97"
       },
       "candidates": [

@@ -1,6 +1,6 @@
 {
   "name": "fallow",
-  "version": "3.22.0",
+  "version": "3.24.1",
   "manifest_version": "1",
   "default_command": null,
   "output_formats": [
@@ -821,6 +821,10 @@
       "flags": []
     },
     {
+      "name": "doctor",
+      "flags": []
+    },
+    {
       "name": "similar-code",
       "flags": [
         {
@@ -884,7 +888,12 @@
         {
           "name": "symbol",
           "type": "string",
-          "required": true
+          "required": false
+        },
+        {
+          "name": "--path",
+          "type": "string",
+          "required": false
         },
         {
           "name": "--callers",
@@ -906,6 +915,16 @@
         },
         {
           "name": "--depth",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "trace-error",
+      "flags": [
+        {
+          "name": "trace_file",
           "type": "string",
           "required": false
         }
@@ -1186,6 +1205,15 @@
           "name": "--top",
           "type": "string",
           "required": false
+        },
+        {
+          "name": "--no-fragments",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
         },
         {
           "name": "--trace",

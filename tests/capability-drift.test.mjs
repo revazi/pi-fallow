@@ -15,10 +15,10 @@ const {
 } = await jiti.import("../extensions/fallow/compatibility.ts");
 const { certifiedFallowCapabilities } = await jiti.import("../extensions/fallow/certified-capabilities.ts");
 const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/capabilities-3.22.0.json", import.meta.url), "utf8"));
-const frozenReports = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.22.0.json", import.meta.url), "utf8"));
-const frozenSimilar = JSON.parse(await readFile(new URL("./fixtures/fallow/similar-code-report-3.22.0.json", import.meta.url), "utf8"));
-const frozenCoverage = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.22.0.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/capabilities-3.24.1.json", import.meta.url), "utf8"));
+const frozenReports = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.24.1.json", import.meta.url), "utf8"));
+const frozenSimilar = JSON.parse(await readFile(new URL("./fixtures/fallow/similar-code-report-3.24.1.json", import.meta.url), "utf8"));
+const frozenCoverage = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.24.1.json", import.meta.url), "utf8"));
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const processFixture = resolve(root, "tests/fixtures/process-fixture.mjs");
 
@@ -64,7 +64,7 @@ describe("installed Fallow capability drift", () => {
 		assert.equal(report.status, "compatible");
 		assert.deepEqual(report.additions, []);
 		assert.deepEqual(report.incompatible, []);
-		assert.deepEqual(report.counts, { commands: 40, issueTypes: 117, outputFormats: 16 });
+		assert.deepEqual(report.counts, { commands: 42, issueTypes: 117, outputFormats: 16 });
 		assert.match(formatFallowCompatibility(report), /Certification is tested evidence, not an installation or runtime version constraint/);
 	});
 
