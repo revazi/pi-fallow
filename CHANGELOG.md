@@ -4,6 +4,8 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-14
+
 ### Added
 - Added a reproducible `/fallow issues` benchmark over generated 10-file and 500-file projects, covering cold/warm child execution, contention, navigator readiness, process concurrency, and sampled descendant RSS, with a checked-in sequential-versus-concurrent baseline.
 
@@ -138,7 +140,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/revazi/pi-fallow/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/revazi/pi-fallow/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/revazi/pi-fallow/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/revazi/pi-fallow/compare/v0.5.0...v0.5.1

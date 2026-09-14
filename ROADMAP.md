@@ -4,16 +4,16 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 ## Release status and boundaries
 
-- **Current boundary:** `0.6.1` fixes read-only Similar Code readiness after an npx-backed report while retaining the `0.6.0` persistent overlay, configuration, diagnostics, history, navigator, and certification baseline, as recorded in the [`0.6.1` changelog](./CHANGELOG.md#061---2026-09-13).
+- **Current boundary:** `0.6.2` speeds up issue aggregation with bounded two-child concurrency, refreshes the tested Pi/Fallow compatibility matrix, and retains deterministic output, coordinated cancellation, and the `0.6.1` safety baseline, as recorded in the [`0.6.2` changelog](./CHANGELOG.md#062---2026-09-14).
 - **Release records:** the npm registry and GitHub releases are authoritative for whether a version has completed publication; a version in source remains a candidate until the protected tag workflow succeeds.
 - **Publication gate:** every boundary remains blocked until all release gates pass, an independent release-readiness review is recorded, and a maintainer gives explicit authorization.
 - **Later work:** the priorities below are directional and carry no date or version commitment.
 
 ## Measured current baseline
 
-Unless noted otherwise, these are repository-specific measurements from the `0.6.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
+Unless noted otherwise, these are repository-specific measurements from the `0.6.2` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
-- **Tests and coverage:** 424 tests pass; current coverage is **91.94% statements/lines**, **87.38% branches**, and **91.09% functions**. Coverage runs skip four subprocess-sensitive retained-memory cases that pass in the normal suite; reruns can vary slightly by machine and Node line while CI continues to enforce the coverage thresholds.
+- **Tests and coverage:** 430 tests pass; current coverage is **91.95% statements/lines**, **87.54% branches**, and **91.17% functions**. Coverage runs skip four subprocess-sensitive retained-memory cases that pass in the normal suite; reruns can vary slightly by machine and Node line while CI continues to enforce the coverage thresholds.
 - **Fallow quality:** Fallow 3.24.1 reports health **84.1 (B)**, average maintainability **90.2**, and zero threshold findings, dead-code issues, or clone groups.
 - **Dependency audits:** strict production and complete-tree npm audits report zero vulnerabilities. These audit results are separate from Fallow's modeled security-candidate analysis.
 - **Host compatibility:** packaged, provider-free Pi **0.85.1** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
