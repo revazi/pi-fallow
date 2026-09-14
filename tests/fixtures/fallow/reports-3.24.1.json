@@ -1,5 +1,5 @@
 {
-  "version": "3.22.0",
+  "version": "3.24.1",
   "inputSha256": {
     "base": "5a5426bfc0bde678d5be554684f958808cb95c7294ba07f1c610af057d1aa865",
     "typeAwarePartial": "c63f7b237002649ad5073778b9b15ad3827bff41620201f262b19d85d9ac7caf"
@@ -17,7 +17,7 @@
       "report": {
         "kind": "dead-code",
         "schema_version": 9,
-        "version": "3.22.0",
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "total_issues": 1,
         "entry_points": {
@@ -124,6 +124,18 @@
         "misplaced_directives": [],
         "route_collisions": [],
         "dynamic_segment_name_conflicts": [],
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ],
         "next_steps": [
           {
             "id": "setup",
@@ -158,8 +170,8 @@
       "exitCode": 0,
       "report": {
         "kind": "dupes",
-        "schema_version": 9,
-        "version": "3.22.0",
+        "schema_version": 10,
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "clone_groups": [
           {
@@ -283,9 +295,14 @@
           "total_tokens": 274,
           "duplicated_tokens": 102,
           "clone_groups": 1,
+          "clone_families": 1,
           "clone_instances": 2,
           "duplication_percentage": 60.86956521739131
         },
+        "clone_groups_shown": 1,
+        "clone_groups_omitted": 0,
+        "clone_families_shown": 1,
+        "clone_families_omitted": 0,
         "next_steps": [
           {
             "id": "setup",
@@ -317,7 +334,7 @@
       "report": {
         "kind": "health",
         "schema_version": 11,
-        "version": "3.22.0",
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -341,6 +358,23 @@
           "avg_cyclomatic": 1,
           "critical_complexity_pct": 0,
           "p90_cyclomatic": 1,
+          "cyclomatic_population": {
+            "functions": {
+              "count": 11,
+              "sum": 11,
+              "max": 1
+            },
+            "modules": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            },
+            "templates": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            }
+          },
           "duplication_pct": 87.5,
           "hotspot_count": 0,
           "hotspot_top_pct_count": 0,
@@ -459,6 +493,18 @@
           "fan_out_p95": 8,
           "fan_out_p90": 5
         },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ],
         "_meta": {
           "telemetry": {
             "analysis_run_id": "<RUN_ID>"
@@ -479,7 +525,7 @@
       "report": {
         "kind": "security",
         "schema_version": "8",
-        "version": "3.22.0",
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "config": {
           "rules": {
@@ -495,6 +541,18 @@
           "categories_include": null,
           "categories_exclude": null
         },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ],
         "security_findings": [
           {
             "finding_id": "6575a0a05f5fbdaf",
@@ -636,12 +694,12 @@
       "exitCode": 0,
       "report": {
         "kind": "combined",
-        "schema_version": 11,
-        "version": "3.22.0",
+        "schema_version": 12,
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "check": {
           "schema_version": 9,
-          "version": "3.22.0",
+          "version": "3.24.1",
           "elapsed_ms": 0,
           "total_issues": 1,
           "entry_points": {
@@ -872,6 +930,7 @@
             "total_tokens": 274,
             "duplicated_tokens": 102,
             "clone_groups": 1,
+            "clone_families": 1,
             "clone_instances": 2,
             "duplication_percentage": 60.86956521739131
           }
@@ -899,6 +958,23 @@
             "avg_cyclomatic": 1,
             "critical_complexity_pct": 0,
             "p90_cyclomatic": 1,
+            "cyclomatic_population": {
+              "functions": {
+                "count": 11,
+                "sum": 11,
+                "max": 1
+              },
+              "modules": {
+                "count": 0,
+                "sum": 0,
+                "max": null
+              },
+              "templates": {
+                "count": 0,
+                "sum": 0,
+                "max": null
+              }
+            },
             "hotspot_count": 0,
             "hotspot_top_pct_count": 0,
             "maintainability_avg": 95.9,
@@ -998,6 +1074,18 @@
             "fan_out_p90": 5
           }
         },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ],
         "next_steps": [
           {
             "id": "setup",
@@ -1038,7 +1126,7 @@
       "report": {
         "kind": "health",
         "schema_version": 11,
-        "version": "3.22.0",
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -1059,6 +1147,23 @@
           "avg_cyclomatic": 1,
           "critical_complexity_pct": 0,
           "p90_cyclomatic": 1,
+          "cyclomatic_population": {
+            "functions": {
+              "count": 11,
+              "sum": 11,
+              "max": 1
+            },
+            "modules": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            },
+            "templates": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            }
+          },
           "maintainability_avg": 95.9,
           "maintainability_low_pct": 0,
           "unused_dep_count": 0,
@@ -1150,7 +1255,7 @@
             },
             "executed": true,
             "protocol_version": 7,
-            "sidecar_version": "3.22.0",
+            "sidecar_version": "3.24.1",
             "backend": "typescript-go",
             "backend_version": "7.0.2",
             "selected_tsconfigs": [],
@@ -1183,7 +1288,19 @@
           "telemetry": {
             "analysis_run_id": "<RUN_ID>"
           }
-        }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ]
       }
     },
     "similar-status": {
@@ -1198,10 +1315,10 @@
       "report": {
         "kind": "similar-code-status",
         "schema_version": "1",
-        "version": "3.22.0",
+        "version": "3.24.1",
         "protocol_version": 2,
         "embedding_semantics_version": 1,
-        "companion_version": "3.22.0",
+        "companion_version": "3.24.1",
         "model_ready": false,
         "model_id": "jinaai/jina-embeddings-v2-base-code",
         "model_revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
@@ -1227,7 +1344,8 @@
       "report": {
         "error": true,
         "message": "the local model is not installed; run `fallow similar-code setup --local`",
-        "exit_code": 3
+        "exit_code": 3,
+        "code": "FALLOW_SIMILAR_CODE_NOT_READY"
       }
     },
     "coverage-missing-value": {
@@ -1294,7 +1412,7 @@
       "report": {
         "kind": "health",
         "schema_version": 11,
-        "version": "3.22.0",
+        "version": "3.24.1",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -1315,6 +1433,23 @@
           "avg_cyclomatic": 1,
           "critical_complexity_pct": 0,
           "p90_cyclomatic": 1,
+          "cyclomatic_population": {
+            "functions": {
+              "count": 1,
+              "sum": 1,
+              "max": 1
+            },
+            "modules": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            },
+            "templates": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            }
+          },
           "maintainability_avg": 99.4,
           "maintainability_low_pct": 0,
           "unused_dep_count": 0,
@@ -1422,7 +1557,7 @@
             },
             "executed": true,
             "protocol_version": 7,
-            "sidecar_version": "3.22.0",
+            "sidecar_version": "3.24.1",
             "backend": "typescript-go",
             "backend_version": "7.0.2",
             "selected_tsconfigs": [
@@ -1492,7 +1627,26 @@
           "telemetry": {
             "analysis_run_id": "<RUN_ID>"
           }
-        }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": "broken.ts",
+            "kind": "source-parse-degraded",
+            "error_count": 1,
+            "panicked": true,
+            "message": "Parsed 'broken.ts' with 1 error(s); the parser stopped there. Imports, exports, and references it did not reach are missing from this run, so files and symbols it uses can be reported as unused. Fix the syntax, or ignore this if the file uses syntax newer than fallow's parser."
+          },
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ]
       }
     }
   },
@@ -1521,6 +1675,7 @@
         "--top": "<TOP>",
         "--blast-radius": "boolean",
         "--importance": "boolean",
+        "--debug-unmatched": "boolean",
         "--root": "<ROOT>",
         "--config": "<CONFIG>",
         "--allow-remote-extends": "boolean",

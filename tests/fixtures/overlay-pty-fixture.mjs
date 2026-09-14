@@ -17,7 +17,7 @@ const original = { title: "PTY original report", status: "success", stats: [], n
 	items: Array.from({ length: 1000 }, (_, i) => ({ label: `helper${i}`, path: `src/file${i}.ts`, severity: "high" })),
 }] };
 const result = await fallowEngine.runFallowWithExecutor({ pi: {}, cwd: process.cwd(), args: ["similar-code"], timeoutSecs: 1,
-	executor: async () => ({ binary: "fixture", args: [], result: { code: 0, stderr: "", stdout: JSON.stringify({ kind: "similar-code", version: "3.22.0",
+	executor: async () => ({ binary: "fixture", args: [], result: { code: 0, stderr: "", stdout: JSON.stringify({ kind: "similar-code", version: "3.24.1",
 		schema_version: 1, completion: { status: "complete" }, candidates: [],
 	}) } }), throwOnExecutionError: false, preserveNavigatorDetails: true,
 });

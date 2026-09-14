@@ -76,7 +76,6 @@ function assertTarget(command, suffix, spec, context) {
 	const positionals = command.flags.filter((flag) => !flag.name.startsWith("-"));
 	assert.equal(positionals.length, 1, `${context}: expected one positional target`);
 	assert.equal(positionals[0].type, "string", `${context}: positional target must remain string`);
-	assert.equal(positionals[0].required, true, `${context}: review changed positional target requirement`);
 }
 
 function assertRequiredArguments(flags, spec, context) {

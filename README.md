@@ -166,7 +166,7 @@ Applying a preview is TUI-only. Apply requires a direct confirmation; repeated d
 
 | Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
 |---|---|---|---|
-| 0.84.4 | 0.84.4 | 22.19 and 24 | 3.22.0 |
+| 0.84.4 | 0.84.4 | 22.19 and 24 | 3.24.1 |
 
 **Certification** means this exact matrix passed frozen and live repository checks. **Compatibility** means the installed Fallow still advertises the capabilities Pi Fallow models. **Installation constraints** are only the requirements below. This is tested compatibility; it is not an installation constraint, and other versions may work.
 
@@ -178,7 +178,7 @@ Pi libraries are host-provided wildcard peer dependencies, following Pi package 
 - Pi coding agent
 - Fallow available through `FALLOW_BIN`, `PATH`, a package-local installation, or the `npx -y fallow` fallback
 
-Fallow 3.22.0 is the current certification target. Runner discovery is cached per project/session and refreshed when relevant environment values change.
+Fallow 3.24.1 is the current certification target. Runner discovery is cached per project/session and refreshed when relevant environment values change.
 
 ## Development
 

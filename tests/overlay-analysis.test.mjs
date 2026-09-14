@@ -22,7 +22,7 @@ const signal = () => new AbortController().signal;
 const values = { scope: "", threshold: ".8", top: "5" };
 const request = (root = process.cwd()) => ({ values, commandArgs: ["similar-code", "--root", root, "--threshold", "0.8", "--top", "5"] });
 const semantic = (completion = "complete", candidates = true) => ({
-	kind: "similar-code", version: "3.22.0", schema_version: 1,
+	kind: "similar-code", version: "3.24.1", schema_version: 1,
 	completion: { status: completion, cache: { status: "hit", hits: 12, misses: 0, writes: 0 } },
 	generation: { model: { model_id: "fixture/model", revision: "pinned-fixture-revision" }, provider: { source_left_machine: false } },
 	candidates: candidates ? [{ candidate_id: "sc_fixture", verification_status: "unverified", similarity: .95,
@@ -87,7 +87,7 @@ describe("optional analysis execution gate", () => {
 			const result = await run(request(root), signal(), (...args) => progress.push(args));
 			assert.deepEqual(events, ["check", "execute"]);
 			assert.equal(result.reportMetadata.complete, true);
-			assert.equal(result.reportMetadata.fallowVersion, "3.22.0");
+			assert.equal(result.reportMetadata.fallowVersion, "3.24.1");
 			assert.match(await readFile(result.formatted.fullOutputPath, "utf8"), /pinned-fixture-revision/);
 			assert.ok(progress.some((args) => /Finding similar code locally · cache off · timeout/.test(args[0])));
 			assert.doesNotMatch(JSON.stringify(progress), /similar-code-status|Uncached local inference/);
@@ -230,7 +230,7 @@ describe("persistent analysis and result views", () => {
 	}
 
 	it("retains separate runtime and semantic navigators with conservative capture provenance", async () => {
-		const fixture = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.22.0.json", import.meta.url), "utf8"));
+		const fixture = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.24.1.json", import.meta.url), "utf8"));
 		const semanticResult = await resultFor(semantic());
 		const runtimeResult = await resultFor(fixture.report);
 		const coverage = { sidecar, artifact: { projectRoot: process.cwd() }, commandArgs: ["coverage", "analyze"] };
