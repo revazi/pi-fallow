@@ -166,7 +166,7 @@ Applying a preview is TUI-only. Apply requires a direct confirmation; repeated d
 
 | Pi coding agent | Matching Pi AI/TUI packages | Node.js | Fallow |
 |---|---|---|---|
-| 0.84.4 | 0.84.4 | 22.19 and 24 | 3.22.0 |
+| 0.85.1 | 0.85.1 | 22.19 and 24 | 3.22.0 |
 
 **Certification** means this exact matrix passed frozen and live repository checks. **Compatibility** means the installed Fallow still advertises the capabilities Pi Fallow models. **Installation constraints** are only the requirements below. This is tested compatibility; it is not an installation constraint, and other versions may work.
 
