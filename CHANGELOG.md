@@ -8,6 +8,7 @@ All notable changes to Pi Fallow are documented here.
 - Added a reproducible `/fallow issues` benchmark over generated 10-file and 500-file projects, covering cold/warm child execution, contention, navigator readiness, process concurrency, and sampled descendant RSS, with a checked-in sequential-versus-concurrent baseline.
 
 ### Changed
+- Updated the coordinated Pi development lock and package-boundary certification to 0.85.1 while retaining host-provided wildcard Pi peer dependencies.
 - Updated the pinned Fallow compatibility target to 3.24.1 and re-certified the command/capability schema, captured reports, signed runtime coverage, and model-backed Similar Code workflows. The reviewed surface adds diagnostic commands/resources and workspace completeness diagnostics, and advances the combined and duplication report schemas without changing Pi Fallow's modeled command paths.
 - Run the combined code-quality and security analyses concurrently, capped at two child processes. The measured baseline reduces warm median aggregate latency by 28.64–36.05% while preserving deterministic report order and coordinated sibling cancellation.
 - Reorganized the README around installation, common tasks, the agent tool, interactive workflows, safety, and compatibility while removing release-history-level implementation detail.
