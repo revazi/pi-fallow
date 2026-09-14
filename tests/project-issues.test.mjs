@@ -117,10 +117,16 @@ describe("project issue aggregation", () => {
 		assert.throws(() => partitionFallowProjectIssueArgs(["--workspace"]), /requires a value/);
 	});
 
-	it("runs the combined and security analyses sequentially and returns one synthetic report", async () => {
+	it("runs the combined and security analyses concurrently and returns one deterministic report", async () => {
 		const calls = [];
+		let active = 0;
+		let maxActive = 0;
 		const executeChild = async (_pi, args) => {
 			calls.push(args);
+			active++;
+			maxActive = Math.max(maxActive, active);
+			await new Promise((resolve) => setImmediate(resolve));
+			active--;
 			const isSecurity = args[0] === "security";
 			return {
 				binary: "/fixture/fallow",
@@ -140,13 +146,38 @@ describe("project issue aggregation", () => {
 				"--runtime-coverage", "coverage.json", "--min-invocations-hot", "500",
 			],
 		]);
+		assert.equal(maxActive, 2);
 		assert.equal(aggregate.binary, "/fallow");
 		assert.deepEqual(aggregate.args, ["issues", ...commandArgs]);
 		assert.equal(aggregate.result.code, 1);
 		assert.equal(JSON.parse(aggregate.result.stdout).total_issues, 4);
 	});
 
-	it("marks a post-combined cancellation as an incomplete aggregate", async () => {
+	it("cancels an in-flight sibling after post-combined cancellation", async () => {
+		const controller = new AbortController();
+		let calls = 0;
+		const executeChild = async (_pi, args, _cwd, signal) => {
+			calls++;
+			if (args[0] !== "security") {
+				controller.abort();
+				return { binary: "/fixture/fallow", args, result: execution(cleanCombinedReport()) };
+			}
+			assert.equal(signal.aborted, true);
+			return { binary: "/fixture/fallow", args, result: { stdout: "", stderr: "", code: 130, killed: true } };
+		};
+
+		const aggregate = await runFallowProjectIssueCommands(
+			{}, [], "/project", controller.signal, 10, executeChild,
+		);
+		const report = JSON.parse(aggregate.result.stdout);
+		assert.equal(calls, 2);
+		assert.equal(aggregate.result.code, 130);
+		assert.equal(aggregate.result.killed, true);
+		assert.equal(report.error, true);
+		assert.match(report.message, /security analysis was cancelled/);
+	});
+
+	it("retains the sequential schedule for reproducible benchmark comparisons", async () => {
 		const controller = new AbortController();
 		let calls = 0;
 		const executeChild = async (_pi, args) => {
@@ -156,14 +187,49 @@ describe("project issue aggregation", () => {
 		};
 
 		const aggregate = await runFallowProjectIssueCommands(
-			{}, [], "/project", controller.signal, 10, executeChild,
+			{}, [], "/project", controller.signal, 10, executeChild, "sequential",
 		);
-		const report = JSON.parse(aggregate.result.stdout);
 		assert.equal(calls, 1);
 		assert.equal(aggregate.result.code, 130);
-		assert.equal(aggregate.result.killed, true);
-		assert.equal(report.error, true);
-		assert.match(report.message, /security analysis was cancelled/);
+		assert.match(JSON.parse(aggregate.result.stdout).message, /security analysis was cancelled/);
+	});
+
+	it("cancels the sibling before propagating a child executor failure", async () => {
+		let securityStarted = false;
+		let securityCancelled = false;
+		const executeChild = async (_pi, args, _cwd, signal) => {
+			if (args[0] !== "security") {
+				await new Promise((resolve) => setImmediate(resolve));
+				throw new Error("combined launch failed");
+			}
+			securityStarted = true;
+			return new Promise((resolve) => signal.addEventListener("abort", () => {
+				securityCancelled = true;
+				resolve({ binary: "/fixture/fallow", args, result: { stdout: "", stderr: "", code: 130, killed: true } });
+			}, { once: true }));
+		};
+
+		await assert.rejects(
+			runFallowProjectIssueCommands({}, [], "/project", undefined, 10, executeChild),
+			/combined launch failed/,
+		);
+		assert.equal(securityStarted, true);
+		assert.equal(securityCancelled, true);
+	});
+
+	it("keeps combined and security child failures explicit", async () => {
+		for (const failedLabel of ["combined", "security"]) {
+			const executeChild = async (_pi, args) => {
+				const label = args[0] === "security" ? "security" : "combined";
+				const report = label === "security" ? cleanSecurityReport() : cleanCombinedReport();
+				return { binary: "/fixture/fallow", args, result: execution(report, label === failedLabel ? 2 : 0) };
+			};
+			const aggregate = await runFallowProjectIssueCommands({}, [], "/project", undefined, 10, executeChild);
+			const report = JSON.parse(aggregate.result.stdout);
+			assert.equal(aggregate.result.code, 2);
+			assert.equal(report.error, true);
+			assert.match(report.message, new RegExp(`${failedLabel} analysis exited 2`));
+		}
 	});
 
 	it("marks an unstructured child report as an incomplete aggregate", async () => {

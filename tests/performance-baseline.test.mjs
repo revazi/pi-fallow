@@ -6,7 +6,9 @@ import { describe, it } from "node:test";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const baseline = JSON.parse(await readFile(join(root, "benchmarks", "baselines", "performance-v0.2.0.json"), "utf8"));
+const issuesBaseline = JSON.parse(await readFile(join(root, "benchmarks", "baselines", "project-issues-v0.6.1.json"), "utf8"));
 const byKey = new Map(baseline.measurements.map((measurement) => [measurement.key, measurement]));
+const issuesByKey = new Map(issuesBaseline.measurements.map((measurement) => [measurement.key, measurement]));
 
 describe("performance benchmark baseline", () => {
 	it("records runner, processing, Git, memory, and cold/warm metrics", () => {
@@ -36,10 +38,30 @@ describe("performance benchmark baseline", () => {
 		assert.ok(large.maxRssBytes.median > 0);
 		assert.ok(Number.isFinite(large.retainedHeapAmplification));
 	});
+
+	it("records project-issues latency, contention, navigator readiness, and process-tree resources", () => {
+		assert.equal(issuesBaseline.config.smallFiles, 10);
+		assert.equal(issuesBaseline.config.largeFiles, 500);
+		for (const scenario of ["small", "large"]) {
+			const sequential = issuesMeasurement(`${scenario}/sequential`);
+			const concurrent = issuesMeasurement(`${scenario}/concurrent`);
+			assert.equal(sequential.warm.maxConcurrentChildren.max, 1);
+			assert.equal(concurrent.warm.maxConcurrentChildren.max, 2);
+			assert.ok(sequential.warm.navigatorReadyMs.median >= 0);
+			assert.ok(concurrent.resources.peakDescendantRssBytes > sequential.resources.peakDescendantRssBytes);
+			assert.ok(issuesBaseline.comparisons[scenario].wallTimeReductionPercent > 20);
+		}
+	});
 });
 
 function measurement(key) {
 	const value = byKey.get(key);
 	assert.ok(value, `Missing performance baseline measurement: ${key}`);
+	return value;
+}
+
+function issuesMeasurement(key) {
+	const value = issuesByKey.get(`project-issues/${key}`);
+	assert.ok(value, `Missing project-issues baseline measurement: ${key}`);
 	return value;
 }

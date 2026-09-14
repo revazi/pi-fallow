@@ -1,16 +1,17 @@
 # Performance benchmarks
 
-This benchmark freezes Pi Fallow's execution and memory behavior before runner, Git, parsing, or retention optimizations.
+These benchmarks track Pi Fallow's execution, aggregation, and memory behavior before and after measured optimizations.
 
-## The five measured areas
+## The six measured areas
 
 1. **Runner performance** — configured binary, PATH resolution, deterministic fallback, direct real Fallow, and real npx fallback.
 2. **Extension processing** — engine parsing, summaries, overview construction, truncation, temp output using frozen reports, and adversarial noisy embedded-JSON extraction.
-3. **Git and autocomplete** — cold/warm ref completion, event-loop blocking, base detection, and subprocess counts.
-4. **Memory** — retained heap, released heap, RSS, external memory, and fixture-size amplification in isolated workers.
-5. **Cold versus warm execution** — first invocation plus warm median, p95, maximum, mean, and parent-process CPU measurements.
+3. **Project-issues aggregation** — end-to-end combined/security execution, child contention, normalization-to-navigator readiness, process concurrency, and descendant RSS on generated small and large projects.
+4. **Git and autocomplete** — cold/warm ref completion, event-loop blocking, base detection, and subprocess counts.
+5. **Memory** — retained heap, released heap, RSS, external memory, and fixture-size amplification in isolated workers.
+6. **Cold versus warm execution** — first invocation plus warm median, p95, maximum, mean, and parent-process CPU measurements.
 
-The standard run uses three warmups and 15 measured iterations. Real Fallow runner routes use one warmup and five iterations to keep the benchmark practical. Memory scenarios run in three isolated `node --expose-gc` workers.
+The general performance run uses three warmups and 15 measured iterations. Real Fallow runner routes use one warmup and five iterations to keep the benchmark practical. Memory scenarios run in three isolated `node --expose-gc` workers. The focused project-issues run uses one warmup and five iterations for each schedule/project-size pair.
 
 ## Baseline environment
 
@@ -71,6 +72,21 @@ Cold autocomplete performs synchronous Git work and blocks the event loop. Base 
 
 Max RSS includes Node, Jiti, Pi libraries, and the benchmark worker, so retained heap delta and amplification are the primary before/after signals.
 
+## Project-issues scheduling baseline
+
+[`project-issues-v0.6.1.json`](./baselines/project-issues-v0.6.1.json) compares the retained sequential schedule with bounded two-child concurrency on generated 10-file and 500-file TypeScript projects. Both schedules run through the real pinned Fallow executable and the production aggregation, parsing, overview, and normalization path.
+
+| Project | Sequential warm median | Concurrent warm median | Reduction | Sequential peak descendant RSS | Concurrent peak descendant RSS |
+|---|---:|---:|---:|---:|---:|
+| 10 files | 287.65 ms | 183.94 ms | 36.05% | 115.78 MB | 215.47 MB |
+| 500 files | 333.84 ms | 238.24 ms | 28.64% | 123.55 MB | 212.97 MB |
+
+The concurrent large-project run increased the combined child median by 7.86% and the security child median by 12.88%, recording the CPU-contention effect rather than hiding it. Navigator preparation stayed at 0.09–0.15 ms, confirming that subprocess execution—not report aggregation or normalization—is the useful optimization target.
+
+The accepted tradeoff is lower interactive latency for higher short-lived memory use. Concurrency is capped at exactly two analyses, output ordering remains combined then security, and a shared abort controller cancels the sibling on user cancellation, timeout, or an executor failure. Tests retain sequential post-first-child cancellation evidence as well as concurrent sibling cancellation, partial failures, deterministic ordering, and exit 130 behavior.
+
+Process-tree RSS is sampled every 10 ms from `ps` descendants of the benchmark process and sums concurrently live descendants. It is machine- and sampling-sensitive, includes launch wrappers and native children, and is unavailable on Windows; compare it only on the same host. Generated projects isolate cold/warm caches per schedule. The 500-file case is a scale fixture, not a claim that file count alone predicts production latency.
+
 ## Commands
 
 Generate a candidate result:
@@ -101,3 +117,24 @@ npm run bench:performance -- \
 ```
 
 Quick artifacts intentionally cannot be compared with the committed baseline because their benchmark configurations differ.
+
+Run the focused project-issues benchmark:
+
+```bash
+npm run bench:issues -- \
+  --label candidate \
+  --output /tmp/pi-fallow-project-issues.json
+```
+
+Use fewer iterations or a smaller scale fixture for exploration:
+
+```bash
+npm run bench:issues -- \
+  --label quick \
+  --iterations 1 \
+  --warmups 0 \
+  --large-files 100 \
+  --output /tmp/pi-fallow-project-issues-quick.json
+```
+
+Each focused artifact contains sequential and concurrent measurements from the same run and calculates the latency, contention, and RSS differences directly; it does not require a separate comparison command.

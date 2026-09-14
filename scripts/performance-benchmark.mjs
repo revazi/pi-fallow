@@ -6,7 +6,16 @@ import { performance } from "node:perf_hooks";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
-import { populateFallowProject, readGitSha, requireValue, runFixtureEngine, writeJsonArtifact } from "./benchmark-utils.mjs";
+import {
+	aggregateBenchmarkValues as aggregate,
+	parseBenchmarkInteger,
+	populateFallowProject,
+	readGitSha,
+	requireValue,
+	roundBenchmarkValue as round,
+	runFixtureEngine,
+	writeJsonArtifact,
+} from "./benchmark-utils.mjs";
 
 const execFileAsync = promisify(execFile);
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -21,9 +30,9 @@ const NOISY_JSON_FIXTURE = `prefix ${'{"child":'.repeat(NOISY_JSON_DEPTH)}0${"}"
 const CLI_OPTION_SETTERS = {
 	"--label": (options, value) => { options.label = value; },
 	"--output": (options, value) => { options.output = value; },
-	"--iterations": (options, value) => { options.config.iterations = parsePositiveInteger(value, "--iterations"); },
-	"--warmups": (options, value) => { options.config.warmups = parsePositiveInteger(value, "--warmups", true); },
-	"--memory-iterations": (options, value) => { options.config.memoryIterations = parsePositiveInteger(value, "--memory-iterations"); },
+	"--iterations": (options, value) => { options.config.iterations = parseBenchmarkInteger(value, "--iterations"); },
+	"--warmups": (options, value) => { options.config.warmups = parseBenchmarkInteger(value, "--warmups", true); },
+	"--memory-iterations": (options, value) => { options.config.memoryIterations = parseBenchmarkInteger(value, "--memory-iterations"); },
 };
 const jiti = createJiti(import.meta.url);
 
@@ -76,13 +85,6 @@ function parseCli(args) {
 		setter(options, requireValue(args, index + 1, flag));
 	}
 	return options;
-}
-
-function parsePositiveInteger(rawValue, flag, allowZero = false) {
-	const value = Number(rawValue);
-	const minimum = allowZero ? 0 : 1;
-	if (!Number.isInteger(value) || value < minimum) throw new Error(`${flag} must be an integer >= ${minimum}.`);
-	return value;
 }
 
 async function benchmarkRunners(workspacePath, config) {
@@ -424,22 +426,6 @@ function summarize(samples, field) {
 	return aggregate(samples.map((sample) => sample[field]));
 }
 
-function aggregate(values) {
-	const sorted = [...values].sort((left, right) => left - right);
-	return {
-		min: round(sorted[0] ?? 0),
-		median: round(percentile(sorted, 0.5)),
-		p95: round(percentile(sorted, 0.95)),
-		max: round(sorted.at(-1) ?? 0),
-		mean: round(sorted.reduce((sum, value) => sum + value, 0) / Math.max(1, sorted.length)),
-	};
-}
-
-function percentile(sorted, value) {
-	if (!sorted.length) return 0;
-	return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * value) - 1)];
-}
-
 async function withEnvironment(values, operation) {
 	const previous = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
 	applyEnvironment(values);
@@ -551,8 +537,4 @@ function printSummary(artifactValue, outputPath) {
 	console.table(timingRows);
 	console.table(memoryRows);
 	if (outputPath) console.log(`Wrote ${resolve(outputPath)}`);
-}
-
-function round(value) {
-	return Math.round(value * 100) / 100;
 }

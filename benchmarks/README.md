@@ -1,6 +1,6 @@
 # Token benchmarks
 
-This directory freezes Pi Fallow's model-visible `0.2.0` behavior before token optimizations. Execution, Git, cold/warm, and memory measurements are documented separately in [`PERFORMANCE.md`](./PERFORMANCE.md).
+This directory freezes Pi Fallow's model-visible behavior before token optimizations. Execution, project-issues aggregation, Git, cold/warm, and memory measurements are documented separately in [`PERFORMANCE.md`](./PERFORMANCE.md).
 
 ## What is measured
 
@@ -53,6 +53,14 @@ Compare it with the frozen before state:
 npm run bench:tokens:compare -- \
   benchmarks/baselines/v0.2.0.json \
   /tmp/pi-fallow-token-candidate.json
+```
+
+The focused aggregate benchmark compares sequential and bounded-concurrent `/fallow issues` execution in one artifact:
+
+```bash
+npm run bench:issues -- \
+  --label candidate \
+  --output /tmp/pi-fallow-project-issues.json
 ```
 
 ## Immediate baseline before `fallow_run.detail`

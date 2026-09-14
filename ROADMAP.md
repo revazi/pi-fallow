@@ -19,6 +19,7 @@ Unless noted otherwise, these are repository-specific measurements from the `0.6
 - **Host compatibility:** packaged, provider-free Pi **0.84.4** behavior is certified on Node **22.19** and **24**. Pi host libraries intentionally remain external wildcard peers; this is a tested compatibility matrix, not a restrictive peer range or provider-backed/PTY/tmux certification. See the [README compatibility section](./README.md#tested-compatibility).
 - **Token baseline:** the current `fallow_run` tool contract is **421 tokens under both pinned tokenizers**. Across the frozen corpus, bounded tool results total **7,590 `o200k_base` / 7,489 `cl100k_base` tokens**. The current aggregate `o200k_base` result is **83.17%** smaller than the immediate pre-output-detail baseline, while benchmarked slash transcripts remain unchanged. These are deterministic corpus measurements, not provider billing claims; see [`benchmarks/README.md`](./benchmarks/README.md).
 - **Retained memory:** current steady-state retained-heap evidence is approximately **1.82×** fixture size for the default large report, **1.70×** for normalized findings, and **0.66×** for schema output. A dedicated warmed-process regression check requires released large-report history metadata to remain below **0.50×** fixture size. Heap measurements are machine-, process-, and Node-sensitive; methodology and the historical baseline are in [`benchmarks/PERFORMANCE.md`](./benchmarks/PERFORMANCE.md).
+- **Project-issues latency:** the focused 10-file/500-file benchmark measures bounded two-child concurrency at **36.05% / 28.64%** below the sequential warm median. Sampled descendant RSS rises from **115.78 / 123.55 MB** to **215.47 / 212.97 MB**, so the optimization remains explicitly capped at the combined and security children. Navigator preparation remains below 0.2 ms. These host-specific measurements and methodology are recorded in [`benchmarks/PERFORMANCE.md`](./benchmarks/PERFORMANCE.md#project-issues-scheduling-baseline).
 
 ## Foundations now in place
 
@@ -38,7 +39,8 @@ The long measurement history belongs in the benchmark documentation rather than 
 - bounded, project-isolated session history with digest-validated report reopening and conservative compatible-run comparison;
 - explicit opt-in semantic Similar Code status, discovery, inspect, and review flows with local-model provenance, advisory completion, persistent in-overlay setup/execution/result retention, and a complete grouped review queue that does not truncate candidates;
 - visible Optional Analysis Status / Setup / Run controls for Similar Code, reproducible no-cache model-backed certification over a frozen tiny project, and retained low-level validation for selected local runtime-coverage artifacts while that overlay tab remains disabled; and
-- an issue-focused default that combines actionable dead-code, duplication, health, and security candidates without flooding the navigator or issue count with informational file scores, hotspots, or advisory refactoring targets.
+- an issue-focused default that combines actionable dead-code, duplication, health, and security candidates without flooding the navigator or issue count with informational file scores, hotspots, or advisory refactoring targets; and
+- a reproducible small/large project-issues benchmark plus bounded concurrent child scheduling with deterministic output and coordinated cancellation.
 
 See [`benchmarks/README.md`](./benchmarks/README.md), [`benchmarks/PERFORMANCE.md`](./benchmarks/PERFORMANCE.md), [`CHANGELOG.md`](./CHANGELOG.md), and the [README compatibility section](./README.md#tested-compatibility) for authoritative detail.
 
@@ -61,5 +63,5 @@ Future work must preserve these boundaries:
 
 ## Suggested delivery order
 
-1. Iterate on navigator density and project-issues performance evidence where measured use identifies a concrete problem.
+1. Iterate on navigator density only where measured use identifies a concrete problem, and monitor the documented project-issues latency/memory tradeoff on materially larger real projects.
 2. Improve hotspot coverage, maintainability, and dependency compatibility in small independently reviewed changes.
