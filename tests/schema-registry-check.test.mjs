@@ -7,7 +7,7 @@ import { assertRegistrySchema } from "../scripts/schema-registry-check.mjs";
 const jiti = createJiti(import.meta.url);
 const { fallowToolCommands, getFallowToolCommandSpec } = await jiti.import("../extensions/fallow/registry.ts");
 const specs = fallowToolCommands.map(getFallowToolCommandSpec);
-const frozen = JSON.parse(readFileSync(new URL("./fixtures/fallow/schema-3.22.0.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(readFileSync(new URL("./fixtures/fallow/schema-3.24.1.json", import.meta.url), "utf8"));
 const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 function changedSchema(change) {
@@ -60,10 +60,10 @@ describe("registry versus certified Fallow schema", () => {
 		]) assert.throws(() => assertRegistrySchema(changedSchema(mutate), specs), /quiet|json|JSON/);
 	});
 
-	it("checks target requirements and the architecture boolean-flag scanner", () => {
+	it("checks target types and the architecture boolean-flag scanner", () => {
 		for (const mutate of [
 			(data) => { command(data, "guard").flags = []; },
-			(data) => { command(data, "trace").flags[0].required = false; },
+			(data) => { command(data, "trace").flags = command(data, "trace").flags.filter((flag) => flag.name !== "symbol"); },
 			(data) => { command(data, "explain").flags[0].type = "bool"; },
 			(data) => { globalFlag(data, "--no-cache").type = "string"; },
 			(data) => { delete globalFlag(data, "--quiet").short; },

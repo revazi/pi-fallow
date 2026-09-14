@@ -28,9 +28,9 @@ describe("package and automation metadata", () => {
 		];
 		for (const name of piPackages) {
 			assert.equal(manifest.peerDependencies[name], "*");
-			assert.equal(lockfile.packages[`node_modules/${name}`].version, "0.84.4");
+			assert.equal(lockfile.packages[`node_modules/${name}`].version, "0.85.1");
 		}
-		assert.match(readme, /\| 0\.84\.4 \| 0\.84\.4 \| 22\.19 and 24 \| 3\.22\.0 \|/);
+		assert.match(readme, /\| 0\.85\.1 \| 0\.85\.1 \| 22\.19 and 24 \| 3\.24\.1 \|/);
 		assert.match(readme, /tested compatibility; it is not an installation constraint/);
 		assert.match(readme, /Certification.*Compatibility.*Installation constraints/s);
 		assert.match(readme, /\/fallow compatibility.*never gates ordinary execution/s);
@@ -43,7 +43,7 @@ describe("package and automation metadata", () => {
 	it("pins analysis tooling and enables npm provenance", () => {
 		assert.deepEqual(
 			Object.fromEntries(["c8", "esbuild", "fallow"].map((name) => [name, manifest.devDependencies[name]])),
-			{ c8: "12.0.0", esbuild: "0.28.2", fallow: "3.22.0" },
+			{ c8: "12.0.0", esbuild: "0.28.2", fallow: "3.24.1" },
 		);
 		assert.equal(manifest.publishConfig.provenance, true);
 		assert.match(manifest.scripts["publish:public"], /--provenance/);
