@@ -4,6 +4,13 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+### Added
+- Documented `/fallow issues` on 16 pinned popular JS/TS packages (HTTP frameworks, UI frameworks, and libraries) with a reproducible corpus, benchmark script, and checked-in snapshot.
+- Added a README section linking other Pi packages by Revaz.
+
+### Changed
+- Restyled the README with section icons, scannable command/benchmark tables, and a dedicated Benchmarks section for tokens, interactive latency, and popular packages.
+
 ## [0.6.2] - 2026-09-14
 
 ### Added

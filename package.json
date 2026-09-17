@@ -39,6 +39,7 @@
     "bench:performance": "node scripts/performance-benchmark.mjs",
     "bench:performance:compare": "node scripts/performance-benchmark-compare.mjs",
     "bench:issues": "node scripts/project-issues-benchmark.mjs",
+    "bench:packages": "node scripts/popular-packages-benchmark.mjs",
     "smoke:fallow": "node scripts/fallow-smoke.mjs",
     "smoke:fallow-cov": "npm exec --yes --ignore-scripts --package=@fallow-cli/fallow-cov@0.4.1 -- node scripts/fallow-cov-certification.mjs",
     "smoke:fallow-similar": "node scripts/similar-code-certification.mjs",
