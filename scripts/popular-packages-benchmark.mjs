@@ -63,27 +63,51 @@ function parseCli(args) {
 		refresh: false,
 		timeoutSecs: DEFAULT_TIMEOUT_SECS,
 	};
-	for (let index = 0; index < args.length; index++) {
-		const flag = args[index];
-		if (flag === "--refresh") {
-			options.refresh = true;
-			continue;
-		}
-		const setter = {
-			"--label": (value) => { options.label = value; },
-			"--output": (value) => { options.output = value; },
-			"--cache-dir": (value) => { options.cacheDir = value; },
-			"--only": (value) => { options.only = value.split(",").map((item) => item.trim()).filter(Boolean); },
-			"--timeout-secs": (value) => { options.timeoutSecs = Number(value); },
-		}[flag];
-		if (!setter) throw new Error(`Unknown argument: ${flag}`);
-		setter(requireValue(args, index + 1, flag));
-		index++;
+	for (let index = 0; index < args.length; ) {
+		index = applyCliFlag(options, args, index);
 	}
 	if (!Number.isInteger(options.timeoutSecs) || options.timeoutSecs < 1) {
 		throw new Error("--timeout-secs must be an integer >= 1.");
 	}
 	return options;
+}
+
+function applyCliFlag(options, args, index) {
+	const flag = args[index];
+	if (flag === "--refresh") {
+		options.refresh = true;
+		return index + 1;
+	}
+	assignCliOption(options, flag, requireValue(args, index + 1, flag));
+	return index + 2;
+}
+
+const CLI_FIELDS = {
+	"--label": "label",
+	"--output": "output",
+	"--cache-dir": "cacheDir",
+	"--only": "only",
+	"--timeout-secs": "timeoutSecs",
+};
+
+function assignCliOption(options, flag, value) {
+	const field = CLI_FIELDS[flag];
+	if (!field) throw new Error(`Unknown argument: ${flag}`);
+	options[field] = coerceCliValue(field, value);
+}
+
+function coerceCliValue(field, value) {
+	if (field === "only") return parsePackageFilter(value);
+	if (field === "timeoutSecs") return Number(value);
+	return value;
+}
+
+function parsePackageFilter(value) {
+	return value.split(",").map(trimPackageId).filter(Boolean);
+}
+
+function trimPackageId(item) {
+	return item.trim();
 }
 
 function selectPackages(packages, only) {
@@ -249,13 +273,26 @@ function buildEnvironment() {
 
 function printSummary(artifact, outputPath) {
 	console.log(`Pi Fallow popular-packages benchmark: ${artifact.label}`);
-	console.table(artifact.measurements.map((item) => ({
+	console.table(artifact.measurements.map(summaryRow));
+	if (outputPath) console.log(`Wrote ${resolve(outputPath)}`);
+}
+
+function summaryRow(item) {
+	return {
 		package: item.name,
 		ref: item.ref,
-		files: item.filesAnalyzed ?? "error",
-		timeMs: item.wallMs ?? "error",
-		findings: item.navigatorFindingCount ?? "error",
-		health: item.healthGrade && item.healthScore != null ? `${item.healthGrade} ${item.healthScore}` : item.error ?? "",
-	})));
-	if (outputPath) console.log(`Wrote ${resolve(outputPath)}`);
+		files: measuredOrError(item.filesAnalyzed),
+		timeMs: measuredOrError(item.wallMs),
+		findings: measuredOrError(item.navigatorFindingCount),
+		health: summaryHealth(item),
+	};
+}
+
+function measuredOrError(value) {
+	return value ?? "error";
+}
+
+function summaryHealth(item) {
+	if (item.healthGrade && item.healthScore != null) return `${item.healthGrade} ${item.healthScore}`;
+	return item.error ?? "";
 }
