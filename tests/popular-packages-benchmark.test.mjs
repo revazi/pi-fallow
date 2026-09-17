@@ -54,7 +54,10 @@ describe("popular-packages benchmark", () => {
 		assert.match(readme, /npm run bench:packages/);
 		assert.match(readme, /8,493/);
 		assert.match(readme, /svelte@5\.57\.0/);
-		assert.match(readme, /not "which package is healthier/);
+		assert.match(readme, /\*\*Health\*\* is Fallow's overall project score/);
+		assert.match(readme, /B 72\.9/);
+		assert.match(readme, /F 16\.6/);
+		assert.match(readme, /C 65\.6/);
 		assert.match(readme, /benchmarks\/baselines\/popular-packages-v0\.6\.2\.json/);
 		assert.match(readme, /## 🧩 More Pi packages by Revaz/);
 		assert.match(readme, /pi-jscpd/);

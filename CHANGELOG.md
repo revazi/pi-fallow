@@ -10,6 +10,7 @@ All notable changes to Pi Fallow are documented here.
 
 ### Changed
 - Restyled the README with section icons, scannable command/benchmark tables, and a dedicated Benchmarks section for tokens, interactive latency, and popular packages.
+- Added Fallow overall health grade/score and average maintainability to the popular-package benchmark tables.
 
 ## [0.6.2] - 2026-09-14
 

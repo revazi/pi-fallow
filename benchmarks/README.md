@@ -129,7 +129,7 @@ These values are deterministic corpus measurements, not universal provider billi
 
 [`popular-packages.json`](./popular-packages.json) pins widely used JS/TS frameworks and libraries. The benchmark shallow-clones each ref and runs the production `/fallow issues` path (combined dead-code, duplication, and health concurrently with security), plus a health score for the artifact.
 
-This is a scale and latency snapshot with default Fallow discovery. It is not a quality ranking. Tests, examples, docs, and generated fixtures remain in scope unless a project already has Fallow config, so unused-file and duplication counts are often large.
+This is a scale and latency snapshot with default Fallow discovery. It is not a quality ranking. Tests, examples, docs, and generated fixtures remain in scope unless a project already has Fallow config, so unused-file and duplication counts are often large. The README tables include Fallow's overall health grade/score and average maintainability from the same snapshot.
 
 ```bash
 npm run bench:packages -- \

@@ -207,44 +207,44 @@ Navigator preparation stays below 0.2 ms. Direct Fallow invocation is much cheap
 
 ### 📦 Popular packages
 
-The table below is `/fallow issues` on shallow clones of widely used JS/TS projects, using default Fallow discovery and Pi Fallow's production aggregator. It answers "does this finish on real code?" — not "which package is healthier."
+The table below is `/fallow issues` on shallow clones of widely used JS/TS projects, using default Fallow discovery and Pi Fallow's production aggregator.
 
-Tests, examples, docs, and generated fixtures are included, so unused-file and duplication counts are often large. Health grades stay in the JSON artifact for that reason.
+**Health** is Fallow's overall project score (0–100 and letter grade). **MI** is average maintainability. Default discovery includes tests, examples, docs, and generated fixtures, so unused-file and duplication penalties can pull the composite score down even when maintainability stays high. This is a snapshot, not a ranking of these projects.
 
 Measured on Apple M1 Pro, Node.js 24.12.0, Fallow 3.24.1:
 
 #### HTTP frameworks
 
-| Package | Pin | Files | Time | Navigator findings |
-|---|---|---:|---:|---:|
-| [express](https://github.com/expressjs/express) | v5.2.1 | 154 | 0.35s | 358 |
-| [fastify](https://github.com/fastify/fastify) | v5.9.0 | 296 | 0.36s | 514 |
-| [koa](https://github.com/koajs/koa) | v3.2.1 | 82 | 0.26s | 112 |
-| [hono](https://github.com/honojs/hono) | v4.13.8 | 391 | 0.53s | 218 |
+| Package | Pin | Files | Health | MI | Time | Findings |
+|---|---|---:|---:|---:|---:|---:|
+| [express](https://github.com/expressjs/express) | v5.2.1 | 154 | B 72.9 | 90.2 | 0.35s | 358 |
+| [fastify](https://github.com/fastify/fastify) | v5.9.0 | 296 | F 16.6 | 74.7 | 0.36s | 514 |
+| [koa](https://github.com/koajs/koa) | v3.2.1 | 82 | C 65.7 | 74.8 | 0.26s | 112 |
+| [hono](https://github.com/honojs/hono) | v4.13.8 | 391 | C 68.1 | 90.6 | 0.53s | 218 |
 
 #### UI frameworks
 
-| Package | Pin | Files | Time | Navigator findings |
-|---|---|---:|---:|---:|
-| [preact](https://github.com/preactjs/preact) | 10.29.8 | 255 | 0.47s | 126 |
-| [vue](https://github.com/vuejs/core) | v3.5.43 | 565 | 0.62s | 569 |
-| [svelte](https://github.com/sveltejs/svelte) | svelte@5.57.0 | 8,493 | 1.66s | 5,961 |
+| Package | Pin | Files | Health | MI | Time | Findings |
+|---|---|---:|---:|---:|---:|---:|
+| [preact](https://github.com/preactjs/preact) | 10.29.8 | 255 | D 51.3 | 89.9 | 0.47s | 126 |
+| [vue](https://github.com/vuejs/core) | v3.5.43 | 565 | D 48.4 | 89.8 | 0.62s | 569 |
+| [svelte](https://github.com/sveltejs/svelte) | svelte@5.57.0 | 8,493 | C 65.6 | 86.8 | 1.66s | 5,961 |
 
 Svelte is measured as the published monorepo tag, not a single package path.
 
 #### Libraries
 
-| Package | Pin | Files | Time | Navigator findings |
-|---|---|---:|---:|---:|
-| [axios](https://github.com/axios/axios) | v1.20.0 | 252 | 0.41s | 176 |
-| [zod](https://github.com/colinhacks/zod) | v4.6.5 | 549 | 0.63s | 863 |
-| [commander](https://github.com/tj/commander.js) | v15.0.0 | 171 | 0.31s | 208 |
-| [zustand](https://github.com/pmndrs/zustand) | v5.0.15 | 56 | 0.57s | 21 |
-| [redux](https://github.com/reduxjs/redux) | v5.0.1 | 225 | 0.45s | 118 |
-| [date-fns](https://github.com/date-fns/date-fns) | v4.4.0 | 1,632 | 1.38s | 909 |
-| [debug](https://github.com/debug-js/debug) | 4.4.3 | 7 | 0.25s | 14 |
-| [chalk](https://github.com/chalk/chalk) | v6.0.0 | 20 | 0.70s | 9 |
-| [lodash](https://github.com/lodash/lodash) | 4.18.1 | 59 | 0.51s | 767 |
+| Package | Pin | Files | Health | MI | Time | Findings |
+|---|---|---:|---:|---:|---:|---:|
+| [axios](https://github.com/axios/axios) | v1.20.0 | 252 | B 72 | 89.6 | 0.41s | 176 |
+| [zod](https://github.com/colinhacks/zod) | v4.6.5 | 549 | D 45.2 | 86.9 | 0.63s | 863 |
+| [commander](https://github.com/tj/commander.js) | v15.0.0 | 171 | B 71.8 | 74.4 | 0.31s | 208 |
+| [zustand](https://github.com/pmndrs/zustand) | v5.0.15 | 56 | C 59.8 | 92.0 | 0.57s | 21 |
+| [redux](https://github.com/reduxjs/redux) | v5.0.1 | 225 | D 52.6 | 90.7 | 0.45s | 118 |
+| [date-fns](https://github.com/date-fns/date-fns) | v4.4.0 | 1,632 | B 70.3 | 91.9 | 1.38s | 909 |
+| [debug](https://github.com/debug-js/debug) | 4.4.3 | 7 | C 65 | 94.1 | 0.25s | 14 |
+| [chalk](https://github.com/chalk/chalk) | v6.0.0 | 20 | C 64 | 88.9 | 0.70s | 9 |
+| [lodash](https://github.com/lodash/lodash) | 4.18.1 | 59 | D 51 | 83.1 | 0.51s | 767 |
 
 Reproduce or refresh the snapshot:
 
