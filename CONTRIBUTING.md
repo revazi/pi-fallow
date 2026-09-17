@@ -68,6 +68,7 @@ What these cover:
 - `npm run package:smoke` packs, installs, and validates the npm tarball in an isolated project.
 - `npm run bench:tokens` and `npm run bench:tokens:compare` measure model-visible output against the frozen `0.2.0` baseline.
 - `npm run bench:performance` and `npm run bench:performance:compare` measure runner, processing, Git, memory, and cold/warm behavior against the performance baseline.
+- `npm run bench:packages` clones pinned popular JS/TS packages and runs `/fallow issues` against them. It needs network on a cache miss and is not part of ordinary CI.
 - `npm run pack:check` verifies the npm package contents.
 
 ### Overlay UX changes

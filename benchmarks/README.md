@@ -1,6 +1,14 @@
-# Token benchmarks
+# Benchmarks
 
-This directory freezes Pi Fallow's model-visible behavior before token optimizations. Execution, project-issues aggregation, Git, cold/warm, and memory measurements are documented separately in [`PERFORMANCE.md`](./PERFORMANCE.md).
+This directory freezes Pi Fallow's measured behavior:
+
+- **Tokens** — model-visible `fallow_run` and `/fallow` surfaces (this file)
+- **Performance** — runner, processing, Git, memory, and `/fallow issues` scheduling in [`PERFORMANCE.md`](./PERFORMANCE.md)
+- **Popular packages** — `/fallow issues` on pinned real-world JS/TS projects
+
+## Token benchmarks
+
+These measurements freeze model-visible behavior before token optimizations.
 
 ## What is measured
 
@@ -116,3 +124,24 @@ Important baseline findings:
 - Slash-command navigator summaries intentionally include no raw finding IDs. The baseline records this rather than treating a small summary as equivalent to retained actionable detail.
 
 These values are deterministic corpus measurements, not universal provider billing. Provider-specific wrappers and prompt caching can change billed input/cache tokens, while context-window occupancy remains.
+
+## Popular packages
+
+[`popular-packages.json`](./popular-packages.json) pins widely used JS/TS frameworks and libraries. The benchmark shallow-clones each ref and runs the production `/fallow issues` path (combined dead-code, duplication, and health concurrently with security), plus a health score for the artifact.
+
+This is a scale and latency snapshot with default Fallow discovery. It is not a quality ranking. Tests, examples, docs, and generated fixtures remain in scope unless a project already has Fallow config, so unused-file and duplication counts are often large.
+
+```bash
+npm run bench:packages -- \
+  --label candidate \
+  --output /tmp/pi-fallow-popular-packages.json
+```
+
+Useful flags:
+
+- `--only express,zod` — measure a subset
+- `--refresh` — reclone cached checkouts
+- `--cache-dir <path>` — override `benchmarks/.cache/popular-packages`
+- `--timeout-secs 180` — per-analysis timeout
+
+Clones are gitignored. The checked-in snapshot is [`baselines/popular-packages-v0.6.2.json`](./baselines/popular-packages-v0.6.2.json). Compare wall times only on the same machine, Node version, and Fallow version. File counts and finding totals should match for the same pins.

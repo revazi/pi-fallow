@@ -1,0 +1,118 @@
+{
+  "benchmarkVersion": 1,
+  "description": "Pinned popular JS/TS packages analyzed through Pi Fallow's /fallow issues path",
+  "packages": [
+    {
+      "id": "express",
+      "name": "express",
+      "category": "http-framework",
+      "repo": "https://github.com/expressjs/express.git",
+      "ref": "v5.2.1"
+    },
+    {
+      "id": "fastify",
+      "name": "fastify",
+      "category": "http-framework",
+      "repo": "https://github.com/fastify/fastify.git",
+      "ref": "v5.9.0"
+    },
+    {
+      "id": "koa",
+      "name": "koa",
+      "category": "http-framework",
+      "repo": "https://github.com/koajs/koa.git",
+      "ref": "v3.2.1"
+    },
+    {
+      "id": "hono",
+      "name": "hono",
+      "category": "http-framework",
+      "repo": "https://github.com/honojs/hono.git",
+      "ref": "v4.13.8"
+    },
+    {
+      "id": "preact",
+      "name": "preact",
+      "category": "ui-framework",
+      "repo": "https://github.com/preactjs/preact.git",
+      "ref": "10.29.8"
+    },
+    {
+      "id": "vue",
+      "name": "vue",
+      "category": "ui-framework",
+      "repo": "https://github.com/vuejs/core.git",
+      "ref": "v3.5.43"
+    },
+    {
+      "id": "svelte",
+      "name": "svelte",
+      "category": "ui-framework",
+      "repo": "https://github.com/sveltejs/svelte.git",
+      "ref": "svelte@5.57.0"
+    },
+    {
+      "id": "axios",
+      "name": "axios",
+      "category": "library",
+      "repo": "https://github.com/axios/axios.git",
+      "ref": "v1.20.0"
+    },
+    {
+      "id": "zod",
+      "name": "zod",
+      "category": "library",
+      "repo": "https://github.com/colinhacks/zod.git",
+      "ref": "v4.6.5"
+    },
+    {
+      "id": "commander",
+      "name": "commander",
+      "category": "library",
+      "repo": "https://github.com/tj/commander.js.git",
+      "ref": "v15.0.0"
+    },
+    {
+      "id": "zustand",
+      "name": "zustand",
+      "category": "library",
+      "repo": "https://github.com/pmndrs/zustand.git",
+      "ref": "v5.0.15"
+    },
+    {
+      "id": "redux",
+      "name": "redux",
+      "category": "library",
+      "repo": "https://github.com/reduxjs/redux.git",
+      "ref": "v5.0.1"
+    },
+    {
+      "id": "date-fns",
+      "name": "date-fns",
+      "category": "library",
+      "repo": "https://github.com/date-fns/date-fns.git",
+      "ref": "v4.4.0"
+    },
+    {
+      "id": "debug",
+      "name": "debug",
+      "category": "library",
+      "repo": "https://github.com/debug-js/debug.git",
+      "ref": "4.4.3"
+    },
+    {
+      "id": "chalk",
+      "name": "chalk",
+      "category": "library",
+      "repo": "https://github.com/chalk/chalk.git",
+      "ref": "v6.0.0"
+    },
+    {
+      "id": "lodash",
+      "name": "lodash",
+      "category": "library",
+      "repo": "https://github.com/lodash/lodash.git",
+      "ref": "4.18.1"
+    }
+  ]
+}

@@ -4,3 +4,4 @@ coverage/
 .fallow/
 .pi/
 .DS_Store
+benchmarks/.cache/
