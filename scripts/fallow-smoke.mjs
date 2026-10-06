@@ -96,7 +96,7 @@ function assertModeledArgs() {
 function assertCurrentFallowSchema(data) {
 	assertRegistrySchema(data, fallowToolCommands.map(getFallowToolCommandSpec));
 	assert.equal(data.name, "fallow");
-	assert.equal(data.version, "3.24.1");
+	assert.equal(data.version, "3.31.0");
 	assert.equal(data.manifest_version, "1");
 	assert.ok(Array.isArray(data.commands));
 	const commands = new Map(data.commands.map((command) => [command.name, command]));
@@ -130,7 +130,7 @@ function assertCurrentFallowSchema(data) {
 	assert.deepEqual(Object.keys(data.exit_codes), ["0", "1", "2", "3", "4", "5", "6", "7", "8", "10", "11", "12", "13"]);
 	assert.ok(Array.isArray(data.issue_types));
 	const issueTypes = new Map(data.issue_types.map((issue) => [issue.id, issue]));
-	assert.equal(data.issue_types.length, 117);
+	assert.equal(data.issue_types.length, 120);
 	assert.equal(issueTypes.size, data.issue_types.length);
 	assert.match(issueTypes.get("unused-dependency-override").description, /package-manager/i);
 	assert.match(issueTypes.get("misconfigured-dependency-override").description, /package-manager/i);
@@ -186,7 +186,7 @@ function assertCliSurfaces() {
 	assertFallowJson(["similar-code", "status"], (data) => {
 		assert.equal(data.kind, "similar-code-status");
 		assert.equal(data.schema_version, "1");
-		assert.equal(data.version, "3.24.1");
+		assert.equal(data.version, "3.31.0");
 		assert.equal(data.protocol_version, 2);
 		assert.equal(data.analysis_offline, true);
 		assert.equal(typeof data.model_ready, "boolean");
@@ -233,7 +233,7 @@ function assertCliSurfaces() {
 }
 
 assertModeledArgs();
-const frozenReports = JSON.parse(await readFile(new URL("../tests/fixtures/fallow/reports-3.24.1.json", import.meta.url), "utf8"));
+const frozenReports = JSON.parse(await readFile(new URL("../tests/fixtures/fallow/reports-3.31.0.json", import.meta.url), "utf8"));
 assertEvidenceSubset(await collectReportEvidence(), frozenReports);
 assertCliSurfaces();
 console.log("Fallow CLI smoke checks passed.");

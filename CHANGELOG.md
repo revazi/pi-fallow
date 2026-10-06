@@ -7,6 +7,7 @@ All notable changes to Pi Fallow are documented here.
 ### Changed
 - Updated the coordinated Pi development lock and package-boundary certification to 1.0.4 while retaining host-provided wildcard Pi peer dependencies. The credential-free unknown-command guidance and CLI entrypoint are unchanged.
 - Updated the direct TypeBox development lock to 1.3.36 and the fully SHA-pinned Codecov and CodeQL Actions to 7.1.1 and 4.38.1.
+- Updated the pinned Fallow compatibility target to 3.31.0 and re-certified the command/capability schema, captured reports, signed runtime coverage, and model-backed Similar Code workflows. The reviewed surface adds optional flags, path positionals, and issue types for deprecated exports in use, package cycles, and flag-retirement candidates. Modeled report schema versions are unchanged.
 
 ### Added
 - Documented `/fallow issues` on 16 pinned popular JS/TS packages (HTTP frameworks, UI frameworks, and libraries) with a reproducible corpus, benchmark script, and checked-in snapshot.

@@ -1,6 +1,6 @@
 {
   "name": "fallow",
-  "version": "3.24.1",
+  "version": "3.31.0",
   "manifest_version": "1",
   "default_command": null,
   "output_formats": [
@@ -22,6 +22,11 @@
     "github-summary"
   ],
   "global_flags": [
+    {
+      "name": "path",
+      "type": "string",
+      "required": false
+    },
     {
       "name": "--root",
       "short": "-r",
@@ -101,6 +106,15 @@
       "name": "--changed-since",
       "type": "string",
       "required": false
+    },
+    {
+      "name": "--no-package-baselines",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
     },
     {
       "name": "--diff-file",
@@ -297,6 +311,38 @@
       ]
     },
     {
+      "name": "--fail-on-stale-baseline",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--fail-on-baseline-growth",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--baseline-base",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--fail-on-parse-error",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
       "name": "--tolerance",
       "type": "string",
       "required": false
@@ -441,6 +487,16 @@
       "required": false
     },
     {
+      "name": "--dupes-baseline",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "--health-baseline",
+      "type": "string",
+      "required": false
+    },
+    {
       "name": "--include-entry-exports",
       "type": "bool",
       "required": false,
@@ -524,6 +580,15 @@
         },
         {
           "name": "--private-type-leaks",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--deprecated-exports-in-use",
           "type": "bool",
           "required": false,
           "possible_values": [
@@ -685,6 +750,15 @@
           ]
         },
         {
+          "name": "--package-cycles",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
           "name": "--boundary-violations",
           "type": "bool",
           "required": false,
@@ -799,6 +873,16 @@
           "name": "--file",
           "type": "string",
           "required": false
+        },
+        {
+          "name": "--finding-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
         }
       ]
     },
@@ -844,6 +928,11 @@
         },
         {
           "name": "--file",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "path",
           "type": "string",
           "required": false
         }
@@ -894,6 +983,15 @@
           "name": "--path",
           "type": "string",
           "required": false
+        },
+        {
+          "name": "--eager-only",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
         },
         {
           "name": "--callers",
@@ -959,6 +1057,11 @@
             "true",
             "false"
           ]
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
         }
       ]
     },
@@ -1115,6 +1218,20 @@
             "true",
             "false"
           ]
+        },
+        {
+          "name": "--entry-weight",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
         }
       ]
     },
@@ -1217,6 +1334,11 @@
         },
         {
           "name": "--trace",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "path",
           "type": "string",
           "required": false
         }
@@ -1444,6 +1566,11 @@
           "name": "--low-traffic-threshold",
           "type": "string",
           "required": false
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
         }
       ]
     },
@@ -1452,6 +1579,68 @@
       "flags": [
         {
           "name": "--top",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--retirement",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--reason",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "single-read-site",
+            "test-only",
+            "literal-constant",
+            "identical-branches",
+            "empty-branch",
+            "guards-dead-code",
+            "defined-never-read",
+            "fully-rolled-out",
+            "archived-in-vendor",
+            "missing-in-vendor",
+            "vendor-only"
+          ]
+        },
+        {
+          "name": "--sort",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "age",
+            "sites",
+            "name"
+          ]
+        },
+        {
+          "name": "--flag-age",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "blame",
+            "pickaxe",
+            "off"
+          ]
+        },
+        {
+          "name": "--min-age",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--flag-state",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--max-flag-age",
           "type": "string",
           "required": false
         }
@@ -1647,6 +1836,11 @@
             "true",
             "false"
           ]
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
         }
       ]
     },
@@ -1729,6 +1923,11 @@
             "true",
             "false"
           ]
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
         }
       ]
     },
@@ -1887,632 +2086,5 @@
         }
       ]
     }
-  ],
-  "issue_types": [
-    {
-      "id": "unused-file",
-      "command": "dead-code",
-      "result_key": "unused_files"
-    },
-    {
-      "id": "unused-export",
-      "command": "dead-code",
-      "result_key": "unused_exports"
-    },
-    {
-      "id": "unused-type",
-      "command": "dead-code",
-      "result_key": "unused_types"
-    },
-    {
-      "id": "private-type-leak",
-      "command": "dead-code",
-      "result_key": "private_type_leaks"
-    },
-    {
-      "id": "unused-dependency",
-      "command": "dead-code",
-      "result_key": "unused_dependencies"
-    },
-    {
-      "id": "unused-dev-dependency",
-      "command": "dead-code",
-      "result_key": "unused_dev_dependencies"
-    },
-    {
-      "id": "unused-optional-dependency",
-      "command": "dead-code",
-      "result_key": "unused_optional_dependencies"
-    },
-    {
-      "id": "type-only-dependency",
-      "command": "dead-code",
-      "result_key": "type_only_dependencies"
-    },
-    {
-      "id": "test-only-dependency",
-      "command": "dead-code",
-      "result_key": "test_only_dependencies"
-    },
-    {
-      "id": "dev-dependency-in-production",
-      "command": "dead-code",
-      "result_key": "dev_dependencies_in_production"
-    },
-    {
-      "id": "unused-enum-member",
-      "command": "dead-code",
-      "result_key": "unused_enum_members"
-    },
-    {
-      "id": "unused-class-member",
-      "command": "dead-code",
-      "result_key": "unused_class_members"
-    },
-    {
-      "id": "unused-store-member",
-      "command": "dead-code",
-      "result_key": "unused_store_members"
-    },
-    {
-      "id": "unresolved-import",
-      "command": "dead-code",
-      "result_key": "unresolved_imports"
-    },
-    {
-      "id": "unlisted-dependency",
-      "command": "dead-code",
-      "result_key": "unlisted_dependencies"
-    },
-    {
-      "id": "duplicate-export",
-      "command": "dead-code",
-      "result_key": "duplicate_exports"
-    },
-    {
-      "id": "circular-dependency",
-      "command": "dead-code",
-      "result_key": "circular_dependencies"
-    },
-    {
-      "id": "re-export-cycle",
-      "command": "dead-code",
-      "result_key": "re_export_cycles"
-    },
-    {
-      "id": "boundary-violation",
-      "command": "dead-code",
-      "result_key": "boundary_violations"
-    },
-    {
-      "id": "boundary-coverage",
-      "command": "dead-code",
-      "result_key": "boundary_coverage_violations"
-    },
-    {
-      "id": "boundary-call-violation",
-      "command": "dead-code",
-      "result_key": "boundary_call_violations"
-    },
-    {
-      "id": "policy-violation",
-      "command": "dead-code",
-      "result_key": "policy_violations"
-    },
-    {
-      "id": "stale-suppression",
-      "command": "dead-code",
-      "result_key": "stale_suppressions"
-    },
-    {
-      "id": "missing-suppression-reason",
-      "command": "dead-code",
-      "result_key": null
-    },
-    {
-      "id": "unused-catalog-entry",
-      "command": "dead-code",
-      "result_key": "unused_catalog_entries"
-    },
-    {
-      "id": "empty-catalog-group",
-      "command": "dead-code",
-      "result_key": "empty_catalog_groups"
-    },
-    {
-      "id": "unresolved-catalog-reference",
-      "command": "dead-code",
-      "result_key": "unresolved_catalog_references"
-    },
-    {
-      "id": "unused-dependency-override",
-      "command": "dead-code",
-      "result_key": "unused_dependency_overrides"
-    },
-    {
-      "id": "misconfigured-dependency-override",
-      "command": "dead-code",
-      "result_key": "misconfigured_dependency_overrides"
-    },
-    {
-      "id": "invalid-client-export",
-      "command": "dead-code",
-      "result_key": "invalid_client_exports"
-    },
-    {
-      "id": "mixed-client-server-barrel",
-      "command": "dead-code",
-      "result_key": "mixed_client_server_barrels"
-    },
-    {
-      "id": "misplaced-directive",
-      "command": "dead-code",
-      "result_key": "misplaced_directives"
-    },
-    {
-      "id": "unprovided-inject",
-      "command": "dead-code",
-      "result_key": "unprovided_injects"
-    },
-    {
-      "id": "unrendered-component",
-      "command": "dead-code",
-      "result_key": "unrendered_components"
-    },
-    {
-      "id": "unused-component-prop",
-      "command": "dead-code",
-      "result_key": "unused_component_props"
-    },
-    {
-      "id": "unused-component-emit",
-      "command": "dead-code",
-      "result_key": "unused_component_emits"
-    },
-    {
-      "id": "unused-component-input",
-      "command": "dead-code",
-      "result_key": "unused_component_inputs"
-    },
-    {
-      "id": "unused-component-output",
-      "command": "dead-code",
-      "result_key": "unused_component_outputs"
-    },
-    {
-      "id": "unused-svelte-event",
-      "command": "dead-code",
-      "result_key": "unused_svelte_events"
-    },
-    {
-      "id": "unused-server-action",
-      "command": "dead-code",
-      "result_key": "unused_server_actions"
-    },
-    {
-      "id": "unused-load-data-key",
-      "command": "dead-code",
-      "result_key": "unused_load_data_keys"
-    },
-    {
-      "id": "prop-drilling",
-      "command": "dead-code",
-      "result_key": "prop_drilling_chains"
-    },
-    {
-      "id": "thin-wrapper",
-      "command": "dead-code",
-      "result_key": "thin_wrappers"
-    },
-    {
-      "id": "duplicate-prop-shape",
-      "command": "dead-code",
-      "result_key": "duplicate_prop_shapes"
-    },
-    {
-      "id": "route-collision",
-      "command": "dead-code",
-      "result_key": "route_collisions"
-    },
-    {
-      "id": "dynamic-segment-name-conflict",
-      "command": "dead-code",
-      "result_key": "dynamic_segment_name_conflicts"
-    },
-    {
-      "id": "high-cyclomatic-complexity",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "high-cognitive-complexity",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "high-complexity",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "high-crap-score",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "refactoring-target",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "css-token-drift",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "css-duplicate-block",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "css-selector-complexity",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "css-dead-surface",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "css-broken-reference",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "untested-file",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "untested-export",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "runtime-safe-to-delete",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "runtime-review-required",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "runtime-low-traffic",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "runtime-coverage-unavailable",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "runtime-coverage",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "coverage-intelligence-risky-change",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "coverage-intelligence-delete",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "coverage-intelligence-review",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "coverage-intelligence-refactor",
-      "command": "health",
-      "result_key": null
-    },
-    {
-      "id": "code-duplication",
-      "command": "dupes",
-      "result_key": null
-    },
-    {
-      "id": "feature-flag",
-      "command": "flags",
-      "result_key": null
-    },
-    {
-      "id": "tainted-sink",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "client-server-leak",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "hardcoded-secret",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "dangerous-html",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "template-escape-bypass",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "command-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "code-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "dynamic-regex",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "redos-regex",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "resource-amplification",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "dynamic-module-load",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "sql-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "ssrf",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "secret-to-network",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "path-traversal",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "header-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "open-redirect",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "postmessage-wildcard-origin",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "tls-validation-disabled",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "cleartext-transport",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "electron-unsafe-webpreferences",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "world-writable-permission",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "insecure-temp-file",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "mysql-multiple-statements",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "permissive-cors",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "insecure-cookie",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "mass-assignment",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "weak-crypto",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "insecure-randomness",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "jwt-alg-none",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "jwt-verify-missing-algorithms",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "deprecated-cipher",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "unsafe-buffer-alloc",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "unsafe-deserialization",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "angular-trusted-html",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "nextjs-open-redirect",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "dom-document-write",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "jquery-html",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "route-send-file",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "webview-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "prototype-pollution",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "zip-slip",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "nosql-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "ssti",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "xxe",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "secret-pii-log",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "xpath-injection",
-      "command": "security",
-      "result_key": null
-    },
-    {
-      "id": "llm-call-injection",
-      "command": "security",
-      "result_key": null
-    }
-  ],
-  "related_schemas": {
-    "config_schema_command": "fallow config-schema",
-    "rule_pack_schema_command": "fallow rule-pack-schema",
-    "plugin_schema_command": "fallow plugin-schema",
-    "plugin_check_command": "fallow plugin-check"
-  },
-  "mcp_resources": {
-    "resources": [
-      {
-        "uri": "fallow://tools"
-      },
-      {
-        "uri": "fallow://issue-types"
-      },
-      {
-        "uri": "fallow://explain"
-      },
-      {
-        "uri": "fallow://task-matrix"
-      },
-      {
-        "uri": "fallow://schema/config"
-      },
-      {
-        "uri": "fallow://schema/plugin"
-      },
-      {
-        "uri": "fallow://schema/rule-pack"
-      },
-      {
-        "uri": "fallow://schema/similar-code-snapshot"
-      },
-      {
-        "uri": "fallow://tools/{name}"
-      },
-      {
-        "uri": "fallow://explain/{issue_type}"
-      }
-    ]
-  }
+  ]
 }

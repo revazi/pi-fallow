@@ -6,7 +6,7 @@ import { FALLOW_COV_VERSION, inspectRuntimeCoverageCapability } from "./optional
 import { readinessNext, type ReadinessReport } from "./readiness-report";
 import { readSizedFile } from "./read-sized-file";
 
-// Fallow v3.24.1 crates/cli/src/health/coverage.rs BINARY_SIGNING_VERIFY_KEY.
+// Coverage sidecar signing key recorded from Fallow 3.24.1 and still accepted by the Fallow 3.31.0 certification lane.
 // Binary-signing key, NOT the license key. Readiness never executes sidecar candidates.
 const SIGNING_KEY = createPublicKey({
 	key: Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from([
@@ -69,7 +69,7 @@ function versionReport(version: string, details: string[], binaryPath: string, d
 	return {
 		runtime: { binaryPath, fingerprint: createHash("sha256").update(JSON.stringify([binaryPath, version, digest])).digest("hex") },
 		phase, summary: phase === "ready" ? "Certified signed sidecar is installed. This does not certify a coverage artifact or license." : "Installed sidecar version differs from the certified version (or is unrecognized).",
-		details: [...details, `Package-declared version: ${version}`, "Integrity: Ed25519 signature verified against Fallow 3.24.1's binary-signing key. Version comes from adjacent package metadata, not a sidecar handshake."],
+		details: [...details, `Package-declared version: ${version}`, "Integrity: Ed25519 signature verified against the certified Fallow coverage binary-signing key. Version comes from adjacent package metadata, not a sidecar handshake."],
 		next: phase === "ready" ? "Select and preview a local artifact in the inline form. Run rechecks the artifact and signed sidecar." : readinessNext(phase),
 	};
 }
