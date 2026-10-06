@@ -1,14 +1,14 @@
 # Fallow capability certification fixture
 
-`schema-3.24.1.json` is a deterministic projection of the repository-pinned
-Fallow 3.24.1 `schema --format json --quiet` output. It retains command names,
+`schema-3.31.0.json` is a deterministic projection of the repository-pinned
+Fallow 3.31.0 `schema --format json --quiet` output. It retains command names,
 global/local flag names, short aliases, types, requiredness, allowed values,
 output formats, and manifest/default-command identity. Descriptions and unrelated
 resources are intentionally omitted; this is not a complete capability manifest
 or a report-schema fixture.
 
 The original single-line stdout has SHA-256
-`7db274cc4081257959d12df2e98a70ac26e459ac80f93c191821f8cce207c519`.
+`1a34be71062435f7a10f2f92fe9f527478b45725cc47b01663ee4d8cb5144a36`.
 
 ## Regeneration
 
@@ -61,14 +61,14 @@ allowed values, all slash-only flows, or arbitrary report layouts. Required-inpu
 checks cover advertised required flags/positionals not supplied by fixed registry
 prefixes or managed output flags; help evidence extends this to selected nested
 commands, not conditional argument constraints.
-`capabilities-3.24.1.json` extends that frozen projection with the issue-type
+`capabilities-3.31.0.json` extends that frozen projection with the issue-type
 id/command/result-key registry plus related-schema commands and MCP resource
 URIs used by `/fallow compatibility`. Runtime mutation tests distinguish additive
 unknown capabilities from removed/incompatible modeled capabilities and enforce
 bounded transcript-facing diagnostics. The packaged comparison baseline is the
 smaller `extensions/fallow/certified-capabilities.ts` projection; both versions
 must match the pinned development target. The frozen capability projection has
-SHA-256 `a92f566d87cf7528217a8474955c1875a5c0259e85d43356ff20331e7720fd2d`.
+SHA-256 `6dcd91a37d17bc218c27c6883fe785d2165de49cd520ae0d1b611b4d69280c49`.
 
 No schema probing or version gate is added to startup, autocomplete, or ordinary
 runtime execution. `/fallow compatibility` is the only explicit capability probe,
@@ -78,7 +78,7 @@ still work.
 
 ## Captured report and nested-command evidence
 
-`reports-3.24.1.json` contains twelve real CLI JSON reports and four projected
+`reports-3.31.0.json` contains twelve real CLI JSON reports and four projected
 help contracts. `report-project.json` and `report-partial-project.json` hold the
 complete tiny input projects; both SHA-256 digests are recorded in the evidence.
 The capture script records exact CLI tokens, exit status, and report for each case:
@@ -136,9 +136,9 @@ for this fixed input, not a general comparison of arbitrary projects.
 
 ## Optional signed `fallow-cov` evidence
 
-`coverage-report-3.24.1.json` is a successful local `coverage analyze` capture
+`coverage-report-3.31.0.json` is a successful local `coverage analyze` capture
 from `coverage-project.json`. Node 24 executes one function under native V8
-coverage while leaving one tracked function cold; Fallow 3.24.1 and the signed
+coverage while leaving one tracked function cold; Fallow 3.31.0 and the signed
 `@fallow-cli/fallow-cov` 0.4.1 sidecar then emit one non-auto-fixable cold-code
 finding, blast-radius and importance context, capture-quality discriminators,
 and explicit local/unknown-production provenance.
@@ -177,7 +177,7 @@ retained raw but not surfaced as navigator findings.
 
 ## Optional model-backed Similar Code evidence
 
-`similar-code-report-3.24.1.json` preserves three successful specialized report
+`similar-code-report-3.31.0.json` preserves three successful specialized report
 layouts from `similar-code-project.json`: complete semantic discovery, a
 source-grounded inspect packet, and immutable candidate/verdict review. The tiny
 project contains two intentionally identical implementations with distinct

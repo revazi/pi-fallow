@@ -7,7 +7,7 @@ import { assertRegistrySchema } from "../scripts/schema-registry-check.mjs";
 const jiti = createJiti(import.meta.url);
 const { fallowToolCommands, getFallowToolCommandSpec } = await jiti.import("../extensions/fallow/registry.ts");
 const specs = fallowToolCommands.map(getFallowToolCommandSpec);
-const frozen = JSON.parse(readFileSync(new URL("./fixtures/fallow/schema-3.24.1.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(readFileSync(new URL("./fixtures/fallow/schema-3.31.0.json", import.meta.url), "utf8"));
 const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 function changedSchema(change) {
