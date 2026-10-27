@@ -43,6 +43,7 @@ it("previews only explicitly selected files/directories and builds shell-free ab
 			assert.equal(preview.path, await realpath(join(root, path)));
 			assert.match(preview.fingerprint, /^[a-f0-9]{64}$/);
 			const request = buildRuntimeCoverageRequest(preview, sidecar);
+			assert.equal(request.mode, "single-local");
 			assert.deepEqual(request.commandArgs, ["coverage", "analyze", "--root", await realpath(root), "--no-cache", "--runtime-coverage", preview.path]);
 			await revalidateRuntimeCoverageRequest(request, signal(), async () => ready);
 		}
@@ -66,9 +67,12 @@ it("rejects missing artifacts, blank inputs, remote/UNC/URI paths, and control c
 	});
 });
 
-it("detects file replacement/type/metadata drift and readiness drift before a request can execute", async () => {
+it("detects mode, file replacement/type/metadata, and readiness drift before a request can execute", async () => {
 	await fixture(async (root) => {
 		const request = buildRuntimeCoverageRequest(await inspectCoverageArtifact(root, "v8.json"), sidecar);
+		for (const mode of [undefined, "continuous", "cloud", "multi-capture", "single-local "]) {
+			await assert.rejects(revalidateRuntimeCoverageRequest({ ...request, mode }, signal(), async () => ready), /mode changed or is unsupported/);
+		}
 		for (const report of [{ ...ready, phase: "missing" }, { ...ready, runtime: undefined }, { ...ready, runtime: { ...sidecar, fingerprint: "changed" } }]) {
 			await assert.rejects(revalidateRuntimeCoverageRequest(request, signal(), async () => report), /readiness|sidecar changed/);
 		}
@@ -115,6 +119,8 @@ it("requires a preview then a distinct Run, displays scope/limitations, and pres
 		form.handleInput("\x1b"); assert.equal(form.isEditing, false); assert.equal(form.snapshot().input, "v8.json");
 		form.handleInput("\r"); await until(() => Boolean(form.snapshot().preview)); assert.equal(requests.length, 0);
 		assert.match(text(form), /Project source scope:/); assert.match(text(form), /unknown-production/); assert.match(text(form), /No\s+capture\s+or\s+upload/);
+		assert.match(text(form), /one explicit local coverage analyze --runtime-coverage <path>/);
+		for (const unavailable of [/continuous monitoring.*licensed/, /cloud analysis\/upload.*licensed/, /multi-capture analysis.*licensed/]) assert.match(text(form), unavailable);
 		const snapshot = form.snapshot(); const restored = createForm(root, { initialState: snapshot });
 		assert.deepEqual(restored.snapshot(), snapshot); restored.dispose();
 		form.handleInput("\r"); await until(() => requests.length === 1);
@@ -131,6 +137,9 @@ it("blocks non-ready runs and catches stale artifact/readiness checks in the for
 		enterPath(form, "v8.json"); await until(() => Boolean(form.snapshot().preview));
 		form.handleInput("\r"); assert.match(text(form), /Run disabled/); assert.equal(requests, 0);
 		current = ready; form.handleInput("v"); await until(() => Boolean(form.snapshot().sidecar));
+		current = { ...ready, runtime: { ...sidecar, fingerprint: "new-binding" } };
+		form.handleInput("\r"); assert.match(text(form), /Run disabled/); assert.equal(requests, 0);
+		current = ready;
 		await writeFile(join(root, "v8.json"), '{"changed":true}');
 		form.handleInput("\r"); await until(() => form.snapshot().feedback.includes("Artifact")); assert.equal(requests, 0);
 		form.dispose();
@@ -166,6 +175,8 @@ it("gates the executor again, rejects changed argv, and scopes cloud-free enviro
 		assert.equal(calls[0][5].FALLOW_API_KEY, undefined);
 		assert.equal(calls[0][5].FALLOW_RUNTIME_COVERAGE_SOURCE, undefined);
 		await assert.rejects(guarded({}, [...args, "--cloud"], root, signal(), 120), /arguments changed/);
+		const driftedMode = runtimeCoverageExecutor({ ...request, mode: "cloud" }, execute, checker);
+		await assert.rejects(driftedMode({}, args, root, signal(), 120), /mode changed or is unsupported/);
 		await writeFile(join(root, "v8.json"), '{"later":"changed"}');
 		await assert.rejects(guarded({}, args, root, signal(), 120), /Artifact.*changed/);
 		assert.equal(calls.length, 1); assert.equal(runtimeCoverageExecutor(undefined, execute), execute);
@@ -186,23 +197,25 @@ it("does not execute after cancelled or timed-out preflight, even if its check c
 	});
 });
 
-it("keeps Runtime Coverage disabled in the report overlay", async () => {
+it("enables the modeled Runtime Coverage tab without creating unavailable runnable modes", async () => {
 	await fixture(async (root) => {
 		const overview = { title: "Coverage test report", status: "success", stats: [], notes: [], sections: [] };
 		const ctx = { cwd: root, mode: "tui", ui: { custom: async (factory) => {
 			let result;
 			const shell = factory({ terminal: { rows: 40 }, requestRender() {} }, theme, {}, (value) => { result = value; });
-			assert.doesNotMatch(shell.render(100).join("\n"), /Runtime Coverage/);
-			shell.handleInput("3");
-			assert.equal(shell.snapshotState().view, 0);
-			shell.handleInput("2"); await tick(); shell.handleInput("3");
-			assert.equal(shell.snapshotState().view, 1);
-			assert.doesNotMatch(shell.render(100).join("\n"), /Runtime Coverage/);
+			assert.match(shell.render(100).join("\n"), /3 Runtime Coverage/);
+			shell.handleInput("3"); await tick();
+			assert.equal(shell.snapshotState().view, 2);
+			const rendered = shell.render(100).join("\n");
+			assert.match(rendered, /one explicit local coverage analyze/);
+			assert.match(rendered, /continuous monitoring.*licensed/);
+			assert.match(rendered, /multi-capture analysis.*licensed/);
+			assert.match(rendered, /Run disabled|no Run yet|choose coverage path/);
 			shell.handleInput("q");
 			return result;
 		} } };
 		await openFallowOverviewNavigator(ctx, overview, { commandArgs: ["issues"], optionalAnalysis: true,
-			checkReadiness: async () => ready, runAnalysis: async () => assert.fail("disabled Runtime Coverage must not run"),
+			checkReadiness: async () => ready, runAnalysis: async () => assert.fail("no artifact was selected"),
 		});
 	});
 });

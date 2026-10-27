@@ -4,7 +4,7 @@ import { fallowEngine } from "../engine";
 import { execFallowProcess } from "../process";
 import type { ReadinessCheck, ReadinessView } from "../readiness-report";
 import { createReadinessCheck } from "../readiness";
-import { revalidateRuntimeCoverageRequest, type RuntimeCoverageRunRequest } from "../runtime-coverage-options";
+import { requireLocalRuntimeCoverageMode, revalidateRuntimeCoverageRequest, type RuntimeCoverageRunRequest } from "../runtime-coverage-options";
 import { sharedFallowRunner } from "../runner";
 import { SIMILAR_CODE_DEFAULT_TIMEOUT_SECS } from "../similar-code";
 import { validateSimilarCodeOptions, type SimilarCodeRunRequest } from "../similar-code-options";
@@ -81,7 +81,13 @@ async function preflightAndDrain(check: () => Promise<void>, processes: Set<Prom
 	}
 }
 
-function analysisView(request: OverlayAnalysisRequest): ReadinessView { return "sidecar" in request ? "runtime-coverage" : "similar-code"; }
+function analysisView(request: OverlayAnalysisRequest): ReadinessView {
+	if ("sidecar" in request) {
+		requireLocalRuntimeCoverageMode(request.mode);
+		return "runtime-coverage";
+	}
+	return "similar-code";
+}
 
 function analysisArgs(request: OverlayAnalysisRequest): string[] {
 	// Keep JSON on stdout, but allow cold-run guidance/progress on stderr in the live overlay.

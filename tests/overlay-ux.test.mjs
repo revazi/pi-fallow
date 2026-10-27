@@ -46,8 +46,7 @@ describe("integrated optional-overlay UX matrix", () => {
 						const lines = shell.render(width);
 						assert.ok(lines.length <= Math.floor(rows * .95));
 						assert.ok(lines.every((line) => visibleWidth(line) <= width));
-						assert.match(lines.join("\n"), /1 Findings.*2 Similar/);
-						assert.doesNotMatch(lines.join("\n"), /Runtime Coverage/);
+						assert.match(lines.join("\n"), /1 Findings.*2 Similar.*3 Runtime/);
 						assert.match(lines.join("\n"), shell.snapshotState().view ? /S Setup/ : /q close/);
 					}
 					assert.deepEqual(findings.snapshotState(), state); assert.deepEqual(results, []);

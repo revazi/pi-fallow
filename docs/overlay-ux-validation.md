@@ -4,9 +4,11 @@
 
 The automated matrix and native-terminal probe validate UI behavior with deterministic readiness/setup/analysis callbacks. They complement rather than replace direct review or real model-backed execution evidence. Maintainer-directed interactive review and follow-up visual polish completed in #110, closing #103 and parent #96. Separate real inference certification is recorded by #83's manual, existing-model-only lane.
 
-No optional component was reinstalled for this validation. Existing installations can be reused for read-only readiness checks and the separately documented sidecar smoke test. A successful readiness check is not proof of successful inference or representative production coverage.
+No optional component was reinstalled for this validation. Existing installations can be reused for read-only readiness checks and the separately documented sidecar smoke test. A successful readiness check is not proof of successful inference or representative production coverage. Runtime Coverage exposes only one explicit local `coverage analyze --runtime-coverage <path>` request after artifact preview; it does not crawl a directory to infer capture count. Licensed continuous monitoring, cloud analysis/upload, and multi-capture workflows are displayed as unavailable and cannot create requests or initiate capture.
 
 ## Local validation record
+
+Issue #137 extends this validated shell with the Runtime Coverage tab and its closed single-local request boundary. Its focused runtime/form, analysis, shell, setup, compact UX, and native PTY checks pass, as does the full **433-test** suite. These fixture checks certify request gating and lifecycle behavior, not representative production coverage or licensed workflows.
 
 On macOS, Node 24.12.0 and Pi TUI 0.84.4: **399 unit tests passed** at the final #110 review, including the focused UX matrix. Coverage passed; four existing memory tests intentionally skip under coverage. The native PTY probe passed 32 checkpoints with one mount, two fixture analysis requests, and one explicit fixture consent. Both Node CI lanes run this probe as well.
 
@@ -33,8 +35,8 @@ Run `npm test` (or `node --test tests/overlay-*.test.mjs`).
 | Keyboard/focus | View keys, arrows, Home/End, Page Up/Down, search, action palettes, selection/expansion/filter state, Tab/Shift+Tab, Enter, Back/Escape, close, Unicode and long drafts, focus loss/recovery |
 | Compact/resize | Bounded width/height for all views, selected finding/action and input cursor visibility, long setup previews/errors/output, short-terminal pause and recovery |
 | Setup | Preview versus explicit consent, decline, plan/identity drift, ready-component no-op, protected project destinations, failures, cancelled children and settled cleanup |
-| Analysis | Fresh readiness/options/artifact/signed-sidecar checks, complete/empty/partial/error/cancelled/timed-out results, retry, per-view retained navigators, complete-output references, advisory provenance |
-| Safety/regressions | No installing Run fallback, no cloud environment or project mutation, non-TUI/tool setup rejection, ordinary navigator actions, RPC/print/JSON output and existing command suites |
+| Analysis | Fresh readiness/options/artifact/signed-sidecar and closed runtime-mode checks, complete/empty/partial/error/cancelled/timed-out results, retry, per-view retained navigators, complete-output references, advisory provenance |
+| Safety/regressions | One runnable single-local runtime request; continuous/cloud/multi-capture modes visible but unavailable; no capture initiation, installing Run fallback, cloud environment, or project mutation; non-TUI/tool setup rejection; ordinary navigator actions, RPC/print/JSON output and existing command suites |
 
 Fixture installers and processes test lifecycle, not actual downloads or inference. Metadata-only fixtures do not substitute for the existing detached-signature verification tests.
 

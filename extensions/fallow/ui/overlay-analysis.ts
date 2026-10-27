@@ -127,7 +127,7 @@ export class OverlayAnalysis implements Focusable {
 	}
 
 	private handleResult(data: string, entry: AnalysisView): boolean {
-		if (["1", "2"].includes(data)) return false;
+		if (["1", "2", "3"].includes(data)) return false;
 		if (isBack(data)) this.hide();
 		else if (data === "q") this.done(null);
 		else this.handleResultControls(data, entry);
@@ -189,7 +189,7 @@ export class OverlayAnalysis implements Focusable {
 
 	private footerHelp(entry: AnalysisView): string {
 		if (this.pending) return "Esc/b/q/Ctrl+C cancel & wait · PgUp/PgDn output";
-		return entry.navigator?.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "Esc/b form · r retry · I details/output · q close · 1/2 views · PgUp/PgDn scroll";
+		return entry.navigator?.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "Esc/b form · r retry · I details/output · q close · 1/2/3 views · PgUp/PgDn scroll";
 	}
 
 	private resultAnchor(entry: AnalysisView): number | undefined {

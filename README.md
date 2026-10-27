@@ -128,7 +128,9 @@ Open the persistent overlay with `2` or `o`. From its Similar Code view:
 
 Setup and analysis stay in the overlay, support cancellation, retain their latest result, and never run automatically. Cold inference may require the download size reported by `similar-code status` and can take minutes. Complete reports remain separate files for reproducible inspect/review steps.
 
-The Runtime Coverage overlay tab is currently disabled because the interactive flow does not yet model the sidecar's single-capture versus licensed multi-capture boundary clearly enough. Direct Fallow runtime-coverage commands remain available.
+Open Runtime Coverage with `3`. Its only runnable mode is one explicit local `coverage analyze --runtime-coverage <path>` request against the local V8/Istanbul file or directory you select and preview. Run remains disabled until readiness is verified and that explicit artifact preview is valid; execution then freshly rechecks the mode, project, artifact identity/metadata, arguments, and signed sidecar binding. Directory contents are not crawled to guess capture cardinality.
+
+Continuous monitoring, cloud analysis/upload, and multi-capture analysis are shown as distinct licensed workflows that are unavailable in this overlay. They have no selectable request variant, flags, upload path, or capture initiation. The available local run disables analysis caching, removes cloud credential/source variables from the child, and does not claim production coverage. Setup and analysis remain explicit TUI-only actions; RPC, print, JSON, and `fallow_run` cannot install the sidecar or initiate capture.
 
 ### 🕘 History
 
