@@ -39,7 +39,7 @@ The long measurement history belongs in the benchmark documentation rather than 
 - authoritative normalized-report selection shared across output and prompts, with complete-report hydration and drift protection;
 - bounded, project-isolated session history with digest-validated report reopening and conservative compatible-run comparison;
 - explicit opt-in semantic Similar Code status, discovery, inspect, and review flows with local-model provenance, advisory completion, persistent in-overlay setup/execution/result retention, and a complete grouped review queue that does not truncate candidates;
-- visible Optional Analysis Status / Setup / Run controls for Similar Code, reproducible no-cache model-backed certification over a frozen tiny project, and retained low-level validation for selected local runtime-coverage artifacts while that overlay tab remains disabled; and
+- visible Optional Analysis Status / Setup / Run controls for Similar Code and Runtime Coverage, reproducible no-cache model-backed certification over a frozen tiny project, and one executable runtime workflow: an explicitly previewed local V8/Istanbul artifact analyzed by a closed single-local request mode with fresh artifact, argument, readiness, and signed-sidecar checks; licensed continuous, cloud, and multi-capture workflows remain visible but unavailable and have no runnable request variants; and
 - an issue-focused default that combines actionable dead-code, duplication, health, and security candidates without flooding the navigator or issue count with informational file scores, hotspots, or advisory refactoring targets; and
 - a reproducible small/large project-issues benchmark plus bounded concurrent child scheduling with deterministic output and coordinated cancellation.
 

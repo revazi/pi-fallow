@@ -12,8 +12,11 @@ import { overlayFrame, overlayRows } from "./overlay-layout";
 
 import { purple, violet } from "./shared";
 
-const VIEW_LABELS = ["Findings", "Similar Code"];
-const OPTIONAL_TEXT = ["Semantic matches are advisory—not proof that code can be consolidated."];
+const VIEW_LABELS = ["Findings", "Similar Code", "Runtime Coverage"];
+const OPTIONAL_TEXT = [
+	"Semantic matches are advisory—not proof that code can be consolidated.",
+	"Runtime evidence is local and advisory; cold code is not proof that deletion is safe.",
+];
 
 interface ShellOptions {
 	runSetup?: OverlaySetupRun;
@@ -112,7 +115,7 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private handleViewKeys(data: string): boolean {
 		if (data === "o") { this.switchView(1); return true; }
-		if (!["1", "2"].includes(data)) return false;
+		if (!["1", "2", "3"].includes(data)) return false;
 		this.switchView(Number(data) - 1);
 		return true;
 	}
@@ -239,7 +242,7 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private restoreView(view: number | undefined): void {
 		if (view === undefined) return;
-		if ([0, 1].includes(view)) this.switchView(view);
+		if ([0, 1, 2].includes(view)) this.switchView(view);
 	}
 
 	dispose(): void {
@@ -316,7 +319,7 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private navigationLine(width: number): string {
 		const narrow = width < 64;
-		const labels = narrow ? ["Findings", "Similar"] : VIEW_LABELS;
+		const labels = narrow ? ["Findings", "Similar", "Runtime"] : VIEW_LABELS;
 		const tabs = labels.map((label, index) => this.tab(label, index, narrow));
 		return tabs.join(this.theme.fg("borderMuted", narrow ? " " : "  │  "));
 	}
@@ -342,7 +345,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	private headerLines(width: number): string[] {
 		const navigation = new Text(this.navigationLine(width), 0, 0).render(width);
 		const helpText = this.isFormEditing()
-			? (width < 60 ? "Esc finish edit · Tab next field" : "Esc finishes editing (retains values); then 1/2 switch view")
+			? (width < 60 ? "Esc finish edit · Tab next field" : "Esc finishes editing (retains values); then 1/2/3 switch view")
 			: (width < 60 ? `${violet("S")} setup · ${violet("r")} refresh · ${violet("q")} close` : `${violet("S")} setup   ${violet("R")} result   ${violet("r")} refresh   ${violet("i")} details   ${violet("q")} close`);
 		const help = new Text(this.theme.fg("dim", helpText), 0, 0).render(width);
 		return [...navigation, ...help, purple("─".repeat(width))];
@@ -355,7 +358,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private findingsFooter(): string {
-		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "q close · ↑↓ findings · PgUp/PgDn viewport · 2 Similar Code";
+		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "q close · ↑↓ findings · PgUp/PgDn viewport · 2 Similar · 3 Runtime";
 	}
 
 	private optionalContent(width: number): string[] {

@@ -118,7 +118,7 @@ export class RuntimeCoverageForm implements Component, Focusable {
 	render(width: number, theme?: any): string[] {
 		if (width < 1) return [];
 		const ui = theme ?? PLAIN_THEME;
-		const lines = new Text(`${this.titleLine(width, ui)}\n${ui.fg("dim", "Examples: coverage/tmp/ (c8/V8) · coverage/coverage-final.json (Istanbul) · .nyc_output/")}\n${ui.fg("dim", "Local/unknown-production evidence only; cold code is not proof of safe deletion.")}`, 0, 0).render(width);
+		const lines = new Text(`${this.titleLine(width, ui)}\n${ui.fg("dim", "Runnable mode: one explicit local coverage analyze --runtime-coverage <path> request.")}\n${ui.fg("dim", "Examples: coverage/tmp/ (c8/V8) · coverage/coverage-final.json (Istanbul) · .nyc_output/")}\n${ui.fg("dim", "Local/unknown-production evidence only; cold code is not proof of safe deletion.")}\n${ui.fg("warning", "Unavailable: continuous monitoring (licensed workflow; capture initiation is not supported here).")}\n${ui.fg("warning", "Unavailable: cloud analysis/upload (licensed workflow; local-only execution removes cloud credentials).")}\n${ui.fg("warning", "Unavailable: multi-capture analysis (licensed workflow; this form creates no runnable variant).")}`, 0, 0).render(width);
 		lines.push(...this.pathLines(width, ui));
 		if (this.state.preview) lines.push("", ...this.styledPreviewLines(width, ui));
 		lines.push(...new Text(`\n${this.feedbackLine(ui)}\n${ui.fg("dim", this.controls())}`, 0, 0).render(width));
@@ -160,8 +160,9 @@ export class RuntimeCoverageForm implements Component, Focusable {
 			`Cached preview (${preview.kind}): ${boundedReadinessText(preview.path)}`,
 			`Project source scope: ${boundedReadinessText(preview.projectRoot)}`,
 			`Signed sidecar: ${boundedReadinessText(this.state.sidecar?.binaryPath ?? "not ready; refresh and preview again")}`,
+			"Mode: one explicit local V8/Istanbul capture analysis request.",
 			"Run reads this artifact and project source locally, with analysis caching disabled. No capture or upload; cloud/API credential variables are removed from the child.",
-			"Format validity is checked by Fallow. Directory contents are not recursively snapshotted; use a completed capture for stable evidence.",
+			"Format validity is checked by Fallow. Directory contents are not crawled to infer capture count and are not recursively snapshotted; use a completed capture for stable evidence.",
 		];
 	}
 
@@ -171,7 +172,10 @@ export class RuntimeCoverageForm implements Component, Focusable {
 		return this.runControls();
 	}
 
-	private canRun(): boolean { return Boolean(this.state.sidecar && readyRuntimeBinding(this.options.readiness())); }
+	private canRun(): boolean {
+		const current = readyRuntimeBinding(this.options.readiness());
+		return Boolean(this.state.preview && current && JSON.stringify(this.state.sidecar) === JSON.stringify(current));
+	}
 
 	private runControls(): string {
 		if (!this.state.input.trim()) return "a/Enter choose coverage path · type or paste a local file/directory";

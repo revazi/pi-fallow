@@ -177,6 +177,7 @@ describe("optional analysis execution gate", () => {
 			await run(coverage, signal(), () => {});
 			assert.equal(executions, 1); assert.equal(validations, 2);
 			await assert.rejects(run({ ...coverage, commandArgs: [...coverage.commandArgs, "--upload"] }, signal(), () => {}), /arguments changed/);
+			await assert.rejects(run({ ...coverage, mode: "multi-capture" }, signal(), () => {}), /mode changed or is unsupported/);
 			await assert.rejects(run({ ...coverage, artifact: { ...coverage.artifact, projectRoot: "/changed" } }, signal(), () => {}), /project changed/);
 			report = { ...report, runtime: { ...sidecar, fingerprint: "changed-signature" } };
 			await assert.rejects(run(coverage, signal(), () => {}), /sidecar changed/);
@@ -233,7 +234,7 @@ describe("persistent analysis and result views", () => {
 		const fixture = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.36.0.json", import.meta.url), "utf8"));
 		const semanticResult = await resultFor(semantic());
 		const runtimeResult = await resultFor(fixture.report);
-		const coverage = { sidecar, artifact: { projectRoot: process.cwd() }, commandArgs: ["coverage", "analyze"] };
+		const coverage = { mode: "single-local", sidecar, artifact: { projectRoot: process.cwd() }, commandArgs: ["coverage", "analyze"] };
 		const analysis = new OverlayAnalysis(async (request) => "sidecar" in request ? runtimeResult : semanticResult, theme, () => {}, () => {});
 		analysis.start(request()); await tick(); analysis.handleInput("s");
 		const before = text(analysis);
@@ -341,10 +342,12 @@ describe("persistent analysis and result views", () => {
 			shell.handleInput("t"); shell.handleInput(".8"); shell.handleInput("\x1b");
 			const form = shell.snapshotState();
 			shell.handleInput("\r"); await until(() => shell.render(120).join("\n").includes("Analysis complete"));
-			assert.match(shell.render(120).join("\n"), /1 Findings.*2 Similar Code/);
-			assert.doesNotMatch(shell.render(120).join("\n"), /Runtime Coverage/);
+			assert.match(shell.render(120).join("\n"), /1 Findings.*2 Similar Code.*3 Runtime Coverage/);
+			assert.match(shell.render(120).join("\n"), /1\/2\/3 views/);
 			assert.equal(done, undefined); assert.equal(runs, 1);
 			for (const width of [1, 20, 50, 120]) assert.ok(shell.render(width).every((line) => visibleWidth(line) <= width));
+			shell.handleInput("3"); assert.match(shell.render(120).join("\n"), /\[3 Runtime Coverage\]/);
+			shell.handleInput("2"); assert.match(shell.render(120).join("\n"), /Analysis complete/);
 			shell.handleInput("b"); assert.deepEqual(shell.snapshotState(), form);
 			shell.handleInput("R"); assert.match(shell.render(120).join("\n"), /Analysis complete/);
 			shell.handleInput("1"); assert.equal(shell.render(120).join("\n"), original);

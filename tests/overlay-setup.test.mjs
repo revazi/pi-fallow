@@ -133,8 +133,7 @@ describe("in-overlay setup safety and lifecycle", () => {
 		await tick();
 		const before = shell.snapshotState();
 		shell.handleInput("S"); await tick();
-		assert.match(shell.render(110).join("\n"), /1 Findings.*2 Similar Code/);
-		assert.doesNotMatch(shell.render(110).join("\n"), /Runtime Coverage/);
+		assert.match(shell.render(110).join("\n"), /1 Findings.*2 Similar Code.*3 Runtime Coverage/);
 		shell.handleInput("y"); await tick();
 		for (const width of [1, 20, 80, 120]) assert.ok(shell.render(width).every((line) => visibleWidth(line) <= width));
 		for (const key of ["q", "\x1b", "\x7f", "1", "o", "s", "y"]) shell.handleInput(key);

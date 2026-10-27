@@ -66,18 +66,17 @@ describe("persistent Fallow overlay shell", () => {
 			const original = text(shell);
 			assert.match(original.split("\n")[0], /╭/);
 			assert.ok(!original.split("\n")[0].includes("[1 Findings]"), "navigation belongs inside the report, not above it");
-			for (const label of ["Findings", "Similar Code"]) assert.ok(original.includes(label));
-			assert.doesNotMatch(original, /Runtime Coverage/);
+			for (const label of ["Findings", "Similar Code", "Runtime Coverage"]) assert.ok(original.includes(label));
 			shell.handleInput("2");
 			assert.match(text(shell), /\[2 Similar Code\]/);
 			assert.equal(findings.focused, false);
 			shell.handleInput("3");
-			assert.match(text(shell), /\[2 Similar Code\]/);
+			assert.match(text(shell), /\[3 Runtime Coverage\]/);
 			shell.handleInput("1");
 			assert.equal(findings.focused, true);
 			assert.equal(text(shell), original);
 			assert.deepEqual(results, []);
-			assert.equal(renders(), 3);
+			assert.equal(renders(), 5);
 		});
 	}
 
@@ -166,6 +165,7 @@ describe("persistent Fallow overlay shell", () => {
 		}
 		assert.deepEqual(results, []);
 		shell.handleInput("3");
+		assert.equal(shell.snapshotState().view, 2);
 		shell.handleInput("q");
 		assert.deepEqual(results, [null]);
 		const other = create();
@@ -182,7 +182,7 @@ describe("persistent Fallow overlay shell", () => {
 		const scrolled = text(shell, 50);
 		assert.notEqual(scrolled, first);
 		shell.handleInput("1");
-		assert.doesNotMatch(text(shell, 50), /Runtime Coverage/);
+		assert.match(text(shell, 50), /3 Runtime/);
 		shell.handleInput("2");
 		assert.equal(text(shell, 50), scrolled);
 		for (const width of [1, 20, 50, 80, 120]) {

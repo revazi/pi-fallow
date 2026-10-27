@@ -13,7 +13,11 @@ export interface CoverageArtifactPreview {
 	projectRoot: string;
 	fingerprint: string;
 }
+const LOCAL_RUNTIME_COVERAGE_MODE = "single-local" as const;
+export type RuntimeCoverageMode = typeof LOCAL_RUNTIME_COVERAGE_MODE;
+
 export interface RuntimeCoverageRunRequest {
+	mode: RuntimeCoverageMode;
 	artifact: CoverageArtifactPreview;
 	sidecar: RuntimeSidecarBinding;
 	commandArgs: string[];
@@ -71,6 +75,7 @@ export function readyRuntimeBinding(report: ReadinessReport | undefined): Runtim
 
 export function buildRuntimeCoverageRequest(artifact: CoverageArtifactPreview, sidecar: RuntimeSidecarBinding): RuntimeCoverageRunRequest {
 	return {
+		mode: LOCAL_RUNTIME_COVERAGE_MODE,
 		artifact: { ...artifact }, sidecar: { ...sidecar },
 		commandArgs: ["coverage", "analyze", "--root", artifact.projectRoot, "--no-cache", "--runtime-coverage", artifact.path],
 	};
@@ -85,11 +90,16 @@ export async function revalidateRuntimeCoverageRequest(
 	}),
 ): Promise<void> {
 	signal.throwIfAborted();
+	requireLocalRuntimeCoverageMode(request.mode);
 	await requireSameArtifact(request.artifact);
 	const current = readyRuntimeBinding(await inspectReadiness(request.artifact.projectRoot, signal));
 	requireSameSidecar(request.sidecar, current);
 	await requireSameArtifact(request.artifact); // Also catch drift while sidecar verification was in flight.
 	signal.throwIfAborted();
+}
+
+export function requireLocalRuntimeCoverageMode(mode: unknown): asserts mode is RuntimeCoverageMode {
+	if (mode !== LOCAL_RUNTIME_COVERAGE_MODE) throw new Error("Runtime Coverage mode changed or is unsupported. Preview one explicit local capture again.");
 }
 
 async function requireSameArtifact(previous: CoverageArtifactPreview): Promise<void> {
