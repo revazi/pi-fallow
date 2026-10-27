@@ -4,14 +4,14 @@ This roadmap describes the current baseline and likely next work. It is planning
 
 ## Release status and boundaries
 
-- **Current boundary:** the current certification candidate tests Pi 1.4.0, TypeBox 1.4.3, and Fallow 3.36.0 while retaining the published `0.6.3` behavior and benchmark baseline recorded in the [`0.6.3` changelog](./CHANGELOG.md#063---2026-10-06).
+- **Current boundary:** `0.7.0` enables the single-local Runtime Coverage overlay path and tests Pi 1.4.0, TypeBox 1.4.3, and Fallow 3.36.0 while retaining the established concurrency and safety baseline, as recorded in the [`0.7.0` changelog](./CHANGELOG.md#070---2026-10-27).
 - **Release records:** the npm registry and GitHub releases are authoritative for whether a version has completed publication; a version in source remains a candidate until the protected tag workflow succeeds.
 - **Publication gate:** every boundary remains blocked until all release gates pass, an independent release-readiness review is recorded, and a maintainer gives explicit authorization.
 - **Later work:** the priorities below are directional and carry no date or version commitment.
 
 ## Measured current baseline
 
-Unless noted otherwise, these are repository-specific measurements from the `0.6.3` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
+Unless noted otherwise, these are repository-specific measurements from the `0.7.0` release candidate, not universal expectations for other machines, hosts, Fallow installations, or providers.
 
 - **Tests and coverage:** 434 tests pass; current coverage is **91.97% statements/lines**, **87.54% branches**, and **91.17% functions**. Coverage runs skip four subprocess-sensitive retained-memory cases that pass in the normal suite; reruns can vary slightly by machine and Node line while CI continues to enforce the coverage thresholds.
 - **Fallow quality:** Fallow 3.36.0 reports health **89.1 (A)**, average maintainability **90.3**, and zero threshold findings or dead-code issues.
