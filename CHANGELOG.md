@@ -4,6 +4,21 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-27
+
+### Added
+- Enabled the Runtime Coverage overlay tab for one explicit local V8/Istanbul analysis request. The closed `single-local` request mode is revalidated with the project, artifact identity and metadata, command arguments, readiness state, and signed sidecar binding before execution.
+- Added visible unavailable-state guidance for licensed continuous monitoring, cloud analysis/upload, and multi-capture analysis. These workflows have no selectable request variants, capture controls, upload path, or license bypass in Pi Fallow.
+
+### Changed
+- Updated the certified development matrix to Pi AI/coding-agent/TUI 1.4.0, TypeBox 1.4.3, and Fallow 3.36.0 while retaining host-provided wildcard peer dependencies and bundle externals.
+- Regenerated and reviewed Fallow capability, schema, report, signed runtime-coverage, and model-backed Similar Code evidence for 3.36.0, including the combined, dead-code, and health schema revisions.
+- Updated fully SHA-pinned GitHub Actions and kept the protected Node 22.19/24, package, coverage, Fallow, dependency, and CodeQL lanes green.
+
+### Security
+- Added a narrow, tested override from Pi coding agent 1.4.0's vulnerable `undici` 8.10.2 pin to 8.12.3. Production and complete-tree npm audits report zero vulnerabilities.
+- Kept local Runtime Coverage execution TUI-only, disabled analysis caching, removed cloud source and credential variables from the child process, and preserved explicit setup consent, signature verification, drift refusal, cancellation cleanup, and no-production-coverage claims.
+
 ## [0.6.3] - 2026-10-06
 
 ### Changed
@@ -155,7 +170,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/revazi/pi-fallow/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/revazi/pi-fallow/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/revazi/pi-fallow/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/revazi/pi-fallow/compare/v0.6.0...v0.6.1

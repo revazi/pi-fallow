@@ -88,9 +88,10 @@ A good PR should include:
 
 Releases use npm trusted publishing and GitHub OIDC; maintainers should not need a long-lived npm token.
 
-1. Run `npm version patch|minor|major --no-git-tag-version`.
-2. Update `CHANGELOG.md` and run `npm run check:publish`.
-3. Commit the release changes and create the matching `vX.Y.Z` tag.
-4. Push `main` and the tag with `git push --follow-tags`.
+1. Create a release branch from current `main`, then run `npm version patch|minor|major --no-git-tag-version`.
+2. Update `CHANGELOG.md`, run `npm run check:publish`, and inspect the candidate tarball.
+3. Open a release pull request. Merge it through protected `main` only after independent read-only review and every required check passes on the up-to-date candidate.
+4. On the final merged `main` commit, perform and record the privileged pre-tag verification required by [`.github/REPOSITORY_SETTINGS.md`](.github/REPOSITORY_SETTINGS.md), including both supported Node package-smoke runs and exact version, changelog, tag, provenance, and tarball checks.
+5. Only after that verification succeeds, create and push the matching protected `vX.Y.Z` tag. Do not push release commits directly to `main` or tag an unmerged release branch.
 
-The tag triggers `.github/workflows/release.yml`, which validates the package, publishes it with provenance, and creates the GitHub release. See `.github/REPOSITORY_SETTINGS.md` for the one-time trusted-publisher setup.
+The tag triggers `.github/workflows/release.yml`, which validates the package, publishes it with provenance, and creates the GitHub release. See `.github/REPOSITORY_SETTINGS.md` for the complete protected-release and trusted-publisher requirements.
