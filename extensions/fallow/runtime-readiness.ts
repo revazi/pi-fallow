@@ -6,7 +6,7 @@ import { FALLOW_COV_VERSION, inspectRuntimeCoverageCapability } from "./optional
 import { readinessNext, type ReadinessReport } from "./readiness-report";
 import { readSizedFile } from "./read-sized-file";
 
-// Coverage sidecar signing key recorded from Fallow 3.24.1 and still accepted by the Fallow 3.31.0 certification lane.
+// Coverage sidecar signing key recorded from Fallow 3.24.1 and still accepted by the Fallow 3.36.0 certification lane.
 // Binary-signing key, NOT the license key. Readiness never executes sidecar candidates.
 const SIGNING_KEY = createPublicKey({
 	key: Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from([

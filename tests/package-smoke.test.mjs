@@ -19,7 +19,7 @@ function assertControl(stderr = validStderr, overrides = {}) {
 }
 
 describe("package-smoke credential-free negative control", () => {
-	it("accepts only the locked Pi 1.0.4 auth-guidance structure", () => {
+	it("accepts only the locked Pi 1.4.0 auth-guidance structure", () => {
 		assert.doesNotThrow(() => assertControl());
 	});
 
