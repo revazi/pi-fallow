@@ -1,6 +1,6 @@
 {
   "name": "fallow",
-  "version": "3.31.0",
+  "version": "3.36.0",
   "manifest_version": "1",
   "default_command": null,
   "output_formats": [
@@ -232,6 +232,11 @@
       ]
     },
     {
+      "name": "--group",
+      "type": "string",
+      "required": false
+    },
+    {
       "name": "--performance",
       "type": "bool",
       "required": false,
@@ -364,7 +369,8 @@
       "possible_values": [
         "dead-code",
         "dupes",
-        "health"
+        "health",
+        "architecture"
       ]
     },
     {
@@ -374,7 +380,8 @@
       "possible_values": [
         "dead-code",
         "dupes",
-        "health"
+        "health",
+        "architecture"
       ]
     },
     {
@@ -454,6 +461,24 @@
       ]
     },
     {
+      "name": "--dupes-ignore-symlinks",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--dupes-no-ignore-symlinks",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
       "name": "--score",
       "type": "bool",
       "required": false,
@@ -470,6 +495,11 @@
         "true",
         "false"
       ]
+    },
+    {
+      "name": "--trend-from",
+      "type": "string",
+      "required": false
     },
     {
       "name": "--save-snapshot",
@@ -498,6 +528,15 @@
     },
     {
       "name": "--include-entry-exports",
+      "type": "bool",
+      "required": false,
+      "possible_values": [
+        "true",
+        "false"
+      ]
+    },
+    {
+      "name": "--show-cascade",
       "type": "bool",
       "required": false,
       "possible_values": [
@@ -651,6 +690,15 @@
           ]
         },
         {
+          "name": "--absent-component-props",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
           "name": "--unused-component-emits",
           "type": "bool",
           "required": false,
@@ -679,6 +727,33 @@
         },
         {
           "name": "--unused-svelte-events",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-effect-layers",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unused-tagged-errors",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--unproduced-catch-tags",
           "type": "bool",
           "required": false,
           "possible_values": [
@@ -887,6 +962,53 @@
       ]
     },
     {
+      "name": "architecture",
+      "flags": [
+        {
+          "name": "--cycles",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--boundaries",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--policy",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--file",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--finding-id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "watch",
       "flags": [
         {
@@ -939,6 +1061,106 @@
       ]
     },
     {
+      "name": "mutation",
+      "flags": [
+        {
+          "name": "--all",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--plan",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--max-mutants",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--time-budget",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--concurrency",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--runtime",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--allow-dirty",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--allow-side-effects",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--min-score",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--operators",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--verdicts",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--setup-timeout",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--runner-config",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--typecheck",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "paths",
+          "type": "string",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "inspect",
       "flags": [
         {
@@ -976,6 +1198,35 @@
       "flags": [
         {
           "name": "symbol",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--dependency",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--specifier",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--sites",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--limit",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--cursor",
           "type": "string",
           "required": false
         },
@@ -1319,6 +1570,24 @@
           ]
         },
         {
+          "name": "--ignore-symlinks",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
+          "name": "--no-ignore-symlinks",
+          "type": "bool",
+          "required": false,
+          "possible_values": [
+            "true",
+            "false"
+          ]
+        },
+        {
           "name": "--top",
           "type": "string",
           "required": false
@@ -1538,6 +1807,11 @@
           ]
         },
         {
+          "name": "--trend-from",
+          "type": "string",
+          "required": false
+        },
+        {
           "name": "--coverage",
           "type": "string",
           "required": false
@@ -1549,6 +1823,11 @@
         },
         {
           "name": "--runtime-coverage",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--mutation-report",
           "type": "string",
           "required": false
         },
@@ -1727,6 +2006,28 @@
           "required": false
         },
         {
+          "name": "--only",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "dead-code",
+            "dupes",
+            "health",
+            "architecture"
+          ]
+        },
+        {
+          "name": "--skip",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "dead-code",
+            "dupes",
+            "health",
+            "architecture"
+          ]
+        },
+        {
           "name": "--no-css",
           "type": "bool",
           "required": false,
@@ -1760,6 +2061,16 @@
           "possible_values": [
             "new-only",
             "all"
+          ]
+        },
+        {
+          "name": "--worsened",
+          "type": "string",
+          "required": false,
+          "possible_values": [
+            "warn",
+            "error",
+            "off"
           ]
         },
         {
@@ -1846,6 +2157,10 @@
     },
     {
       "name": "audit-cache",
+      "flags": []
+    },
+    {
+      "name": "baselines",
       "flags": []
     },
     {

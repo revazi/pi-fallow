@@ -1,5 +1,5 @@
 {
-  "version": "3.31.0",
+  "version": "3.36.0",
   "inputSha256": {
     "base": "5a5426bfc0bde678d5be554684f958808cb95c7294ba07f1c610af057d1aa865",
     "typeAwarePartial": "c63f7b237002649ad5073778b9b15ad3827bff41620201f262b19d85d9ac7caf"
@@ -16,8 +16,8 @@
       "exitCode": 1,
       "report": {
         "kind": "dead-code",
-        "schema_version": 9,
-        "version": "3.31.0",
+        "schema_version": 10,
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "total_issues": 1,
         "entry_points": {
@@ -40,10 +40,14 @@
           "unprovided_injects": 0,
           "unrendered_components": 0,
           "unused_component_props": 0,
+          "absent_component_props": 0,
           "unused_component_emits": 0,
           "unused_component_inputs": 0,
           "unused_component_outputs": 0,
           "unused_svelte_events": 0,
+          "unused_effect_layers": 0,
+          "unused_tagged_errors": 0,
+          "unproduced_catch_tags": 0,
           "unused_server_actions": 0,
           "unused_load_data_keys": 0,
           "unresolved_imports": 0,
@@ -133,7 +137,9 @@
         "gate_outcomes": {
           "error-severity-findings": {
             "status": "fail",
-            "enforced": true
+            "enforced": true,
+            "observed": 1,
+            "threshold_label": "error"
           }
         },
         "workspace_diagnostics": [
@@ -151,8 +157,8 @@
         "next_steps": [
           {
             "id": "setup",
-            "command": "fallow schema",
-            "reason": "fallow has no config here; the manifest lists guided-setup commands (agent guide, commit gate) to offer the user"
+            "command": "fallow agent install --dry-run",
+            "reason": "fallow has no config here; offer the user `fallow init` for a config, and this dry run previews the agent guide, skills, MCP server, and commit gate"
           },
           {
             "id": "trace-unused-export",
@@ -183,7 +189,7 @@
       "report": {
         "kind": "dupes",
         "schema_version": 10,
-        "version": "3.31.0",
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "clone_groups": [
           {
@@ -207,7 +213,7 @@
             ],
             "token_count": 102,
             "line_count": 7,
-            "fingerprint": "dup:6f87acd9",
+            "fingerprint": "dup:414235dd",
             "spread": 0,
             "actions": [
               {
@@ -252,7 +258,7 @@
                 ],
                 "token_count": 102,
                 "line_count": 7,
-                "fingerprint": "dup:6f87acd9",
+                "fingerprint": "dup:414235dd",
                 "spread": 0,
                 "actions": [
                   {
@@ -318,12 +324,12 @@
         "next_steps": [
           {
             "id": "setup",
-            "command": "fallow schema",
-            "reason": "fallow has no config here; the manifest lists guided-setup commands (agent guide, commit gate) to offer the user"
+            "command": "fallow agent install --dry-run",
+            "reason": "fallow has no config here; offer the user `fallow init` for a config, and this dry run previews the agent guide, skills, MCP server, and commit gate"
           },
           {
             "id": "trace-clone",
-            "command": "fallow dupes --trace dup:6f87acd9",
+            "command": "fallow dupes --trace dup:414235dd",
             "reason": "see sibling locations and an extract-function suggestion"
           }
         ],
@@ -345,8 +351,8 @@
       "exitCode": 0,
       "report": {
         "kind": "health",
-        "schema_version": 11,
-        "version": "3.31.0",
+        "schema_version": 12,
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -364,6 +370,14 @@
           "severity_high_count": 0,
           "severity_moderate_count": 0
         },
+        "sections": [
+          "complexity",
+          "vital-signs",
+          "score",
+          "file-scores",
+          "hotspots",
+          "targets"
+        ],
         "vital_signs": {
           "dead_file_pct": 0,
           "dead_export_pct": 20,
@@ -424,7 +438,7 @@
           "total_loc": 32
         },
         "health_score": {
-          "formula_version": 2,
+          "formula_version": 3,
           "score": 86,
           "grade": "A",
           "penalties": {
@@ -508,7 +522,9 @@
         "gate_outcomes": {
           "health-findings": {
             "status": "pass",
-            "enforced": true
+            "enforced": true,
+            "observed": 0,
+            "threshold_label": "error"
           }
         },
         "workspace_diagnostics": [
@@ -550,7 +566,7 @@
       "report": {
         "kind": "security",
         "schema_version": "8",
-        "version": "3.31.0",
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "config": {
           "rules": {
@@ -725,22 +741,26 @@
       "exitCode": 0,
       "report": {
         "kind": "combined",
-        "schema_version": 12,
-        "version": "3.31.0",
+        "schema_version": 14,
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "gate_outcomes": {
           "error-severity-findings": {
             "status": "fail",
-            "enforced": false
+            "enforced": false,
+            "observed": 1,
+            "threshold_label": "error"
           },
           "health-findings": {
             "status": "pass",
-            "enforced": false
+            "enforced": false,
+            "observed": 0,
+            "threshold_label": "error"
           }
         },
         "check": {
-          "schema_version": 9,
-          "version": "3.31.0",
+          "schema_version": 10,
+          "version": "3.36.0",
           "elapsed_ms": 0,
           "total_issues": 1,
           "entry_points": {
@@ -763,10 +783,14 @@
             "unprovided_injects": 0,
             "unrendered_components": 0,
             "unused_component_props": 0,
+            "absent_component_props": 0,
             "unused_component_emits": 0,
             "unused_component_inputs": 0,
             "unused_component_outputs": 0,
             "unused_svelte_events": 0,
+            "unused_effect_layers": 0,
+            "unused_tagged_errors": 0,
+            "unproduced_catch_tags": 0,
             "unused_server_actions": 0,
             "unused_load_data_keys": 0,
             "unresolved_imports": 0,
@@ -877,7 +901,7 @@
               ],
               "token_count": 102,
               "line_count": 7,
-              "fingerprint": "dup:6f87acd9",
+              "fingerprint": "dup:414235dd",
               "spread": 0,
               "actions": [
                 {
@@ -922,7 +946,7 @@
                   ],
                   "token_count": 102,
                   "line_count": 7,
-                  "fingerprint": "dup:6f87acd9",
+                  "fingerprint": "dup:414235dd",
                   "spread": 0,
                   "actions": [
                     {
@@ -999,6 +1023,13 @@
             "severity_high_count": 0,
             "severity_moderate_count": 0
           },
+          "sections": [
+            "complexity",
+            "vital-signs",
+            "file-scores",
+            "hotspots",
+            "targets"
+          ],
           "vital_signs": {
             "dead_file_pct": 0,
             "dead_export_pct": 20,
@@ -1143,8 +1174,8 @@
         "next_steps": [
           {
             "id": "setup",
-            "command": "fallow schema",
-            "reason": "fallow has no config here; the manifest lists guided-setup commands (agent guide, commit gate) to offer the user"
+            "command": "fallow agent install --dry-run",
+            "reason": "fallow has no config here; offer the user `fallow init` for a config, and this dry run previews the agent guide, skills, MCP server, and commit gate"
           },
           {
             "id": "trace-unused-export",
@@ -1153,7 +1184,7 @@
           },
           {
             "id": "trace-clone",
-            "command": "fallow dupes --trace dup:6f87acd9",
+            "command": "fallow dupes --trace dup:414235dd",
             "reason": "see sibling locations and an extract-function suggestion"
           }
         ],
@@ -1179,8 +1210,8 @@
       "exitCode": 0,
       "report": {
         "kind": "health",
-        "schema_version": 11,
-        "version": "3.31.0",
+        "schema_version": 12,
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -1195,6 +1226,9 @@
           "severity_high_count": 0,
           "severity_moderate_count": 0
         },
+        "sections": [
+          "vital-signs"
+        ],
         "vital_signs": {
           "dead_file_pct": 0,
           "dead_export_pct": 20,
@@ -1253,7 +1287,9 @@
         "gate_outcomes": {
           "health-findings": {
             "status": "pass",
-            "enforced": true
+            "enforced": true,
+            "observed": 0,
+            "threshold_label": "error"
           }
         },
         "_meta": {
@@ -1315,7 +1351,7 @@
             },
             "executed": true,
             "protocol_version": 7,
-            "sidecar_version": "3.31.0",
+            "sidecar_version": "3.36.0",
             "backend": "typescript-go",
             "backend_version": "7.0.2",
             "selected_tsconfigs": [],
@@ -1375,10 +1411,10 @@
       "report": {
         "kind": "similar-code-status",
         "schema_version": "1",
-        "version": "3.31.0",
+        "version": "3.36.0",
         "protocol_version": 2,
         "embedding_semantics_version": 1,
-        "companion_version": "3.31.0",
+        "companion_version": "3.36.0",
         "model_ready": false,
         "model_id": "jinaai/jina-embeddings-v2-base-code",
         "model_revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
@@ -1471,8 +1507,8 @@
       "exitCode": 0,
       "report": {
         "kind": "health",
-        "schema_version": 11,
-        "version": "3.31.0",
+        "schema_version": 12,
+        "version": "3.36.0",
         "elapsed_ms": 0,
         "findings": [],
         "summary": {
@@ -1487,6 +1523,9 @@
           "severity_high_count": 0,
           "severity_moderate_count": 0
         },
+        "sections": [
+          "vital-signs"
+        ],
         "vital_signs": {
           "dead_file_pct": 50,
           "dead_export_pct": 0,
@@ -1545,7 +1584,9 @@
         "gate_outcomes": {
           "health-findings": {
             "status": "pass",
-            "enforced": true
+            "enforced": true,
+            "observed": 0,
+            "threshold_label": "error"
           }
         },
         "_meta": {
@@ -1623,7 +1664,7 @@
             },
             "executed": true,
             "protocol_version": 7,
-            "sidecar_version": "3.31.0",
+            "sidecar_version": "3.36.0",
             "backend": "typescript-go",
             "backend_version": "7.0.2",
             "selected_tsconfigs": [
@@ -1764,6 +1805,7 @@
         "--workspace": "<WORKSPACE>",
         "--changed-workspaces": "<REF>",
         "--group-by": "<GROUP_BY>",
+        "--group": "<KEY>",
         "--performance": "boolean",
         "--explain": "boolean",
         "--explain-skipped": "boolean",
@@ -1791,7 +1833,10 @@
         "--dupes-cross-language": "boolean",
         "--dupes-ignore-imports": "boolean",
         "--dupes-no-ignore-imports": "boolean",
+        "--dupes-ignore-symlinks": "boolean",
+        "--dupes-no-ignore-symlinks": "boolean",
         "--include-entry-exports": "boolean",
+        "--show-cascade": "boolean",
         "--type-aware": "boolean",
         "--no-type-aware": "boolean",
         "--type-aware-project": "<PATH>",
