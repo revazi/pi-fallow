@@ -43,6 +43,14 @@ The following are verified upstream behavior, not interfaces invented here:
 
 The interfaces in `src/contracts.ts` are **proposed spike contracts**. In particular, host request identity, snapshot identity, operation/attempt IDs, artifact references, and the investigation report are not upstream Durable APIs.
 
+## Installed-Fallow adapter experiment
+
+**Verified locally:** the default Durable path admits a host-supplied absolute executable only, pins Fallow 3.36.0, its digest and resolved path, policy and schema IDs, and revalidates them along with the snapshot and persisted typed argv. `src/fallow-schema.ts` normalizes a bounded subset of dead-code schema version 10: unused files and exports, plus target-checked inspect/trace reachability. The Durable path checks the owning retained scan artifact against the selected ledger finding before details launch or reconciliation. Fake executable tests cover malformed/oversized output, replacement, and hard-death before launch and after publication. A synthetic project exercises the installed native executable through Durable when available; absence skips, incompatible output fails. This is not general wire certification.
+
+**Proposed contract:** `src/fallow-policy.ts` is a pure allowlist builder, not an independent authentication boundary. Durable supplies its retained findings and verifies provenance. The controlled analyzer is explicitly selected only as a fixture for the original recovery matrix; opening without a mode requires an absolute installed-Fallow path. Unknown in-flight processes are blocked, never automatically relaunched. The process helper kills a live process group on overflow or cancellation; it does not prove ownership after host death.
+
+**Production blockers:** the explicitly admitted binary is trusted, not sandboxed; hashing cannot close check-to-execution races. Configuration and plugins need a verified no-acquisition/no-external-effect safety policy, and dependency-resolution completeness and native hard-death ownership remain unresolved. No production extension integration is provided.
+
 ## Boundary demonstrated
 
 The host-independent workflow is:
@@ -51,7 +59,7 @@ The host-independent workflow is:
 explicit host request
   -> fixed clean snapshot and pinned analyzer identity
   -> durable admission (request -> investigation -> task)
-  -> controlled scan
+  -> explicitly admitted installed-Fallow scan (controlled fixture only in recovery tests)
   -> deterministic fake selection from retained scan findings
   -> finding-bound inspect/trace
   -> bounded evidence plus verified artifact references
@@ -95,7 +103,7 @@ The report omits the internal materialized path. A later workspace commit does n
 
 ### Analyzer and policy
 
-Admission records the controlled executable's absolute path, SHA-256, reported version, policy version, and exact approved argv. Recovery never installs, discovers, downloads, or upgrades an analyzer.
+Admission records the executable's absolute path, SHA-256, reported version, and policy version; installed Fallow additionally records the requested path binding, adapter policy and schema identity. Each attempt persists exact approved argv. Both paths reconstruct and compare argv and operation ownership and revalidate snapshot and executable before launch and reconciliation. Installed Fallow is also revalidated after execution before publication. A killed-host test verifies controlled snapshot and executable drift block reconciliation; an argv-tampering test verifies blocking before launch. A live-process deadline test verifies termination and blocked evidence; subprocess completion waits for the asynchronous launch receipt commit. Neither path guarantees against a check-to-execution race. Recovery never installs, discovers, downloads, or upgrades an analyzer.
 
 ### Operation and attempt
 
@@ -145,7 +153,7 @@ A missing, malformed, oversized, or digest-drifted artifact is unavailable/incom
 
 ## Cancellation and process boundaries
 
-The controlled analyzer runs with:
+Both execution paths use direct argv, bounded capture, a minimal environment, a persisted deadline, and process-group cancellation on Unix. The controlled fixture additionally uses a launch token and its own process receipt. Specifically the controlled analyzer runs with:
 
 - direct argv (`shell: false`);
 - an explicit minimal environment supplied by the spike;
@@ -202,7 +210,7 @@ The root `pi-fallow` package has an explicit `files` allowlist containing docume
 ## Remaining production blockers
 
 1. Define a real companion package/process lifecycle and explicit host API; do not place this task engine inside the existing TUI extension.
-2. Replace the controlled analyzer with a production Fallow adapter while preserving the narrow typed policy. Generic `fallow_run` must remain replay-unsafe.
+2. Develop and review a production Fallow adapter from the isolated installed-only experiment while preserving the narrow typed policy. Generic `fallow_run` must remain replay-unsafe.
 3. Prove complete production snapshot/dependency/config identity, including package-manager and resolver inputs, or keep blocking unsupported repositories.
 4. Design robust process ownership/lease reconciliation. Current hard-death behavior intentionally blocks rather than proving cleanup.
 5. Decide artifact retention, garbage collection, permissions, disk quotas, backup expectations, and operator repair UX.
@@ -216,6 +224,6 @@ The root `pi-fallow` package has an explicit `files` allowlist containing docume
 
 ## Recommendation
 
-**Go** for a second, still-isolated companion prototype that replaces the controlled analyzer with a narrow installed-only Fallow adapter and expands snapshot/process ownership evidence.
+The installed-Fallow path is the default for this isolated experiment, not an approval for production. Continue expanding snapshot safety and process ownership evidence before considering integration.
 
 **No-go** for production integration, TUI durability, or a shared-core refactor now. The spike demonstrates useful admission, artifact, and reconciliation contracts, but deliberately blocks unresolved hard-death ownership and does not prove production snapshot completeness or cross-platform process cleanup.

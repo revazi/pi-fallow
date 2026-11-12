@@ -38,6 +38,9 @@ export interface AnalyzerIdentity {
 	executablePath: string;
 	sha256: string;
 	version: string;
+	requestedPath?: string;
+	adapterPolicy?: string;
+	outputSchema?: string;
 }
 
 export interface InvestigationRequest {
@@ -54,6 +57,7 @@ export interface AdmissionPayload {
 	snapshot: SnapshotIdentity;
 	analyzer: AnalyzerIdentity;
 	policyVersion: string;
+	analyzerMode?: "controlled" | "installed-fallow";
 }
 
 export interface FindingEvidence {
@@ -62,6 +66,7 @@ export interface FindingEvidence {
 	path: string;
 	line: number;
 	summary: string;
+	exportName?: string;
 }
 
 export interface ArtifactReference {

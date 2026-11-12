@@ -13,6 +13,8 @@ const barrier = control.barrier ? async (name: string) => {
 } : undefined;
 const spike = await DurableInvestigationSpike.open({
 	root: control.root,
+	...(control.analyzerPath ? { analyzerPath: control.analyzerPath } : {}),
+	...(control.analyzerMode ? { analyzerMode: control.analyzerMode } : {}),
 	recoverOwnership: control.recoverOwnership === true,
 	taskHost: { barrier, analyzerEnv: control.analyzerEnv },
 });
