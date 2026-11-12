@@ -1,4 +1,5 @@
-import { copyFile, mkdir, readFile, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { mkdir, open, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
 	ContractError,
@@ -11,7 +12,7 @@ import {
 	type FindingEvidence,
 	type OperationRecord,
 } from "./contracts.ts";
-import { sha256File } from "./util.ts";
+import { sha256Text } from "./util.ts";
 
 function ownedPath(ownedRoot: string, relativePath: string): string {
 	const absolute = resolve(ownedRoot, relativePath);
@@ -26,21 +27,18 @@ export async function publishAndValidateArtifact(
 	selectionLimit: number,
 ): Promise<EvidenceRecord> {
 	const staging = ownedPath(ownedRoot, attempt.stagingRelativePath);
-	const metadata = await stat(staging).catch(() => undefined);
-	if (!metadata) throw new ContractError("artifact-missing", "analyzer artifact is missing");
-	if (!metadata.isFile()) throw new ContractError("artifact-type", "analyzer artifact is not a regular file");
-	if (metadata.size > MAX_ARTIFACT_BYTES) throw new ContractError("artifact-oversized", `artifact exceeds ${MAX_ARTIFACT_BYTES} bytes`);
+	const source = await readBoundedRegularFile(staging, MAX_ARTIFACT_BYTES);
 	let parsed: any;
-	try { parsed = JSON.parse(await readFile(staging, "utf8")); }
+	try { parsed = JSON.parse(source.toString("utf8")); }
 	catch { throw new ContractError("artifact-malformed", "analyzer artifact is not valid JSON"); }
 	validateArtifactShape(parsed, operation);
 	const destination = ownedPath(ownedRoot, attempt.artifactRelativePath);
 	await mkdir(dirname(destination), { recursive: true });
-	await copyFile(staging, destination);
+	await writeFile(destination, source, { mode: 0o600 });
 	const artifact: ArtifactReference = {
 		relativePath: attempt.artifactRelativePath,
-		sha256: await sha256File(destination),
-		bytes: metadata.size,
+		sha256: sha256Text(source),
+		bytes: source.byteLength,
 		kind: operation.kind,
 		attemptId: attempt.id,
 	};
@@ -92,10 +90,34 @@ function boundedFinding(value: FindingEvidence): FindingEvidence {
 
 export async function validatePublishedArtifact(ownedRoot: string, evidence: EvidenceRecord): Promise<void> {
 	const path = ownedPath(ownedRoot, evidence.artifact.relativePath);
-	const metadata = await stat(path).catch(() => undefined);
-	if (!metadata?.isFile()) throw new ContractError("artifact-missing", "published artifact is missing");
-	if (metadata.size !== evidence.artifact.bytes) throw new ContractError("artifact-size-drift", "published artifact size drifted");
-	if (await sha256File(path) !== evidence.artifact.sha256) throw new ContractError("artifact-corrupt", "published artifact digest drifted");
+	const content = await readBoundedRegularFile(path, MAX_ARTIFACT_BYTES);
+	if (content.byteLength !== evidence.artifact.bytes) throw new ContractError("artifact-size-drift", "published artifact size drifted");
+	if (sha256Text(content) !== evidence.artifact.sha256) throw new ContractError("artifact-corrupt", "published artifact digest drifted");
+}
+
+async function readBoundedRegularFile(path: string, maxBytes: number): Promise<Buffer> {
+	let handle;
+	try {
+		handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+	} catch {
+		throw new ContractError("artifact-missing", "artifact is missing or cannot be opened safely");
+	}
+	try {
+		const metadata = await handle.stat();
+		if (!metadata.isFile()) throw new ContractError("artifact-type", "artifact is not a regular file");
+		if (metadata.size > maxBytes) throw new ContractError("artifact-oversized", `artifact exceeds ${maxBytes} bytes`);
+		const buffer = Buffer.alloc(maxBytes + 1);
+		let offset = 0;
+		while (offset <= maxBytes) {
+			const { bytesRead } = await handle.read(buffer, offset, buffer.byteLength - offset, offset);
+			if (bytesRead === 0) break;
+			offset += bytesRead;
+		}
+		if (offset > maxBytes) throw new ContractError("artifact-oversized", `artifact exceeds ${maxBytes} bytes`);
+		return buffer.subarray(0, offset);
+	} finally {
+		await handle.close();
+	}
 }
 
 export function artifactAbsolutePath(ownedRoot: string, relativePath: string): string {
