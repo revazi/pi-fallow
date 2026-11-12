@@ -1,0 +1,21 @@
+{
+  "name": "pi-fallow-durable-investigation-spike",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "description": "Local-only recovery contract spike for an optional pi-fallow Durable companion.",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test --test-concurrency=1 spec/*.spec.ts",
+    "test:contracts": "node --experimental-strip-types --test --test-concurrency=1 spec/contracts.spec.ts",
+    "demo": "node --experimental-strip-types src/demo.ts"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.4.0",
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-durable": "1.4.0",
+    "typebox": "1.3.27"
+  }
+}
