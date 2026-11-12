@@ -72,6 +72,8 @@ export async function execArgv(argv: readonly string[], options: {
 } = {}): Promise<ExecResult> {
 	if (argv.length === 0) throw new Error("argv must not be empty");
 	const maxBytes = options.maxBytes ?? 256 * 1024;
+	if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("invalid output limit");
+	if (options.signal?.aborted) throw new Error("process aborted before launch");
 	return new Promise((resolvePromise, reject) => {
 		const child = spawn(argv[0]!, argv.slice(1), {
 			cwd: options.cwd,
@@ -85,17 +87,20 @@ export async function execArgv(argv: readonly string[], options: {
 		let stderr = Buffer.alloc(0);
 		let overflow = false;
 		let settled = false;
+		let spawnReceipt: Promise<void> = Promise.resolve();
 		child.once("spawn", () => {
 			if (!child.pid) return;
-			void Promise.resolve(options.onSpawn?.(child.pid)).catch((error) => {
-				terminate();
-				reject(error);
-			});
+			const pid = child.pid;
+			// The child can exit before an asynchronous receipt commit finishes.
+			// Do not publish its result until that commit has settled.
+			spawnReceipt = Promise.resolve().then(() => options.onSpawn?.(pid)).then(() => {});
+			void spawnReceipt.catch(() => terminate());
 		});
 		const append = (current: Buffer, chunk: Buffer): Buffer => {
 			const next = Buffer.concat([current, chunk]);
 			if (next.byteLength <= maxBytes) return next;
 			overflow = true;
+			terminate();
 			return next.subarray(0, maxBytes);
 		};
 		child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk); });
@@ -109,6 +114,7 @@ export async function execArgv(argv: readonly string[], options: {
 		};
 		const abort = () => terminate();
 		options.signal?.addEventListener("abort", abort, { once: true });
+		if (options.signal?.aborted) abort();
 		child.once("error", (error) => {
 			if (settled) return;
 			settled = true;
@@ -119,8 +125,10 @@ export async function execArgv(argv: readonly string[], options: {
 			if (settled) return;
 			settled = true;
 			options.signal?.removeEventListener("abort", abort);
-			if (overflow) return reject(new Error(`process output exceeded ${maxBytes} bytes`));
-			resolvePromise({ code: code ?? 1, stdout: stdout.toString("utf8"), stderr: stderr.toString("utf8") });
+			void spawnReceipt.then(() => {
+				if (overflow) return reject(new Error(`process output exceeded ${maxBytes} bytes`));
+				resolvePromise({ code: code ?? 1, stdout: stdout.toString("utf8"), stderr: stderr.toString("utf8") });
+			}, reject);
 		});
 	});
 }

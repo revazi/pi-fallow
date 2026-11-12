@@ -11,7 +11,7 @@ import {
 } from "@earendil-works/pi-durable";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
 	ContractError,
 	MAX_PRESENTED_FINDINGS,
@@ -30,10 +30,14 @@ import {
 	type LedgerState,
 	type OperationKind,
 	type OperationRecord,
+	MAX_OUTPUT_BYTES,
 } from "./contracts.ts";
-import { publishAndValidateArtifact, validatePublishedArtifact } from "./artifacts.ts";
+import { inspectFallowExecutable, verifyFallowExecutable, type FallowExecutableIdentity } from "./fallow-identity.ts";
+import { buildFallowArgv } from "./fallow-policy.ts";
+import { normalizeFallowDetail, normalizeFallowScan, type FallowFinding } from "./fallow-schema.ts";
+import { publishAndValidateArtifact, validatePublishedArtifact, validateRetainedTargetArtifact } from "./artifacts.ts";
 import { inspectAnalyzer, materializeSnapshot, verifyAnalyzer, verifySnapshot } from "./snapshot.ts";
-import { digestJson, execArgv, pathExists, randomToken } from "./util.ts";
+import { digestJson, execArgv, pathExists, randomToken, writeJsonAtomic } from "./util.ts";
 
 export const context = BACKGROUND_CONTEXT;
 
@@ -56,6 +60,7 @@ export const LedgerDoc = defineDoc<LedgerState>({
 
 export interface TaskHost {
 	ownedRoot: string;
+	analyzerMode: "controlled" | "installed-fallow";
 	analyzerEnv?: Record<string, string>;
 	barrier?(name: string, ids: { investigationId: string; operationId?: string; attemptId?: string }): Promise<void>;
 }
@@ -122,8 +127,7 @@ export function createInvestigationTask(host: TaskHost, version = TASK_DEFINITIO
 				const operation = requireOperation(snapshot!, operationId);
 				const attempt = requireAttempt(snapshot!, attemptId);
 				try {
-					await verifySnapshot(investigation.payload.snapshot);
-					await verifyAnalyzer(investigation.payload.analyzer);
+					await verifyAttempt(snapshot!, investigation, operation, attempt, host);
 				} catch (error) {
 					await blockAttempt(runtime, taskContext, attemptId, operationId, contractMessage(error));
 					return;
@@ -133,26 +137,67 @@ export function createInvestigationTask(host: TaskHost, version = TASK_DEFINITIO
 					return;
 				}
 				await mkdir(dirname(join(host.ownedRoot, attempt.stagingRelativePath)), { recursive: true });
-				const result = await execArgv(attempt.approvedArgv, {
-					env: { ...host.analyzerEnv },
-					maxBytes: 16 * 1024,
-					signal: runtime.signal,
-					onSpawn: async (pid) => {
-						await runtime.commit(async (tx) => {
-							const ledger = await tx.doc(LedgerDoc);
-							const current = requireAttempt(ledger, attemptId);
-							current.pid = pid;
-							current.status = "running";
-							requireOperation(ledger, operationId).status = "running";
-						}, taskContext);
-					},
-				});
+				const deadline = new AbortController();
+				let timer: ReturnType<typeof setTimeout>;
+				let remaining = attempt.deadlineAt - runtime.now();
+				const armDeadline = () => {
+					if (remaining <= 0) return deadline.abort();
+					const interval = Math.min(remaining, 2_147_483_647);
+					remaining -= interval;
+					timer = setTimeout(armDeadline, interval);
+				};
+				armDeadline();
+				let result;
+				try {
+					result = await execArgv(attempt.approvedArgv, {
+						...(investigation.payload.analyzerMode === "installed-fallow" ? { cwd: investigation.payload.snapshot.materializedPath } : {}),
+						env: investigation.payload.analyzerMode === "installed-fallow" ? { HOME: host.ownedRoot, PATH: "/usr/bin:/bin" } : { ...host.analyzerEnv },
+						maxBytes: investigation.payload.analyzerMode === "installed-fallow" ? MAX_OUTPUT_BYTES : 16 * 1024,
+						signal: AbortSignal.any([runtime.signal, deadline.signal]),
+						onSpawn: async (pid) => {
+							await runtime.commit(async (tx) => {
+								const ledger = await tx.doc(LedgerDoc);
+								const current = requireAttempt(ledger, attemptId);
+								if (current.cancelRequestedAt !== undefined || requireInvestigation(ledger, task.input.investigationId).status === "cancelled") return;
+								current.pid = pid;
+								current.status = "running";
+								requireOperation(ledger, operationId).status = "running";
+							}, taskContext);
+						},
+					});
+				} catch (error) {
+					if (runtime.signal.aborted) return;
+					if (!deadline.signal.aborted && investigation.payload.analyzerMode !== "installed-fallow") throw error;
+					await blockAttempt(runtime, taskContext, attemptId, operationId, deadline.signal.aborted ? "deadline-exceeded" : "analyzer-execution-failed");
+					return;
+				} finally {
+					clearTimeout(timer);
+				}
 				if (runtime.signal.aborted) return;
-				if (result.code !== 0) {
-					await failAttempt(runtime, taskContext, attemptId, operationId, `analyzer-exit-${result.code}: ${result.stderr.slice(0, 300)}`);
+				if (deadline.signal.aborted || runtime.now() >= attempt.deadlineAt) {
+					await blockAttempt(runtime, taskContext, attemptId, operationId, "deadline-exceeded");
 					return;
 				}
-				const evidence = await publishAndValidateArtifact(host.ownedRoot, attempt, operation, investigation.payload.selectionLimit);
+				if (result.code !== 0 && !(investigation.payload.analyzerMode === "installed-fallow" && operation.kind === "scan" && result.code === 1)) {
+					await failAttempt(runtime, taskContext, attemptId, operationId, `analyzer-exit-${result.code}`);
+					return;
+				}
+				if (investigation.payload.analyzerMode === "installed-fallow") {
+					try {
+						await verifyAttempt(snapshot!, investigation, operation, attempt, host);
+						const normalized = normalizeInstalledOutput(snapshot!, investigation, operation, result.stdout);
+						await writeJsonAtomic(join(host.ownedRoot, attempt.stagingRelativePath), normalized);
+					} catch (error) {
+						await blockAttempt(runtime, taskContext, attemptId, operationId, error instanceof ContractError ? contractMessage(error) : "analyzer-output-invalid");
+						return;
+					}
+				}
+				let evidence: EvidenceRecord;
+				try { evidence = await publishAndValidateArtifact(host.ownedRoot, attempt, operation, investigation.payload.selectionLimit); }
+				catch (error) {
+					await blockAttempt(runtime, taskContext, attemptId, operationId, error instanceof ContractError ? contractMessage(error) : "artifact-publication-failed");
+					return;
+				}
 				await host.barrier?.("after-artifact-publication", { investigationId: task.input.investigationId, operationId, attemptId });
 				await commitEvidence(runtime, taskContext, task.input.investigationId, operation, attempt, evidence);
 			},
@@ -162,6 +207,12 @@ export function createInvestigationTask(host: TaskHost, version = TASK_DEFINITIO
 				const investigation = requireInvestigation(ledger!, task.input.investigationId);
 				const operation = requireOperation(ledger!, operationId);
 				const attempt = requireAttempt(ledger!, attemptId);
+				try {
+					await verifyAttempt(ledger!, investigation, operation, attempt, host);
+				} catch (error) {
+					await blockAttempt(runtime, taskContext, attemptId, operationId, contractMessage(error));
+					return;
+				}
 				const committed = ledger!.evidence[operationId];
 				if (committed) {
 					await runtime.commit(() => ({ status: "running", checkpoint: nextCheckpoint(ledger!, investigation) }), taskContext);
@@ -250,41 +301,119 @@ function createOperation(ledger: LedgerState, investigation: InvestigationRecord
 	return operation;
 }
 
+function hasRetainedTarget(ledger: LedgerState, investigation: InvestigationRecord, targetFindingId?: string): boolean {
+	return investigation.evidenceOperationIds.some((id) => {
+		const scan = ledger.operations[id];
+		const evidence = ledger.evidence[id];
+		return investigation.operationIds.includes(id) && scan?.investigationId === investigation.id && scan.kind === "scan"
+			&& evidence?.kind === "scan" && evidence.operationId === id
+			&& evidence.findings.some((finding) => finding.id === targetFindingId);
+	});
+}
+
 function createAttempt(ledger: LedgerState, investigation: InvestigationRecord, operation: OperationRecord, ownedRoot: string): AttemptRecord {
+	if (operation.investigationId !== investigation.id || !investigation.operationIds.includes(operation.id)) throw new ContractError("operation-owner", "operation does not belong to this investigation");
 	if (operation.activeAttemptId) throw new ContractError("duplicate-operation", `operation ${operation.id} already has an active attempt`);
-	if (operation.kind !== "scan") {
-		const scanEvidence = Object.values(ledger.evidence).find((item) => item.kind === "scan" && item.operationId !== operation.id);
-		if (!scanEvidence?.findings.some((finding) => finding.id === operation.targetFindingId)) throw new ContractError("target-not-retained", "operation target is not a retained finding from this investigation");
+	if (operation.kind !== "scan" && !hasRetainedTarget(ledger, investigation, operation.targetFindingId)) {
+		throw new ContractError("target-not-retained", "operation target is not a retained finding from this investigation");
 	}
 	const id = `attempt-${ledger.nextAttempt++}`;
 	const launchToken = randomToken();
 	const stagingRelativePath = join("staging", id, "result.json");
 	const artifactRelativePath = join("artifacts", `${id}.json`);
 	const processReceiptRelativePath = join("process-receipts", `${id}.json`);
-	const approvedArgv = [
-		process.execPath,
-		investigation.payload.analyzer.executablePath,
-		operation.kind,
-		"--root", investigation.payload.snapshot.materializedPath,
-		"--output", join(ownedRoot, stagingRelativePath),
-		"--receipt", join(ownedRoot, processReceiptRelativePath),
-		"--token", launchToken,
-		...(operation.targetFindingId ? ["--target", operation.targetFindingId] : []),
-	];
 	const attempt: AttemptRecord = {
 		id,
 		operationId: operation.id,
 		status: "intent-committed",
 		createdAt: Date.now(),
 		deadlineAt: investigation.payload.deadlineAt,
-		approvedArgv,
+		approvedArgv: [],
 		stagingRelativePath,
 		artifactRelativePath,
 		launchToken,
 		processReceiptRelativePath,
 	};
+	attempt.approvedArgv = approvedArgv(ledger, investigation, operation, attempt, ownedRoot);
 	ledger.attempts[id] = attempt;
 	return attempt;
+}
+
+function controlledArgv(investigation: InvestigationRecord, operation: OperationRecord, attempt: AttemptRecord, ownedRoot: string): string[] {
+	return [
+		process.execPath,
+		investigation.payload.analyzer.executablePath,
+		operation.kind,
+		"--root", investigation.payload.snapshot.materializedPath,
+		"--output", join(ownedRoot, attempt.stagingRelativePath),
+		"--receipt", join(ownedRoot, attempt.processReceiptRelativePath),
+		"--token", attempt.launchToken,
+		...(operation.targetFindingId ? ["--target", operation.targetFindingId] : []),
+	];
+}
+
+function fallowScan(ledger: LedgerState, investigation: InvestigationRecord): FallowFinding[] {
+	const scans = investigation.evidenceOperationIds.filter((id) => investigation.operationIds.includes(id)
+		&& ledger.operations[id]?.investigationId === investigation.id && ledger.operations[id]?.kind === "scan"
+		&& ledger.evidence[id]?.kind === "scan" && ledger.evidence[id]?.operationId === id);
+	if (scans.length !== 1) throw new ContractError("retained-scan-binding", "exactly one retained scan is required");
+	return ledger.evidence[scans[0]!]!.findings.map((finding) => {
+		if (finding.kind === "unused-file" && finding.line === 1 && finding.exportName === undefined) return { id: finding.id, kind: "unused-file", path: finding.path, line: 1 };
+		if (finding.kind === "unused-export" && typeof finding.exportName === "string") return { id: finding.id, kind: "unused-export", path: finding.path, line: finding.line, exportName: finding.exportName };
+		throw new ContractError("retained-scan-binding", "invalid retained Fallow finding");
+	});
+}
+
+function approvedArgv(ledger: LedgerState, investigation: InvestigationRecord, operation: OperationRecord, attempt: AttemptRecord, ownedRoot: string): string[] {
+	if (investigation.payload.analyzerMode !== "installed-fallow") return controlledArgv(investigation, operation, attempt, ownedRoot);
+	const action = operation.kind === "scan" ? { kind: "scan" as const } : { kind: operation.kind, targetFindingId: operation.targetFindingId! };
+	return buildFallowArgv({ executablePath: investigation.payload.analyzer.executablePath, snapshotPath: investigation.payload.snapshot.materializedPath,
+		snapshotSha256: investigation.payload.snapshot.contentSha256, operation: action,
+		...(operation.kind === "scan" ? {} : { retainedScan: { snapshotSha256: investigation.payload.snapshot.contentSha256, findings: fallowScan(ledger, investigation) } }) });
+}
+
+function normalizeInstalledOutput(ledger: LedgerState, investigation: InvestigationRecord, operation: OperationRecord, stdout: string): object {
+	if (operation.kind === "scan") {
+		const scan = normalizeFallowScan(stdout);
+		return { operation: "scan", complete: !scan.truncated, ...(scan.truncated ? { completenessReason: "retained finding limit" } : {}),
+			findingCount: scan.found, findings: scan.findings.map((finding) => ({ ...finding, summary: finding.kind })) };
+	}
+	const findings = fallowScan(ledger, investigation).filter((finding) => finding.id === operation.targetFindingId);
+	if (findings.length !== 1) throw new ContractError("retained-target-binding", "target must identify exactly one retained finding");
+	const finding = findings[0]!;
+	const detail = normalizeFallowDetail(stdout, operation.kind, finding);
+	return { operation: operation.kind, target: finding.id, complete: true, findingCount: 1,
+		findings: [{ ...finding, summary: detail.reachable ? "reachable" : "not reachable" }] };
+}
+
+async function verifyAttempt(ledger: LedgerState, investigation: InvestigationRecord, operation: OperationRecord, attempt: AttemptRecord, host: TaskHost): Promise<void> {
+	if ((investigation.payload.analyzerMode ?? "controlled") !== host.analyzerMode) throw new ContractError("analyzer-mode-drift", "recovery analyzer mode differs from admitted mode");
+	const ownedRoot = host.ownedRoot;
+	if (investigation.payload.policyVersion !== POLICY_VERSION || payloadDigest(investigation.payload) !== investigation.payloadDigest || operation.investigationId !== investigation.id || !investigation.operationIds.includes(operation.id)
+		|| attempt.operationId !== operation.id || operation.activeAttemptId !== attempt.id || !operation.attemptIds.includes(attempt.id)
+		|| !["scan", "inspect", "trace"].includes(operation.kind)
+		|| (operation.kind === "scan" ? !!operation.targetFindingId : !hasRetainedTarget(ledger, investigation, operation.targetFindingId))
+		|| attempt.stagingRelativePath !== join("staging", attempt.id, "result.json")
+		|| attempt.artifactRelativePath !== join("artifacts", `${attempt.id}.json`)
+		|| attempt.processReceiptRelativePath !== join("process-receipts", `${attempt.id}.json`)
+		|| (investigation.payload.analyzerMode !== undefined && investigation.payload.analyzerMode !== "controlled" && investigation.payload.analyzerMode !== "installed-fallow")
+		|| JSON.stringify(attempt.approvedArgv) !== JSON.stringify(approvedArgv(ledger, investigation, operation, attempt, ownedRoot))) {
+		throw new ContractError("attempt-contract", "persisted attempt does not match its admitted operation and policy");
+	}
+	await verifySnapshot(investigation.payload.snapshot);
+	if (investigation.payload.analyzerMode === "installed-fallow") await verifyFallowExecutable(investigation.payload.analyzer as FallowExecutableIdentity);
+	else await verifyAnalyzer(investigation.payload.analyzer);
+	if (operation.kind !== "scan") {
+		const scans = investigation.evidenceOperationIds.filter((id) => {
+			const scan = ledger.operations[id];
+			const evidence = ledger.evidence[id];
+			return investigation.operationIds.includes(id) && scan?.investigationId === investigation.id && scan.kind === "scan"
+				&& evidence?.kind === "scan" && evidence.operationId === id
+				&& evidence.findings.some((finding) => finding.id === operation.targetFindingId);
+		});
+		if (scans.length !== 1) throw new ContractError("retained-scan-binding", "target must belong to exactly one retained scan");
+		await validateRetainedTargetArtifact(ownedRoot, ledger.evidence[scans[0]!]!, ledger.operations[scans[0]!]!, operation.targetFindingId!);
+	}
 }
 
 async function commitEvidence(runtime: any, taskContext: any, investigationId: string, operation: OperationRecord, attempt: AttemptRecord, evidence: EvidenceRecord): Promise<void> {
@@ -352,6 +481,7 @@ async function buildReport(ownedRoot: string, ledger: LedgerState, investigation
 	const notes = [
 		"Evidence describes the fixed admitted snapshot, not the caller's current workspace.",
 		"Dependency-resolution completeness remains an unresolved production gate.",
+		...(investigation.payload.analyzerMode === "installed-fallow" ? ["Counts cover only supported unused-file and unused-export findings, not all Fallow findings."] : []),
 	];
 	let findingsFound = 0;
 	let findingsRetained = 0;
@@ -437,11 +567,12 @@ function contractMessage(error: unknown): string {
 export interface OpenSpikeOptions {
 	root: string;
 	analyzerPath?: string;
+	analyzerMode?: "controlled" | "installed-fallow";
 	recoverOwnership?: boolean;
 	registerTask?: boolean;
 	taskVersion?: number;
 	now?: () => number;
-	taskHost?: Partial<Omit<TaskHost, "ownedRoot">>;
+	taskHost?: Partial<Omit<TaskHost, "ownedRoot" | "analyzerMode">>;
 	storage?: Storage;
 }
 
@@ -450,6 +581,7 @@ export class DurableInvestigationSpike {
 	readonly databasePath: string;
 	readonly lockPath: string;
 	readonly analyzerPath: string;
+	readonly analyzerMode: "controlled" | "installed-fallow";
 	readonly harness: Harness;
 	readonly task: ReturnType<typeof createInvestigationTask>;
 	readonly rootConversation: Awaited<ReturnType<Harness["root"]>>;
@@ -462,6 +594,7 @@ export class DurableInvestigationSpike {
 		lockPath: string;
 		lockNonce: string;
 		analyzerPath: string;
+		analyzerMode: "controlled" | "installed-fallow";
 		harness: Harness;
 		task: ReturnType<typeof createInvestigationTask>;
 		rootConversation: Awaited<ReturnType<Harness["root"]>>;
@@ -472,6 +605,7 @@ export class DurableInvestigationSpike {
 		this.lockPath = options.lockPath;
 		this.#lockNonce = options.lockNonce;
 		this.analyzerPath = options.analyzerPath;
+		this.analyzerMode = options.analyzerMode;
 		this.harness = options.harness;
 		this.task = options.task;
 		this.rootConversation = options.rootConversation;
@@ -483,14 +617,17 @@ export class DurableInvestigationSpike {
 		const lockPath = join(ownedRoot, "owner.lock");
 		const lockNonce = await acquireOwnerLock(lockPath, options.recoverOwnership === true);
 		try {
+			const analyzerMode = options.analyzerMode ?? "installed-fallow";
+			if (analyzerMode !== "installed-fallow" && analyzerMode !== "controlled") throw new ContractError("fallow-executable", "unsupported analyzer mode");
+			if (analyzerMode === "installed-fallow" && (!options.analyzerPath || !isAbsolute(options.analyzerPath))) throw new ContractError("fallow-executable", "explicit absolute executable path required");
 			const analyzerPath = resolve(options.analyzerPath ?? new URL("./analyzer.mjs", import.meta.url).pathname);
-			const task = createInvestigationTask({ ownedRoot, ...options.taskHost }, options.taskVersion ?? TASK_DEFINITION_VERSION);
+			const task = createInvestigationTask({ ...options.taskHost, ownedRoot, analyzerMode }, options.taskVersion ?? TASK_DEFINITION_VERSION);
 			const registry = createRegistry();
 			if (options.registerTask !== false) registry.install(defineExtension({ name: "pi-fallow-spike", tasks: [task] }));
 			const storage = options.storage ?? await openNodeSqliteStorage(join(ownedRoot, "durable.sqlite"));
 			const harness = await Harness.open(storage, { models: createModels(), registry, ...(options.now ? { now: options.now } : {}) }, context);
 			const rootConversation = await harness.root(context);
-			return new DurableInvestigationSpike({ ownedRoot, databasePath: join(ownedRoot, "durable.sqlite"), lockPath, lockNonce, analyzerPath, harness, task, rootConversation });
+			return new DurableInvestigationSpike({ ownedRoot, databasePath: join(ownedRoot, "durable.sqlite"), lockPath, lockNonce, analyzerPath, analyzerMode, harness, task, rootConversation });
 		} catch (error) {
 			await releaseOwnerLock(lockPath, lockNonce);
 			throw error;
@@ -556,10 +693,7 @@ export class DurableInvestigationSpike {
 				.find((operation) => operation.kind === kind && operation.targetFindingId === targetFindingId);
 			if (duplicate) return JSON.parse(JSON.stringify(duplicate)) as OperationRecord;
 			if (kind !== "scan") {
-				const retained = investigation.evidenceOperationIds
-					.map((id) => ledger.evidence[id])
-					.some((evidence) => evidence?.kind === "scan" && evidence.findings.some((finding) => finding.id === targetFindingId));
-				if (!retained) throw new ContractError("target-not-retained", "operation target is not retained scan evidence");
+				if (!hasRetainedTarget(ledger, investigation, targetFindingId)) throw new ContractError("target-not-retained", "operation target is not retained scan evidence");
 			}
 			return JSON.parse(JSON.stringify(createOperation(ledger, investigation, kind, targetFindingId))) as OperationRecord;
 		}, context);
@@ -595,8 +729,9 @@ export class DurableInvestigationSpike {
 			deadlineAt: request.deadlineAt,
 			selectionLimit: Math.min(request.selectionLimit ?? 2, MAX_SELECTIONS),
 			snapshot: await materializeSnapshot(request.sourceRepository, this.ownedRoot, snapshotName),
-			analyzer: await inspectAnalyzer(this.analyzerPath),
+			analyzer: this.analyzerMode === "installed-fallow" ? await inspectFallowExecutable(this.analyzerPath) : await inspectAnalyzer(this.analyzerPath),
 			policyVersion: POLICY_VERSION,
+			analyzerMode: this.analyzerMode,
 		};
 	}
 }
@@ -615,6 +750,7 @@ function payloadDigest(payload: AdmissionPayload): string {
 		snapshot: { ...payload.snapshot, materializedPath: undefined },
 		analyzer: payload.analyzer,
 		policyVersion: payload.policyVersion,
+		analyzerMode: payload.analyzerMode,
 	});
 }
 

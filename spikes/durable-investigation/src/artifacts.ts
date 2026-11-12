@@ -74,6 +74,7 @@ function validateFinding(value: any): void {
 	for (const key of ["id", "kind", "path", "summary"] as const) {
 		if (typeof value[key] !== "string" || value[key].length === 0 || value[key].length > 500) throw new ContractError("finding-field", `invalid finding ${key}`);
 	}
+	if (value.exportName !== undefined && (typeof value.exportName !== "string" || !value.exportName || value.exportName.length > 200)) throw new ContractError("finding-field", "invalid export name");
 	if (!Number.isSafeInteger(value.line) || value.line < 1) throw new ContractError("finding-line", "invalid finding line");
 	if (value.path.startsWith("/") || value.path.includes("..")) throw new ContractError("finding-path", "finding path is not snapshot-relative");
 }
@@ -85,7 +86,33 @@ function boundedFinding(value: FindingEvidence): FindingEvidence {
 		path: value.path.slice(0, 500),
 		line: value.line,
 		summary: value.summary.slice(0, 500),
+		...(value.exportName === undefined ? {} : { exportName: value.exportName }),
 	};
+}
+
+// Verify that a target in the ledger still corresponds to the retained scan bytes.
+// Digest validation alone does not authenticate independently mutable ledger fields.
+export async function validateRetainedTargetArtifact(ownedRoot: string, evidence: EvidenceRecord, operation: OperationRecord, targetId: string): Promise<void> {
+	if (operation.kind !== "scan" || evidence.kind !== "scan" || evidence.operationId !== operation.id
+		|| evidence.artifact.kind !== "scan" || evidence.artifact.attemptId !== evidence.attemptId
+		|| !operation.attemptIds.includes(evidence.attemptId)
+		|| evidence.artifact.relativePath !== join("artifacts", `${evidence.attemptId}.json`)) {
+		throw new ContractError("retained-scan-binding", "retained scan identity does not match its operation");
+	}
+	const content = await readBoundedRegularFile(ownedPath(ownedRoot, evidence.artifact.relativePath), MAX_ARTIFACT_BYTES);
+	if (content.byteLength !== evidence.artifact.bytes || sha256Text(content) !== evidence.artifact.sha256) {
+		throw new ContractError("artifact-corrupt", "retained scan artifact drifted");
+	}
+	let parsed: any;
+	try { parsed = JSON.parse(content.toString("utf8")); }
+	catch { throw new ContractError("artifact-malformed", "retained scan is not valid JSON"); }
+	validateArtifactShape(parsed, operation);
+	const retained = (parsed.findings as FindingEvidence[]).slice(0, MAX_FINDINGS).map(boundedFinding);
+	const fromArtifact = retained.filter((finding) => finding.id === targetId);
+	const fromLedger = evidence.findings.filter((finding) => finding.id === targetId);
+	if (fromArtifact.length !== 1 || fromLedger.length !== 1 || JSON.stringify(fromArtifact[0]) !== JSON.stringify(fromLedger[0])) {
+		throw new ContractError("retained-target-binding", "target does not match exactly one retained scan finding");
+	}
 }
 
 export async function validatePublishedArtifact(ownedRoot: string, evidence: EvidenceRecord): Promise<void> {
