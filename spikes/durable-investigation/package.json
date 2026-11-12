@@ -8,8 +8,8 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test --test-concurrency=1 spec/*.test.ts",
-    "test:contracts": "node --experimental-strip-types --test --test-concurrency=1 spec/contracts.test.ts",
+    "test": "node --experimental-strip-types --test --test-concurrency=1 spec/*.spec.ts",
+    "test:contracts": "node --experimental-strip-types --test --test-concurrency=1 spec/contracts.spec.ts",
     "demo": "node --experimental-strip-types src/demo.ts"
   },
   "dependencies": {
