@@ -13,8 +13,16 @@ input.on('error', () => process.exit(4));
 input.on('end', () => {
   if (length !== 32) process.exit(4);
   process.stdout.write('READY\n');
-  setTimeout(() => {
+  const control = createReadStream(null, { fd: 4, autoClose: true });
+  let command = '';
+  control.on('data', chunk => {
+    command += chunk.toString('ascii');
+    if (command.length > 2) process.exit(5);
+  });
+  control.on('error', () => process.exit(6));
+  control.on('end', () => {
+    if (command !== 'GO') process.exit(7);
     process.stdout.write('ALIVE\n');
     clearTimeout(expiry);
-  }, 250);
+  });
 });
