@@ -31,4 +31,4 @@ The default installed-only path requires an absolute `analyzerPath` pointing to 
 
 The workflow does not use or wrap `fallow_run`, fabricate a coding-agent `ExtensionAPI`, modify the Pi Fallow TUI, acquire analyzers during execution or recovery, or execute model workloads.
 
-See [`docs/design.md`](docs/design.md) for the contracts, verified upstream references, fault matrix, and production blockers.
+See [`docs/design.md`](docs/design.md) for the contracts, verified upstream references, fault matrix, and production blockers. The investigation-only [Darwin API evidence](docs/darwin-api-evidence.md) and [supervisor design](docs/darwin-supervisor-design.md) assess #155 without changing recovery behavior or completing its prototype/security gates.

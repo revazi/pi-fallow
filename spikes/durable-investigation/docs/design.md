@@ -207,6 +207,10 @@ Because Durable 1.4.0 has no cross-process lock, the spike adds a host-level `ow
 
 The root `pi-fallow` package has an explicit `files` allowlist containing documentation/assets plus `extensions/**/*.ts`. `spikes/` is outside that allowlist. The spike has its own `package.json`, exact dependencies, `package-lock.json`, and `node_modules`; it does not alter root peers, externals, dependencies, extension registration, or install behavior.
 
+## Darwin ownership investigation
+
+The separate [API evidence](darwin-api-evidence.md) and [supervisor design and decision](darwin-supervisor-design.md) investigate #155. They propose no change to this spike's existing recovery rules and do not establish positive recovery, safe signalling, or descendant cleanup.
+
 ## Remaining production blockers
 
 1. Define a real companion package/process lifecycle and explicit host API; do not place this task engine inside the existing TUI extension.
