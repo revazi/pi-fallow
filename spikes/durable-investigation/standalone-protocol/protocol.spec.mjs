@@ -40,6 +40,7 @@ test('bounded fragmented framing and truncation', () => {
   assert.throws(() => reader.push(Buffer.alloc(0)));
   const truncated = new FrameReader(); truncated.push(wire.subarray(0, -1));
   assert.throws(() => truncated.end());
+  assert.throws(() => truncated.push(wire.subarray(-1)));
   const bad = Buffer.alloc(4); bad.writeUInt32BE(MAX_FRAME + 1);
   const oversized = new FrameReader(); assert.throws(() => oversized.push(bad));
   assert.throws(() => oversized.push(wire));

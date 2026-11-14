@@ -92,8 +92,10 @@ export class FrameReader {
     return results;
   }
   end() {
-    if (this.#failed || this.#headerBytes || this.#body) throw new Error('truncated frame');
+    const incomplete = this.#failed || this.#headerBytes !== 0 || this.#body !== null;
     this.#failed = true;
+    this.#body = null;
+    if (incomplete) throw new Error('truncated frame');
   }
 }
 
