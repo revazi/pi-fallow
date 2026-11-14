@@ -91,7 +91,7 @@
     "fallow": "3.36.0",
     "jiti": "^2.7.0",
     "js-tiktoken": "^1.0.21",
-    "typebox": "1.4.3"
+    "typebox": "1.4.4"
   },
   "overrides": {
     "@earendil-works/pi-coding-agent": {
