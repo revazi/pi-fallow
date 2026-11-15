@@ -24,7 +24,9 @@
   "usedClassMembers": [
     {
       "implements": "Focusable",
-      "members": ["focused"]
+      "members": [
+        "focused"
+      ]
     },
     {
       "implements": "Component",
@@ -33,5 +35,8 @@
         "invalidate"
       ]
     }
+  ],
+  "ignorePatterns": [
+    "spikes/**"
   ]
 }
