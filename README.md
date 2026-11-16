@@ -167,11 +167,11 @@ Applying a preview is TUI-only. Apply requires a direct confirmation; repeated d
 
 | Pi coding agent | Matching Pi AI/TUI packages | TypeBox | Node.js | Fallow |
 |---|---|---|---|---|
-| 1.5.0 | 1.5.0 | 1.4.4 | 22.19 and 24 | 3.36.0 |
+| 1.5.2 | 1.5.2 | 1.4.4 | 22.19 and 24 | 3.36.0 |
 
 **Certification** means this exact matrix passed frozen and live repository checks. **Compatibility** means the installed Fallow still advertises the capabilities Pi Fallow models. **Installation constraints** are only the requirements below. This is tested compatibility; it is not an installation constraint, and other versions may work.
 
-Pi libraries and TypeBox are host-provided wildcard peer dependencies, following Pi package guidance; the tested matrix does not narrow those peer ranges. The TypeBox version shown is the root development pin. Pi 1.5.0 also supplies its own TypeBox 1.3.27 to loaded extensions and validates tool arguments as JSON Schema with pi-schema. Tests exercise the root-built tool schema, including Pi's argument coercion, with the locked host validator as well as packaged extension loading.
+Pi libraries and TypeBox are host-provided wildcard peer dependencies, following Pi package guidance; the tested matrix does not narrow those peer ranges. The TypeBox version shown is the root development pin. Pi 1.5.2 also supplies its own TypeBox 1.3.27 to loaded extensions and validates tool arguments as JSON Schema with pi-schema. Tests exercise the root-built tool schema, including Pi's argument coercion, with the locked host validator as well as packaged extension loading.
 
 ## 📋 Requirements
 

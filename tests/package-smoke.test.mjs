@@ -32,7 +32,7 @@ describe("package-smoke credential-free negative control", () => {
 		assert.equal(env.PI_OFFLINE, "1");
 	});
 
-	it("accepts only the locked Pi 1.5.0 auth-guidance structure", () => {
+	it("accepts only the locked Pi 1.5.2 auth-guidance structure", () => {
 		assert.doesNotThrow(() => assertControl());
 	});
 
