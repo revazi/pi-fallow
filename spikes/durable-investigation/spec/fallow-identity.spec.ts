@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { selectedNativeFallow } from "./native-fallow.ts";
 import { ContractError } from "../src/contracts.ts";
 import { inspectFallowExecutable, verifyFallowExecutable } from "../src/fallow-identity.ts";
 
@@ -50,11 +50,8 @@ test("standalone revalidation rejects version drift even when executable bytes a
 });
 
 test("standalone admission checks the pinned native Fallow if already installed", async (t) => {
-	const platform = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
-	const arch = process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "x64" : null;
-	if (!platform || !arch) return t.skip("no native binary path defined for this platform");
-	const executable = fileURLToPath(new URL(`../../../node_modules/@fallow-cli/${platform}-${arch}/fallow`, import.meta.url));
-	try { await access(executable); } catch (error: any) { if (error.code === "ENOENT") return t.skip("pinned native Fallow is not already installed"); throw error; }
+	const executable = await selectedNativeFallow();
+	if (!executable) return t.skip("explicit exact Fallow 3.36.0 native binary unavailable");
 	const identity = await inspectFallowExecutable(executable);
 	assert.equal(identity.version, "3.36.0");
 	await verifyFallowExecutable(identity);

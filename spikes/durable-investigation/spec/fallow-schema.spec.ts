@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { join } from "node:path";
 import { test } from "node:test";
+import { selectedNativeFallow } from "./native-fallow.ts";
 import { ContractError, MAX_OUTPUT_BYTES } from "../src/contracts.ts";
 import { FALLOW_VERSION, normalizeFallowDetail, normalizeFallowScan } from "../src/fallow-schema.ts";
 import { execArgv } from "../src/util.ts";
@@ -40,12 +41,22 @@ test("detail normalization rejects target, operation, and schema mismatches", ()
 	rejectsSchema(() => normalizeFallowDetail(JSON.stringify({ kind: "trace", file: "orphan.js", is_reachable: false }), "inspect", file!));
 });
 
+test("native test resolver requires an explicit absolute exact-version selection", async () => {
+	const root = await mkdtemp(join(tmpdir(), "fallow-resolver-"));
+	try {
+		const binary = join(root, "fallow");
+		assert.equal(await selectedNativeFallow("relative"), undefined);
+		assert.equal(await selectedNativeFallow(join(root, "missing")), undefined);
+		await writeFile(binary, `#!${process.execPath}\nconsole.log('fallow 3.42.0');\n`, { mode: 0o755 });
+		assert.equal(await selectedNativeFallow(binary), undefined);
+		await writeFile(binary, `#!${process.execPath}\nconsole.log('fallow 3.36.0');\n`);
+		assert.equal(await selectedNativeFallow(binary), binary);
+	} finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("pinned installed native Fallow emits compatible scan, inspect and trace schemas", async (t) => {
-	const executable = process.env.FALLOW_SPIKE_3_36_BIN;
-	if (!executable || !isAbsolute(executable)) return t.skip("set FALLOW_SPIKE_3_36_BIN to an already-installed absolute native binary path");
-	try { await access(executable); } catch (e: any) { if (e.code === "ENOENT") return t.skip("selected native Fallow is unavailable"); throw e; }
-	const version = await execArgv([executable, "--version"], { env: { PATH: "/usr/bin:/bin" }, maxBytes: 4096 });
-	if (version.code !== 0 || version.stdout.trim() !== `fallow ${FALLOW_VERSION}`) return t.skip("selected native binary is not exact Fallow 3.36.0");
+	const executable = await selectedNativeFallow();
+	if (!executable) return t.skip("explicit exact Fallow 3.36.0 native binary unavailable");
 	const root = await mkdtemp(join(tmpdir(), "fallow-schema-cert-"));
 	try {
 		await mkdir(join(root, "home"));
