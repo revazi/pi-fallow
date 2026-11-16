@@ -30,6 +30,10 @@ describe("fallow_run compact contract", () => {
 		const valid = { command: "health", args: ["--quiet"], root: ".", timeoutSecs: 30, detail: "summary" };
 		assert.deepEqual(validate(valid), valid);
 		assert.deepEqual(validate({ command: "health" }), { command: "health" });
+		// Pi 1.5's JSON Schema validator coerces numeric strings and singleton arrays.
+		assert.deepEqual(validate({ command: "health", args: "--quiet", timeoutSecs: "30" }), {
+			command: "health", args: ["--quiet"], timeoutSecs: 30,
+		});
 		for (const invalid of [
 			{},
 			{ command: "not-a-command" },

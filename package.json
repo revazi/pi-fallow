@@ -83,24 +83,14 @@
     "image": "https://raw.githubusercontent.com/revazi/pi-fallow/main/pi-fallow.png"
   },
   "devDependencies": {
-    "@earendil-works/pi-ai": "1.4.0",
-    "@earendil-works/pi-coding-agent": "1.4.0",
-    "@earendil-works/pi-tui": "1.4.0",
+    "@earendil-works/pi-ai": "1.5.2",
+    "@earendil-works/pi-coding-agent": "1.5.2",
+    "@earendil-works/pi-tui": "1.5.2",
     "c8": "12.0.0",
     "esbuild": "0.28.2",
     "fallow": "3.42.0",
     "jiti": "^2.7.0",
     "js-tiktoken": "^1.0.21",
     "typebox": "1.4.4"
-  },
-  "overrides": {
-    "@earendil-works/pi-coding-agent": {
-      "undici": "8.12.3"
-    }
-  },
-  "piFallowCertification": {
-    "overrideRationale": {
-      "@earendil-works/pi-coding-agent>undici": "Pi coding agent 1.4.0 pins vulnerable undici 8.10.2; 8.12.3 contains the applicable advisory fixes."
-    }
   }
 }
