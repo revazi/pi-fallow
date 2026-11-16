@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "./data";
+import { redactProjectIssueOutput } from "./command/issues-gates";
 import type { ParsedFallowOutput } from "./json";
 import { fallowOutputDetail } from "./output-detail";
 import { buildFallowOverview } from "./overview";
@@ -19,7 +20,7 @@ function stringifyCompact(value: unknown): string {
 function countArrayFields(obj: Record<string, unknown>): string[] {
 	const skip = new Set([
 		"actions", "findings", "files", "imports", "exports", "plugins", "entry_points", "workspaces",
-		"schema_version", "version", "elapsed_ms", "summary", "_meta", "stats", "config", "rules",
+		"schema_version", "version", "elapsed_ms", "summary", "_meta", "stats", "config", "rules", "decision_notes",
 	]);
 	return Object.entries(obj)
 		.filter(([key, value]) => Array.isArray(value) && !skip.has(key))
@@ -38,8 +39,14 @@ function summarizeObject(data: any, label?: string): string[] {
 	addKnownArraySummaries(data, prefix, lines);
 	addCountSummaries(lines, data, prefix);
 	addNestedSummaries(lines, data);
+	addDecisionNotes(lines, data);
 
 	return [...new Set(lines)];
+}
+
+function addDecisionNotes(lines: string[], data: any): void {
+	if (data.kind !== "project-issues" || !Array.isArray(data.decision_notes)) return;
+	lines.push(...data.decision_notes.filter((note: unknown) => typeof note === "string"));
 }
 
 function addCoreSummaries(
@@ -116,14 +123,29 @@ export async function formatToolOutput(
 	fullOutputPath?: string;
 	truncated?: boolean;
 }> {
-	const { overview, summary } = buildToolOutputSummary(parsed, exitCode);
-	const rawText = getFormattedRawText(parsed);
-	const rawTruncation = truncateHead(rawText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
+	const { projectIssues, visible, rawText, visibleText } = prepareVisibleOutput(parsed);
+	const { overview, summary } = buildToolOutputSummary(visible, exitCode);
+	const rawTruncation = truncateHead(visibleText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
 	const preserveFullOutput = shouldPreserveFullOutput(outputDetail, rawTruncation.truncated, preserveNavigatorDetails, overview);
-	const fullOutputPath = await writeOutputPathIfNeeded(preserveFullOutput, rawText);
-	const errorText = buildToolOutputText(parsed, summary, rawTruncation, fullOutputPath);
+	const fullOutputPath = await writeOutputPathIfNeeded(projectIssues || preserveFullOutput, rawText);
+	const errorText = buildToolOutputText(parsed, summary, rawTruncation, fullOutputPath)
+		+ projectIssueOutputNotice(projectIssues, rawTruncation.truncated, fullOutputPath);
 	const presentation = selectOutputPresentation(outputDetail, summary, overview, fullOutputPath, errorText, rawTruncation.truncated);
 	return { text: presentation.text, errorText, summary, overview, fullOutputPath, truncated: presentation.truncated };
+}
+
+function projectIssueOutputNotice(projectIssues: boolean, truncated: boolean, path: string | undefined): string {
+	if (!projectIssues || truncated || !path) return "";
+	return `\n\nFull output saved to: ${path}`;
+}
+
+function prepareVisibleOutput(parsed: ParsedFallowOutput): {
+	projectIssues: boolean; visible: ParsedFallowOutput; rawText: string; visibleText: string;
+} {
+	const projectIssues = parsed.parsed && asRecord(parsed.data)?.kind === "project-issues";
+	const visible = projectIssues ? { ...parsed, data: redactProjectIssueOutput(parsed.data) } : parsed;
+	const rawText = getFormattedRawText(parsed);
+	return { projectIssues, visible, rawText, visibleText: getFormattedRawText(visible) };
 }
 
 function shouldPreserveFullOutput(

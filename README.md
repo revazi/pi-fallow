@@ -41,7 +41,7 @@ Run the issue-focused default:
 /fallow
 ```
 
-This combines dead-code, duplication, health, and security analysis into one actionable report. Informational file scores, hotspots, and advisory refactoring targets remain available through explicit health commands but do not inflate the default issue count.
+This combines dead-code, duplication, health, and security analysis into one actionable report. Enforced failing or warning gates and judgeable stale-baseline advisories are shown separately from findings; they do not increase issue counts. An enforced failing gate gives the aggregate a findings/gate-failure exit even when there are no findings. Passing gates are omitted. The complete aggregate is retained in a local output file, while the inline report omits raw gate and baseline details and configuration. Informational file scores, hotspots, and advisory refactoring targets remain available through explicit health commands but do not inflate the default issue count.
 
 | Command | What it does |
 |---|---|

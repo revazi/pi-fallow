@@ -338,6 +338,9 @@ function addProjectIssuesMetadata(
 	addProjectIssueStats(stats, summary);
 	addSecurityCandidateNote(notes, summary);
 	addOmittedHealthTargetNote(root, notes);
+	for (const note of asArray(root.decision_notes)) {
+		if (typeof note === "string") notes.push(note);
+	}
 }
 
 function addProjectIssueStats(
