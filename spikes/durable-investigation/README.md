@@ -10,7 +10,7 @@ npm test
 npm run demo -- /absolute/path/to/already-installed-native-fallow
 ```
 
-The recovery suite uses temporary local Git repositories, a controlled analyzer executable, a scripted deterministic selector, and file-backed Durable SQLite. Installed-adapter tests use a fake executable and a synthetic Git project with the pinned native Fallow binary if it is already present under the root `node_modules`; the native tests skip when absent and fail on incompatible output. They never install an executable. Tests make no provider calls and read no credentials.
+The recovery suite uses temporary local Git repositories, a controlled analyzer executable, a scripted deterministic selector, and file-backed Durable SQLite. Installed-adapter tests use a fake executable and a synthetic Git project with a native Fallow binary explicitly selected by the absolute `FALLOW_SPIKE_3_36_BIN` environment variable. The native tests skip when it is unavailable or not exactly 3.36.0, and fail on incompatible output after selection. No root dependency is implicitly selected. They never install an executable. Tests make no provider calls and read no credentials.
 
 ## Scope
 

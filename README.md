@@ -167,7 +167,7 @@ Applying a preview is TUI-only. Apply requires a direct confirmation; repeated d
 
 | Pi coding agent | Matching Pi AI/TUI packages | TypeBox | Node.js | Fallow |
 |---|---|---|---|---|
-| 1.5.2 | 1.5.2 | 1.4.4 | 22.19 and 24 | 3.36.0 |
+| 1.5.2 | 1.5.2 | 1.4.4 | 22.19 and 24.12 | 3.42.0 |
 
 **Certification** means this exact matrix passed frozen and live repository checks. **Compatibility** means the installed Fallow still advertises the capabilities Pi Fallow models. **Installation constraints** are only the requirements below. This is tested compatibility; it is not an installation constraint, and other versions may work.
 
@@ -179,7 +179,7 @@ Pi libraries and TypeBox are host-provided wildcard peer dependencies, following
 - Pi coding agent
 - Fallow available through `FALLOW_BIN`, `PATH`, a package-local installation, or the `npx -y fallow` fallback
 
-Fallow 3.36.0 is the current certification target. Runner discovery is cached per project/session and refreshed when relevant environment values change.
+Fallow 3.42.0 is the current core and optional coverage certification target. The model-backed Similar Code capture remains historical 3.36.0 evidence; no 3.42 model inference was run. Runner discovery is cached per project/session and refreshed when relevant environment values change.
 
 ## 📊 Benchmarks
 

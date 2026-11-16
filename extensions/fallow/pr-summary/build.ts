@@ -28,21 +28,44 @@ function buildPrSummaryFromFindings(
 	gate: string | undefined,
 ): FallowPrSummary {
 	const findings = collectFindingLikeObjects(root);
-	const newIssuesCount = resolveIssueCount(root, findings);
+	const newIssuesCount = resolveIssueCount(root);
 	return {
 		baseRef,
 		gate: gate ?? "new-only",
 		changedFilesCount: resolveNumericField(root, ["changed_files_count", "changedFilesCount", "changed_file_count", "changedFileCount"]),
 		newIssuesCount,
-		passed: exitCode === 0 && newIssuesCount === 0,
+		passed: resolveVerdict(root, exitCode),
 		topAffectedFiles: countTopFiles(findings),
 		severityBuckets: findings.length ? countSeverityBuckets(findings) : [],
 	};
 }
 
-function resolveIssueCount(root: Record<string, any> | undefined, findings: Record<string, any>[]): number {
-	const explicitIssueCount = resolveNumericField(root, ["new_issues_count", "newIssuesCount", "new_issues", "total_issues", "totalIssues"]);
-	return explicitIssueCount ?? findings.length;
+function resolveVerdict(root: Record<string, any> | undefined, exitCode: number): boolean | undefined {
+	if (exitCode !== 0) return false;
+	const verdicts = new Map<unknown, boolean>([["pass", true], ["warn", true], ["fail", false]]);
+	return verdicts.get(root?.verdict);
+}
+
+function attributionCount(root: Record<string, any> | undefined): number | undefined {
+	const attribution = asRecord(root?.attribution);
+	const keys = ["dead_code_introduced", "complexity_introduced", "duplication_introduced", "styling_introduced", "diff_risk_introduced"];
+	if (!attribution || !keys.every((key) => Number.isSafeInteger(attribution[key]) && attribution[key] >= 0)) return undefined;
+	return keys.reduce((sum, key) => sum + attribution[key], 0);
+}
+
+function validCount(value: unknown): number | undefined {
+	const count = toNumber(value);
+	if (count === undefined || !Number.isSafeInteger(count) || count < 0) return undefined;
+	return count;
+}
+
+function explicitIssueCount(root: Record<string, any>): number | undefined {
+	return validCount(root.new_issues_count) ?? validCount(root.newIssuesCount);
+}
+
+function resolveIssueCount(root: Record<string, any> | undefined): number | undefined {
+	if (!root) return undefined;
+	return attributionCount(root) ?? explicitIssueCount(root);
 }
 
 function resolvePrBaseRef(args: string[], root: Record<string, any> | undefined): string | undefined {

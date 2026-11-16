@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { selectedNativeFallow } from "./native-fallow.ts";
 import { ContractError, MAX_OUTPUT_BYTES } from "../src/contracts.ts";
 import { FALLOW_VERSION, normalizeFallowDetail, normalizeFallowScan } from "../src/fallow-schema.ts";
 import { execArgv } from "../src/util.ts";
@@ -41,12 +41,22 @@ test("detail normalization rejects target, operation, and schema mismatches", ()
 	rejectsSchema(() => normalizeFallowDetail(JSON.stringify({ kind: "trace", file: "orphan.js", is_reachable: false }), "inspect", file!));
 });
 
+test("native test resolver requires an explicit absolute exact-version selection", async () => {
+	const root = await mkdtemp(join(tmpdir(), "fallow-resolver-"));
+	try {
+		const binary = join(root, "fallow");
+		assert.equal(await selectedNativeFallow("relative"), undefined);
+		assert.equal(await selectedNativeFallow(join(root, "missing")), undefined);
+		await writeFile(binary, `#!${process.execPath}\nconsole.log('fallow 3.42.0');\n`, { mode: 0o755 });
+		assert.equal(await selectedNativeFallow(binary), undefined);
+		await writeFile(binary, `#!${process.execPath}\nconsole.log('fallow 3.36.0');\n`);
+		assert.equal(await selectedNativeFallow(binary), binary);
+	} finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("pinned installed native Fallow emits compatible scan, inspect and trace schemas", async (t) => {
-	const platform = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
-	const arch = process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "x64" : null;
-	if (!platform || !arch) return t.skip("no native binary path defined for this platform");
-	const executable = fileURLToPath(new URL(`../../../node_modules/@fallow-cli/${platform}-${arch}/fallow`, import.meta.url));
-	try { await access(executable); } catch (e: any) { if (e.code === "ENOENT") return t.skip("pinned native Fallow is not already installed"); throw e; }
+	const executable = await selectedNativeFallow();
+	if (!executable) return t.skip("explicit exact Fallow 3.36.0 native binary unavailable");
 	const root = await mkdtemp(join(tmpdir(), "fallow-schema-cert-"));
 	try {
 		await mkdir(join(root, "home"));
@@ -56,9 +66,6 @@ test("pinned installed native Fallow emits compatible scan, inspect and trace sc
 		await writeFile(join(root, "lib.js"), 'export const used = 1;\nexport const unused = 2;\n');
 		await writeFile(join(root, "orphan.js"), 'export const orphan = 1;\n');
 		const env = { HOME: join(root, "home"), PATH: "/usr/bin:/bin" };
-		const version = await execArgv([executable, "--version"], { env, maxBytes: 4096 });
-		assert.equal(version.code, 0);
-		assert.equal(version.stdout.trim(), `fallow ${FALLOW_VERSION}`);
 		const run = (args: string[]) => execArgv([executable, "--root", root, "--format", "json", "--quiet", "--no-cache", ...args], { cwd: root, env, maxBytes: MAX_OUTPUT_BYTES });
 		const scanResult = await run(["dead-code"]);
 		assert.ok([0, 1].includes(scanResult.code));

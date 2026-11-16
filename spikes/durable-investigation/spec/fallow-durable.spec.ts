@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { access, chmod, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { chmod, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { selectedNativeFallow } from "./native-fallow.ts";
 import { context, DurableInvestigationSpike, LedgerDoc } from "../src/durable.ts";
 import { execArgv } from "../src/util.ts";
 import { fixture, killAndWait, spawnWorker, waitForPath } from "./helpers.ts";
@@ -123,11 +123,8 @@ for (const phase of ["after-launch-intent", "after-artifact-publication"]) test(
 });
 
 test("pinned already-installed native Fallow runs through Durable", async (t) => {
-	const platform = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
-	const arch = process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "x64" : null;
-	if (!platform || !arch) return t.skip("unsupported native platform");
-	const executable = fileURLToPath(new URL(`../../../node_modules/@fallow-cli/${platform}-${arch}/fallow`, import.meta.url));
-	try { await access(executable); } catch (e: any) { if (e.code === "ENOENT") return t.skip("pinned native executable not installed"); throw e; }
+	const executable = await selectedNativeFallow();
+	if (!executable) return t.skip("explicit exact Fallow 3.36.0 native binary unavailable");
 	const fx = await fixture();
 	await rm(join(fx.repo, "a.ts")); await rm(join(fx.repo, "b.ts"));
 	await writeFile(join(fx.repo, "package.json"), '{"name":"synthetic","version":"1.0.0","type":"module"}\n');

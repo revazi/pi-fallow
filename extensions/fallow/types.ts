@@ -15,8 +15,8 @@ export interface FallowPrSummary {
 	baseRef?: string;
 	gate: string;
 	changedFilesCount?: number;
-	newIssuesCount: number;
-	passed: boolean;
+	newIssuesCount?: number;
+	passed?: boolean;
 	topAffectedFiles: string[];
 	severityBuckets?: Array<{ severity: string; count: number }>;
 }

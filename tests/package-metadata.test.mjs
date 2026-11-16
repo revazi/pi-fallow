@@ -36,7 +36,7 @@ describe("package and automation metadata", () => {
 		assert.equal(manifest.devDependencies.typebox, "1.4.4");
 		assert.equal(lockfile.packages["node_modules/typebox"].version, "1.4.4");
 		assert.equal(lockfile.packages["node_modules/@earendil-works/pi-coding-agent/node_modules/typebox"].version, "1.3.27");
-		assert.match(readme, /\| 1\.5\.2 \| 1\.5\.2 \| 1\.4\.4 \| 22\.19 and 24 \| 3\.36\.0 \|/);
+		assert.match(readme, /\| 1\.5\.2 \| 1\.5\.2 \| 1\.4\.4 \| 22\.19 and 24\.12 \| 3\.42\.0 \|/);
 		assert.match(readme, /tested compatibility; it is not an installation constraint/);
 		assert.match(readme, /Certification.*Compatibility.*Installation constraints/s);
 		assert.match(readme, /\/fallow compatibility.*never gates ordinary execution/s);
@@ -49,7 +49,7 @@ describe("package and automation metadata", () => {
 	it("pins analysis tooling and enables npm provenance", () => {
 		assert.deepEqual(
 			Object.fromEntries(["c8", "esbuild", "fallow"].map((name) => [name, manifest.devDependencies[name]])),
-			{ c8: "12.0.0", esbuild: "0.28.2", fallow: "3.36.0" },
+			{ c8: "12.0.0", esbuild: "0.28.2", fallow: "3.42.0" },
 		);
 		assert.equal(manifest.publishConfig.provenance, true);
 		assert.match(manifest.scripts["publish:public"], /--provenance/);
