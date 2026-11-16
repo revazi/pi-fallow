@@ -1,5 +1,6 @@
 import type { ExecResult } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "../data";
+import { projectIssueGateNotes } from "./issues-gates";
 
 export interface FallowChildExecution {
 	binary: string;
@@ -51,6 +52,8 @@ export function buildFallowProjectIssuesReport(
 		health: sections.health,
 		security: sections.security,
 		security_findings: sections.securityFindings,
+		gate_outcomes: combined.gate_outcomes,
+		decision_notes: projectIssueGateNotes(combined, security),
 		...aggregateError(failures),
 		_meta: buildAggregateMetadata(combined, security),
 	};

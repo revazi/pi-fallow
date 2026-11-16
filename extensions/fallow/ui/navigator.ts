@@ -269,6 +269,11 @@ export class FallowIssueNavigator implements Component, Focusable {
 		);
 		lines.push(this.topBorder(frameWidth, title));
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
+		if (this.overview.title === "Fallow project issues") {
+			for (const note of this.overview.notes.filter((text) => text.startsWith("Gate ") || text.startsWith("Baseline advisory ("))) {
+				for (const line of wrapTextWithAnsi(note, innerWidth)) lines.push(this.frame(this.theme.fg("warning", line), frameWidth));
+			}
+		}
 		if (navigation) lines.push(this.frame(navigation, frameWidth));
 		for (const line of this.filterLines(innerWidth)) lines.push(this.frame(line, frameWidth));
 		for (const line of wrapTextWithAnsi(this.helpLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
