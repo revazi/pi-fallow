@@ -1,11 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rm } from "node:fs/promises";
-import { cpus, tmpdir, totalmem } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
-import { createJiti } from "jiti";
+import { buildEnvironment, loadIssuesBenchmarkModules } from "./issues-benchmark-helpers.mjs";
 import {
 	readGitSha,
 	requireValue,
@@ -17,11 +17,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CORPUS_PATH = join(ROOT, "benchmarks", "popular-packages.json");
 const FALLOW_BINARY = join(ROOT, "node_modules", ".bin", "fallow");
 const DEFAULT_TIMEOUT_SECS = 180;
-const jiti = createJiti(import.meta.url);
-const { fallowProjectIssues } = await jiti.import("../extensions/fallow/command/issues.ts");
-const { execFallowProcess } = await jiti.import("../extensions/fallow/process.ts");
-const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
-const { getNormalizedFallowReport } = await jiti.import("../extensions/fallow/normalized-report.ts");
+const { fallowProjectIssues, execFallowProcess, buildFallowOverview, getNormalizedFallowReport } = await loadIssuesBenchmarkModules();
 
 const cli = parseCli(process.argv.slice(2));
 const corpus = JSON.parse(await readFile(CORPUS_PATH, "utf8"));
@@ -44,7 +40,7 @@ const artifact = {
 		schedule: "concurrent",
 		defaultFallowConfig: true,
 	},
-	environment: buildEnvironment(),
+	environment: { ...buildEnvironment(ROOT, FALLOW_BINARY), tmpDir: tmpdir() },
 	corpus: {
 		path: "benchmarks/popular-packages.json",
 		packageCount: selected.length,
@@ -255,21 +251,6 @@ function roundNumber(value) {
 	return Number.isFinite(value) ? round(value) : undefined;
 }
 
-function buildEnvironment() {
-	const versionLine = execFileSync(FALLOW_BINARY, ["--version", "--format", "json"], { encoding: "utf8" }).split(/\r?\n/)[0];
-	const version = JSON.parse(versionLine).message;
-	return {
-		gitSha: readGitSha(ROOT),
-		node: process.version,
-		fallow: version,
-		platform: process.platform,
-		arch: process.arch,
-		cpuModel: cpus()[0]?.model ?? "unknown",
-		logicalCpuCount: cpus().length,
-		totalMemoryBytes: totalmem(),
-		tmpDir: tmpdir(),
-	};
-}
 
 function printSummary(artifact, outputPath) {
 	console.log(`Pi Fallow popular-packages benchmark: ${artifact.label}`);

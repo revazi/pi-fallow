@@ -184,6 +184,33 @@ describe("Fallow autocomplete", () => {
 		assert.deepEqual(state.history, { nextId: 1, entries: [] });
 	});
 
+	it("routes autocomplete requests and delegates unrelated input", async () => {
+		let start, wrap;
+		const pi = { on(_event, handler) { start = handler; }, exec: async () => gitResult("") };
+		const old = process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE;
+		process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE = "1";
+		try {
+			registerFallowSessionStart(pi);
+			start({}, { mode: "tui", cwd: "/tmp", ui: { addAutocompleteProvider(provider) { wrap = provider; } } });
+		} finally {
+			if (old === undefined) delete process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE; else process.env.PI_FALLOW_DISABLE_UPDATE_NOTICE = old;
+		}
+		const current = {
+			getSuggestions: async () => ({ prefix: "other", items: [] }),
+			applyCompletion: (...args) => args,
+			shouldTriggerFileCompletion: () => false,
+		};
+		const provider = wrap(current);
+		const fallow = await provider.getSuggestions(["/fallow "], 0, 8, {});
+		assert.equal(fallow.prefix, "/fallow ");
+		assert.ok(fallow.items.length > 0);
+		assert.equal((await provider.getSuggestions(["hello"], 0, 5, {})).prefix, "other");
+		assert.equal(provider.shouldTriggerFileCompletion(["/fallow "], 0, 8), true);
+		assert.equal(provider.shouldTriggerFileCompletion(["hello"], 0, 5), false);
+		assert.equal(wrap({}).shouldTriggerFileCompletion([], 0, 0), true);
+		assert.deepEqual(provider.applyCompletion(["x"], 0, 1, "item", "x"), [["x"], 0, 1, "item", "x"]);
+	});
+
 	it("restores and records the Similar Code cache preference in session-only entries", () => {
 		let sessionStart;
 		const appended = [];

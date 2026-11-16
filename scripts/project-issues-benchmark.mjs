@@ -1,14 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { cpus, tmpdir, totalmem } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
-import { createJiti } from "jiti";
+import { buildEnvironment, loadIssuesBenchmarkModules } from "./issues-benchmark-helpers.mjs";
 import {
 	aggregateBenchmarkValues as aggregate,
 	parseBenchmarkInteger,
-	readGitSha,
 	requireValue,
 	roundBenchmarkValue as round,
 	writeJsonArtifact,
@@ -22,11 +21,7 @@ const SCENARIOS = [
 	{ id: "large", fileCountKey: "largeFiles" },
 ];
 const SCHEDULES = ["sequential", "concurrent"];
-const jiti = createJiti(import.meta.url);
-const { fallowProjectIssues } = await jiti.import("../extensions/fallow/command/issues.ts");
-const { execFallowProcess } = await jiti.import("../extensions/fallow/process.ts");
-const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
-const { getNormalizedFallowReport } = await jiti.import("../extensions/fallow/normalized-report.ts");
+const { fallowProjectIssues, execFallowProcess, buildFallowOverview, getNormalizedFallowReport } = await loadIssuesBenchmarkModules();
 
 const cli = parseCli(process.argv.slice(2));
 const workspace = await mkdtemp(join(tmpdir(), "pi-fallow-project-issues-"));
@@ -47,7 +42,7 @@ const artifact = {
 	label: cli.label,
 	generatedAt: new Date().toISOString(),
 	config: cli.config,
-	environment: buildEnvironment(),
+	environment: buildEnvironment(ROOT, FALLOW_BINARY),
 	measurements,
 	comparisons: buildComparisons(measurements),
 };
@@ -236,20 +231,6 @@ function increasePercent(before, after) {
 	return round(before ? (after - before) / before * 100 : 0);
 }
 
-function buildEnvironment() {
-	const versionLine = execFileSync(FALLOW_BINARY, ["--version", "--format", "json"], { encoding: "utf8" }).split(/\r?\n/)[0];
-	const version = JSON.parse(versionLine).message;
-	return {
-		gitSha: readGitSha(ROOT),
-		node: process.version,
-		fallow: version,
-		platform: process.platform,
-		arch: process.arch,
-		cpuModel: cpus()[0]?.model ?? "unknown",
-		logicalCpuCount: cpus().length,
-		totalMemoryBytes: totalmem(),
-	};
-}
 
 function printSummary(value, outputPath) {
 	console.log(`Pi Fallow project-issues benchmark: ${value.label}`);
