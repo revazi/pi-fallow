@@ -236,5 +236,8 @@ the same command returned exit 1, verdict fail, with one introduced and one
 inherited finding. A `--brief` run returned exit 0 despite its fail verdict.
 The projection deliberately omits hashes, timings, diagnostic text and unrelated
 fields; it is evidence of these cases, not a complete audit report capture.
-Regression tests require structured verdict and attribution rather than counting
-all findings or trusting brief's exit status.
+`npm run smoke:fallow` recreates this isolated project and compares the live
+projection and all three exit codes. Offline regression tests require structured
+verdict and attribution rather than counting all findings or trusting brief's exit
+status. The 3.42 namespace-member, unlisted-binary and duplicate-alias normalizer
+regressions use synthetic mutations, not claims of captured nonempty wire reports.
