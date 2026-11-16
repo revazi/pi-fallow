@@ -65,6 +65,21 @@ describe("captured report and nested-command certification", () => {
 		assert.match(view.notes.join("\n"), /not a crashed command/);
 	});
 
+	it("retains new 3.42 categories in bounded normalization (synthetic mutation)", () => {
+		const data = structuredClone(frozen.reports["dead-code"].report);
+		const categories = ["unused_namespace_members", "unlisted_binaries", "duplicate_export_aliases"];
+		for (const key of categories) {
+			data.summary[key] = 1;
+			data[key] = [{ path: "synthetic.js", line: 1, name: key }];
+		}
+		const report = getNormalizedFallowReport(buildFallowOverview(data, 1));
+		const entries = allNormalizedFallowEntries(report);
+		assert.equal(report.findingCount, 4);
+		for (const section of ["Unused namespace members", "Unlisted binaries", "Duplicate export aliases"]) {
+			assert.ok(entries.some((entry) => entry.section === section && entry.path === "synthetic.js"), section);
+		}
+	});
+
 	it("keeps informational health scores out of empty finding counts", () => {
 		const view = overview("health");
 		const report = getNormalizedFallowReport(view);

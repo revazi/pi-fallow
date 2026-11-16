@@ -28,30 +28,44 @@ function buildPrSummaryFromFindings(
 	gate: string | undefined,
 ): FallowPrSummary {
 	const findings = collectFindingLikeObjects(root);
-	const newIssuesCount = resolveIssueCount(root, findings);
+	const newIssuesCount = resolveIssueCount(root);
 	return {
 		baseRef,
 		gate: gate ?? "new-only",
 		changedFilesCount: resolveNumericField(root, ["changed_files_count", "changedFilesCount", "changed_file_count", "changedFileCount"]),
 		newIssuesCount,
-		passed: exitCode !== 0 ? false : root?.verdict === "fail" ? false : ["pass", "warn"].includes(root?.verdict) ? true : undefined,
+		passed: resolveVerdict(root, exitCode),
 		topAffectedFiles: countTopFiles(findings),
 		severityBuckets: findings.length ? countSeverityBuckets(findings) : [],
 	};
 }
 
-function resolveIssueCount(root: Record<string, any> | undefined, findings: Record<string, any>[]): number | undefined {
+function resolveVerdict(root: Record<string, any> | undefined, exitCode: number): boolean | undefined {
+	if (exitCode !== 0) return false;
+	const verdicts = new Map<unknown, boolean>([["pass", true], ["warn", true], ["fail", false]]);
+	return verdicts.get(root?.verdict);
+}
+
+function attributionCount(root: Record<string, any> | undefined): number | undefined {
 	const attribution = asRecord(root?.attribution);
 	const keys = ["dead_code_introduced", "complexity_introduced", "duplication_introduced", "styling_introduced", "diff_risk_introduced"];
-	if (attribution && keys.every((key) => Number.isSafeInteger(attribution[key]) && attribution[key] >= 0)) {
-		return keys.reduce((sum, key) => sum + attribution[key], 0);
-	}
-	const explicit = toNumber(root?.new_issues_count ?? root?.newIssuesCount);
-	if (explicit !== undefined && Number.isSafeInteger(explicit) && explicit >= 0) return explicit;
-	if (findings.length && findings.every((finding) => typeof finding.introduced === "boolean")) {
-		return findings.filter((finding) => finding.introduced).length;
-	}
-	return undefined;
+	if (!attribution || !keys.every((key) => Number.isSafeInteger(attribution[key]) && attribution[key] >= 0)) return undefined;
+	return keys.reduce((sum, key) => sum + attribution[key], 0);
+}
+
+function validCount(value: unknown): number | undefined {
+	const count = toNumber(value);
+	if (count === undefined || !Number.isSafeInteger(count) || count < 0) return undefined;
+	return count;
+}
+
+function explicitIssueCount(root: Record<string, any>): number | undefined {
+	return validCount(root.new_issues_count) ?? validCount(root.newIssuesCount);
+}
+
+function resolveIssueCount(root: Record<string, any> | undefined): number | undefined {
+	if (!root) return undefined;
+	return attributionCount(root) ?? explicitIssueCount(root);
 }
 
 function resolvePrBaseRef(args: string[], root: Record<string, any> | undefined): string | undefined {
