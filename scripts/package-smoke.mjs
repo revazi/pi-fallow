@@ -98,10 +98,14 @@ async function validateInstalledPackageWithPi(packageRoot, agentDir) {
 	assert.equal(piVersion, expectedVersion, "Package smoke must use the locked Pi CLI.");
 
 	const events = [];
+	const homeDir = join(agentDir, "home");
+	const tempDir = join(agentDir, "tmp");
+	mkdirSync(homeDir, { recursive: true });
+	mkdirSync(tempDir, { recursive: true });
 	const rpc = new RpcClient({
 		cliPath,
 		cwd: root,
-		env: { PI_CODING_AGENT_DIR: agentDir, PI_OFFLINE: "1" },
+		env: isolatedRpcEnvironment(agentDir, homeDir, tempDir),
 		args: isolatedPiArgs(packageRoot),
 	});
 	const unsubscribe = rpc.onEvent((event) => events.push(event));
@@ -256,6 +260,15 @@ function runIsolatedPi(cliPath, args, agentDir) {
 	assert.equal(result.error, undefined, `Pi non-interactive process failed: ${result.error}`);
 	assert.equal(result.signal, null, `Pi non-interactive process exited from ${result.signal}.`);
 	return result;
+}
+
+// RpcClient merges its env with process.env. Explicit undefined entries remove inherited
+// credentials and configuration before the child is spawned.
+export function isolatedRpcEnvironment(agentDir, homeDir, tempDir, inherited = process.env) {
+	return {
+		...Object.fromEntries(Object.keys(inherited).map((key) => [key, undefined])),
+		...isolatedProcessEnvironment(agentDir, homeDir, tempDir),
+	};
 }
 
 function isolatedProcessEnvironment(agentDir, homeDir, tempDir) {

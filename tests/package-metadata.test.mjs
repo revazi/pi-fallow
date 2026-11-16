@@ -27,14 +27,16 @@ describe("package and automation metadata", () => {
 			"@earendil-works/pi-tui",
 		];
 		for (const name of piPackages) {
-			assert.equal(manifest.devDependencies[name], "1.4.0");
+			assert.equal(manifest.devDependencies[name], "1.5.0");
 			assert.equal(manifest.peerDependencies[name], "*");
-			assert.equal(lockfile.packages[`node_modules/${name}`].version, "1.4.0");
+			assert.equal(lockfile.packages[`node_modules/${name}`].version, "1.5.0");
 		}
+		assert.equal(lockfile.packages["node_modules/@earendil-works/pi-schema"].version, "1.5.0");
 		assert.equal(manifest.peerDependencies.typebox, "*");
 		assert.equal(manifest.devDependencies.typebox, "1.4.4");
 		assert.equal(lockfile.packages["node_modules/typebox"].version, "1.4.4");
-		assert.match(readme, /\| 1\.4\.0 \| 1\.4\.0 \| 1\.4\.4 \| 22\.19 and 24 \| 3\.36\.0 \|/);
+		assert.equal(lockfile.packages["node_modules/@earendil-works/pi-coding-agent/node_modules/typebox"].version, "1.3.27");
+		assert.match(readme, /\| 1\.5\.0 \| 1\.5\.0 \| 1\.4\.4 \| 22\.19 and 24 \| 3\.36\.0 \|/);
 		assert.match(readme, /tested compatibility; it is not an installation constraint/);
 		assert.match(readme, /Certification.*Compatibility.*Installation constraints/s);
 		assert.match(readme, /\/fallow compatibility.*never gates ordinary execution/s);
@@ -54,14 +56,10 @@ describe("package and automation metadata", () => {
 		assert.doesNotMatch(JSON.stringify(manifest.scripts), /npx -y (?:esbuild|fallow)/);
 	});
 
-	it("keeps the vulnerable Pi undici pin behind one documented narrow override", () => {
-		assert.deepEqual(manifest.overrides, {
-			"@earendil-works/pi-coding-agent": { undici: "8.12.3" },
-		});
-		assert.deepEqual(manifest.piFallowCertification.overrideRationale, {
-			"@earendil-works/pi-coding-agent>undici": "Pi coding agent 1.4.0 pins vulnerable undici 8.10.2; 8.12.3 contains the applicable advisory fixes.",
-		});
-		assert.equal(lockfile.packages["node_modules/@earendil-works/pi-coding-agent"].dependencies.undici, "8.10.2");
+	it("uses Pi's fixed undici pin without a dependency override", () => {
+		assert.equal(manifest.overrides, undefined);
+		assert.equal(manifest.piFallowCertification, undefined);
+		assert.equal(lockfile.packages["node_modules/@earendil-works/pi-coding-agent"].dependencies.undici, "8.12.3");
 		assert.equal(lockfile.packages["node_modules/undici"].version, "8.12.3");
 		assert.equal(lockfile.packages["node_modules/@earendil-works/pi-coding-agent/node_modules/undici"], undefined);
 	});

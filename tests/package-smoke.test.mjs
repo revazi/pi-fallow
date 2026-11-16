@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { assertCredentialFreeControl, resolveLockedPiHost } from "../scripts/package-smoke.mjs";
+import { assertCredentialFreeControl, isolatedRpcEnvironment, resolveLockedPiHost } from "../scripts/package-smoke.mjs";
 
 const { packageRoot: piPackageRoot } = resolveLockedPiHost();
 const errorLine = "No API key found for the selected model.";
@@ -19,7 +19,20 @@ function assertControl(stderr = validStderr, overrides = {}) {
 }
 
 describe("package-smoke credential-free negative control", () => {
-	it("accepts only the locked Pi 1.4.0 auth-guidance structure", () => {
+	it("clears inherited RPC credentials and configuration despite RpcClient's environment merge", () => {
+		const env = isolatedRpcEnvironment("agent", "home", "tmp", {
+			SYNTHETIC_API_KEY: "not-a-real-key",
+			SYNTHETIC_CONFIG: "not-a-real-config",
+		});
+		assert.equal(env.SYNTHETIC_API_KEY, undefined);
+		assert.equal(env.SYNTHETIC_CONFIG, undefined);
+		assert.equal(env.HOME, "home");
+		assert.equal(env.TMPDIR, "tmp");
+		assert.equal(env.PI_CODING_AGENT_DIR, "agent");
+		assert.equal(env.PI_OFFLINE, "1");
+	});
+
+	it("accepts only the locked Pi 1.5.0 auth-guidance structure", () => {
 		assert.doesNotThrow(() => assertControl());
 	});
 

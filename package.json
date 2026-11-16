@@ -92,15 +92,5 @@
     "jiti": "^2.7.0",
     "js-tiktoken": "^1.0.21",
     "typebox": "1.4.4"
-  },
-  "overrides": {
-    "@earendil-works/pi-coding-agent": {
-      "undici": "8.12.3"
-    }
-  },
-  "piFallowCertification": {
-    "overrideRationale": {
-      "@earendil-works/pi-coding-agent>undici": "Pi coding agent 1.4.0 pins vulnerable undici 8.10.2; 8.12.3 contains the applicable advisory fixes."
-    }
   }
 }
