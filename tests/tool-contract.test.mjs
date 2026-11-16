@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getEncoding } from "js-tiktoken";
 import { createJiti } from "jiti";
+import { validateToolArguments } from "@earendil-works/pi-ai/utils/validation";
 
 const jiti = createJiti(import.meta.url);
 const { fallowToolContract: tool } = await jiti.import("../extensions/fallow/contract.ts");
@@ -22,6 +23,22 @@ describe("fallow_run compact contract", () => {
 		]);
 		assert.ok(tool.promptGuidelines.every((guideline) => guideline.includes("fallow_run")));
 		assert.match(tool.description, /separate CLI-token args/);
+	});
+
+	it("validates the development TypeBox schema with the locked Pi host validator", () => {
+		const validate = (args) => validateToolArguments(tool, { name: tool.name, arguments: args });
+		const valid = { command: "health", args: ["--quiet"], root: ".", timeoutSecs: 30, detail: "summary" };
+		assert.deepEqual(validate(valid), valid);
+		assert.deepEqual(validate({ command: "health" }), { command: "health" });
+		for (const invalid of [
+			{},
+			{ command: "not-a-command" },
+			{ command: "health", args: [{}] },
+			{ command: "health", detail: "invalid" },
+			{ command: "health", unexpected: true },
+		]) {
+			assert.throws(() => validate(invalid), /Validation failed/);
+		}
 	});
 
 	it("keeps measured prompt guidance within its fixed token budget", () => {
