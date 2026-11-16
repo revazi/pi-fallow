@@ -17,6 +17,13 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CORPUS_PATH = join(ROOT, "benchmarks", "popular-packages.json");
 const FALLOW_BINARY = join(ROOT, "node_modules", ".bin", "fallow");
 const DEFAULT_TIMEOUT_SECS = 180;
+const CLI_FIELDS = {
+	"--label": "label",
+	"--output": "output",
+	"--cache-dir": "cacheDir",
+	"--only": "only",
+	"--timeout-secs": "timeoutSecs",
+};
 const { fallowProjectIssues, execFallowProcess, buildFallowOverview, getNormalizedFallowReport } = await loadIssuesBenchmarkModules();
 
 const cli = parseCli(process.argv.slice(2));
@@ -77,14 +84,6 @@ function applyCliFlag(options, args, index) {
 	assignCliOption(options, flag, requireValue(args, index + 1, flag));
 	return index + 2;
 }
-
-const CLI_FIELDS = {
-	"--label": "label",
-	"--output": "output",
-	"--cache-dir": "cacheDir",
-	"--only": "only",
-	"--timeout-secs": "timeoutSecs",
-};
 
 function assignCliOption(options, flag, value) {
 	const field = CLI_FIELDS[flag];
