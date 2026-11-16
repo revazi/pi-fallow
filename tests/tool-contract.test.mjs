@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import { getEncoding } from "js-tiktoken";
 import { createJiti } from "jiti";
 import { validateToolArguments } from "@earendil-works/pi-ai/utils/validation";
+import { Type } from "typebox";
+import { resolveLockedPiHost } from "../scripts/package-smoke.mjs";
 
 const jiti = createJiti(import.meta.url);
 const { fallowToolContract: tool } = await jiti.import("../extensions/fallow/contract.ts");
@@ -25,7 +30,16 @@ describe("fallow_run compact contract", () => {
 		assert.match(tool.description, /separate CLI-token args/);
 	});
 
-	it("validates the development TypeBox schema with the locked Pi host validator", () => {
+	it("validates the root TypeBox 1.4.7 schema with Pi's pi-schema validator, not its virtualized TypeBox", async () => {
+		// schema.ts imports the root TypeBox in this direct Jiti load. Pi's extension loader
+		// instead virtualizes its own nested TypeBox; package smoke covers that loading path.
+		const rootTypebox = resolve(dirname(fileURLToPath(import.meta.resolve("typebox"))), "..");
+		const piTypebox = join(resolveLockedPiHost().packageRoot, "node_modules", "typebox");
+		const version = async (path) => JSON.parse(await readFile(join(path, "package.json"), "utf8")).version;
+		assert.notEqual(rootTypebox, piTypebox);
+		assert.equal(await version(rootTypebox), "1.4.7");
+		assert.equal(await version(piTypebox), "1.3.27");
+		assert.deepEqual(tool.parameters, Type.Object(tool.parameters.properties, { additionalProperties: false }));
 		const validate = (args) => validateToolArguments(tool, { name: tool.name, arguments: args });
 		const valid = { command: "health", args: ["--quiet"], root: ".", timeoutSecs: 30, detail: "summary" };
 		assert.deepEqual(validate(valid), valid);
