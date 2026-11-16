@@ -34,15 +34,24 @@ function buildPrSummaryFromFindings(
 		gate: gate ?? "new-only",
 		changedFilesCount: resolveNumericField(root, ["changed_files_count", "changedFilesCount", "changed_file_count", "changedFileCount"]),
 		newIssuesCount,
-		passed: exitCode === 0 && newIssuesCount === 0,
+		passed: exitCode !== 0 ? false : root?.verdict === "fail" ? false : ["pass", "warn"].includes(root?.verdict) ? true : undefined,
 		topAffectedFiles: countTopFiles(findings),
 		severityBuckets: findings.length ? countSeverityBuckets(findings) : [],
 	};
 }
 
-function resolveIssueCount(root: Record<string, any> | undefined, findings: Record<string, any>[]): number {
-	const explicitIssueCount = resolveNumericField(root, ["new_issues_count", "newIssuesCount", "new_issues", "total_issues", "totalIssues"]);
-	return explicitIssueCount ?? findings.length;
+function resolveIssueCount(root: Record<string, any> | undefined, findings: Record<string, any>[]): number | undefined {
+	const attribution = asRecord(root?.attribution);
+	const keys = ["dead_code_introduced", "complexity_introduced", "duplication_introduced", "styling_introduced", "diff_risk_introduced"];
+	if (attribution && keys.every((key) => Number.isSafeInteger(attribution[key]) && attribution[key] >= 0)) {
+		return keys.reduce((sum, key) => sum + attribution[key], 0);
+	}
+	const explicit = toNumber(root?.new_issues_count ?? root?.newIssuesCount);
+	if (explicit !== undefined && Number.isSafeInteger(explicit) && explicit >= 0) return explicit;
+	if (findings.length && findings.every((finding) => typeof finding.introduced === "boolean")) {
+		return findings.filter((finding) => finding.introduced).length;
+	}
+	return undefined;
 }
 
 function resolvePrBaseRef(args: string[], root: Record<string, any> | undefined): string | undefined {

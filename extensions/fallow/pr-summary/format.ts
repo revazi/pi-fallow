@@ -17,7 +17,7 @@ function buildTopAffectedLine(summary: FallowPrSummary): FallowSummaryLine | und
 export function formatFallowPrSummary(summary: FallowPrSummary | undefined): FallowSummaryLines | undefined {
 	if (!summary) return undefined;
 	const lines: FallowSummaryLine[] = [];
-	lines.push({ tone: summary.passed ? "success" : "warning", text: `PR audit: ${summary.passed ? "PASS" : "FAIL"}` });
+	lines.push({ tone: summary.passed === true ? "success" : "warning", text: `PR audit: ${summary.passed === undefined ? "UNKNOWN" : summary.passed ? "PASS" : "FAIL"}` });
 	addPrSummaryLine(lines, "Base ref", summary.baseRef);
 	addPrSummaryLine(lines, "Changed files", summary.changedFilesCount);
 	addPrSummaryLine(lines, "New issues", summary.newIssuesCount);
