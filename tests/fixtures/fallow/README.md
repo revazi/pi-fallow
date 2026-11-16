@@ -1,14 +1,14 @@
 # Fallow capability certification fixture
 
-`schema-3.36.0.json` is a deterministic projection of the repository-pinned
-Fallow 3.36.0 `schema --format json --quiet` output. It retains command names,
+`schema-3.42.0.json` is a deterministic projection of the repository-pinned
+Fallow 3.42.0 `schema --format json --quiet` output. It retains command names,
 global/local flag names, short aliases, types, requiredness, allowed values,
 output formats, and manifest/default-command identity. Descriptions and unrelated
 resources are intentionally omitted; this is not a complete capability manifest
 or a report-schema fixture.
 
 The original single-line stdout has SHA-256
-`de2453469efc9ec2c3257fb54c745ef2f0eec812e37f6aa6a84b03d2058616a4`.
+`c3034abce19f86247ee81a1d1d4606933e0ee23715284b67d6d9ccc4d8717d2c`.
 
 ## Regeneration
 
@@ -37,6 +37,12 @@ fs.writeFileSync(`tests/fixtures/fallow/capabilities-${version}.json`, JSON.stri
 NODE
 ```
 
+The 3.36 projections and captures remain historical evidence. The reviewed 3.42
+comparison adds optional commands/flags and issue types, changes combined schema
+14→15 and health 12→13, and changes security sink wording; successful coverage
+changes schema 2→3. Similar status embedding semantics changed 1→2. The 3.42
+model-backed flow has not been certified and is not in the current report baseline.
+
 Review the diff and update the test fixture reference and source hash deliberately
 when changing the certified target. Tests require the fixture version to match
 `package.json`'s pinned Fallow development dependency.
@@ -61,14 +67,14 @@ allowed values, all slash-only flows, or arbitrary report layouts. Required-inpu
 checks cover advertised required flags/positionals not supplied by fixed registry
 prefixes or managed output flags; help evidence extends this to selected nested
 commands, not conditional argument constraints.
-`capabilities-3.36.0.json` extends that frozen projection with the issue-type
+`capabilities-3.42.0.json` extends that frozen projection with the issue-type
 id/command/result-key registry plus related-schema commands and MCP resource
 URIs used by `/fallow compatibility`. Runtime mutation tests distinguish additive
 unknown capabilities from removed/incompatible modeled capabilities and enforce
 bounded transcript-facing diagnostics. The packaged comparison baseline is the
 smaller `extensions/fallow/certified-capabilities.ts` projection; both versions
 must match the pinned development target. The frozen capability projection has
-SHA-256 `f8104ecd652a84682e573dd9db64afe593aba42f248595bcebe2a964371cec9c`.
+SHA-256 `45afce581abe508b08a43d4252b89b69533643238b1abbe53256c06baaedca9f`.
 
 No schema probing or version gate is added to startup, autocomplete, or ordinary
 runtime execution. `/fallow compatibility` is the only explicit capability probe,
@@ -78,7 +84,7 @@ still work.
 
 ## Captured report and nested-command evidence
 
-`reports-3.36.0.json` contains twelve real CLI JSON reports and four projected
+`reports-3.42.0.json` contains twelve real CLI JSON reports and four projected
 help contracts. `report-project.json` and `report-partial-project.json` hold the
 complete tiny input projects; both SHA-256 digests are recorded in the evidence.
 The capture script records exact CLI tokens, exit status, and report for each case:
@@ -136,9 +142,9 @@ for this fixed input, not a general comparison of arbitrary projects.
 
 ## Optional signed `fallow-cov` evidence
 
-`coverage-report-3.36.0.json` is a successful local `coverage analyze` capture
+`coverage-report-3.42.0.json` is a successful local `coverage analyze` capture
 from `coverage-project.json`. Node 24 executes one function under native V8
-coverage while leaving one tracked function cold; Fallow 3.36.0 and the signed
+coverage while leaving one tracked function cold; Fallow 3.42.0 and the signed
 `@fallow-cli/fallow-cov` 0.4.1 sidecar then emit one non-auto-fixable cold-code
 finding, blast-radius and importance context, capture-quality discriminators,
 and explicit local/unknown-production provenance.
@@ -177,7 +183,7 @@ retained raw but not surfaced as navigator findings.
 
 ## Optional model-backed Similar Code evidence
 
-`similar-code-report-3.36.0.json` preserves three successful specialized report
+`similar-code-report-3.36.0.json` is historical 3.36 evidence, not a 3.42 certification. It preserves three successful specialized report
 layouts from `similar-code-project.json`: complete semantic discovery, a
 source-grounded inspect packet, and immutable candidate/verdict review. The tiny
 project contains two intentionally identical implementations with distinct
@@ -217,3 +223,18 @@ integrity-unverified model fails with guidance instead of running setup. This
 completes #83's model-backed nested workflow evidence; future report additions
 should remain evidence-driven rather than claiming exhaustive certification of
 every Fallow output layout.
+
+## Audit attribution projection
+
+`audit-projection-3.42.0.json` retains selected fields from real 3.42 JSON
+audit runs in a temporary Git repository with synthetic files. The base tracked
+`index.js` importing `used` from `lib.js`, which also exported `unused`. The
+first run appended a comment to `lib.js`; `audit --base HEAD --gate new-only
+--only dead-code --format json --quiet --no-cache` returned exit 0, verdict pass,
+and one inherited unused export. After appending `export const addedUnused = 3;`,
+the same command returned exit 1, verdict fail, with one introduced and one
+inherited finding. A `--brief` run returned exit 0 despite its fail verdict.
+The projection deliberately omits hashes, timings, diagnostic text and unrelated
+fields; it is evidence of these cases, not a complete audit report capture.
+Regression tests require structured verdict and attribution rather than counting
+all findings or trusting brief's exit status.
