@@ -39,11 +39,14 @@ function summarizeObject(data: any, label?: string): string[] {
 	addKnownArraySummaries(data, prefix, lines);
 	addCountSummaries(lines, data, prefix);
 	addNestedSummaries(lines, data);
-	if (data.kind === "project-issues" && Array.isArray(data.decision_notes)) {
-		lines.push(...data.decision_notes.filter((note: unknown) => typeof note === "string"));
-	}
+	addDecisionNotes(lines, data);
 
 	return [...new Set(lines)];
+}
+
+function addDecisionNotes(lines: string[], data: any): void {
+	if (data.kind !== "project-issues" || !Array.isArray(data.decision_notes)) return;
+	lines.push(...data.decision_notes.filter((note: unknown) => typeof note === "string"));
 }
 
 function addCoreSummaries(
@@ -120,17 +123,29 @@ export async function formatToolOutput(
 	fullOutputPath?: string;
 	truncated?: boolean;
 }> {
-	const projectIssues = parsed.parsed && asRecord(parsed.data)?.kind === "project-issues";
-	const visible = projectIssues ? { ...parsed, data: redactProjectIssueOutput(parsed.data) } : parsed;
+	const { projectIssues, visible, rawText, visibleText } = prepareVisibleOutput(parsed);
 	const { overview, summary } = buildToolOutputSummary(visible, exitCode);
-	const rawText = getFormattedRawText(parsed);
-	const visibleText = projectIssues ? getFormattedRawText(visible) : rawText;
 	const rawTruncation = truncateHead(visibleText, { maxLines: DEFAULT_MAX_LINES, maxBytes: DEFAULT_MAX_BYTES });
-	const preserveFullOutput = projectIssues || shouldPreserveFullOutput(outputDetail, rawTruncation.truncated, preserveNavigatorDetails, overview);
-	const fullOutputPath = await writeOutputPathIfNeeded(preserveFullOutput, rawText);
-	const errorText = buildToolOutputText(parsed, summary, rawTruncation, fullOutputPath);
+	const preserveFullOutput = shouldPreserveFullOutput(outputDetail, rawTruncation.truncated, preserveNavigatorDetails, overview);
+	const fullOutputPath = await writeOutputPathIfNeeded(projectIssues || preserveFullOutput, rawText);
+	const errorText = buildToolOutputText(parsed, summary, rawTruncation, fullOutputPath)
+		+ projectIssueOutputNotice(projectIssues, rawTruncation.truncated, fullOutputPath);
 	const presentation = selectOutputPresentation(outputDetail, summary, overview, fullOutputPath, errorText, rawTruncation.truncated);
 	return { text: presentation.text, errorText, summary, overview, fullOutputPath, truncated: presentation.truncated };
+}
+
+function projectIssueOutputNotice(projectIssues: boolean, truncated: boolean, path: string | undefined): string {
+	if (!projectIssues || truncated || !path) return "";
+	return `\n\nFull output saved to: ${path}`;
+}
+
+function prepareVisibleOutput(parsed: ParsedFallowOutput): {
+	projectIssues: boolean; visible: ParsedFallowOutput; rawText: string; visibleText: string;
+} {
+	const projectIssues = parsed.parsed && asRecord(parsed.data)?.kind === "project-issues";
+	const visible = projectIssues ? { ...parsed, data: redactProjectIssueOutput(parsed.data) } : parsed;
+	const rawText = getFormattedRawText(parsed);
+	return { projectIssues, visible, rawText, visibleText: getFormattedRawText(visible) };
 }
 
 function shouldPreserveFullOutput(

@@ -8,6 +8,7 @@ import { verifyAuditEvidence } from "./audit-certification.mjs";
 
 const jiti = createJiti(import.meta.url);
 const { fallowCli } = await jiti.import("../extensions/fallow/cli.ts");
+const { buildFallowProjectIssuesReport } = await jiti.import("../extensions/fallow/command/issues-report.ts");
 const { fallowToolCommands, getFallowToolCommandSpec } = await jiti.import("../extensions/fallow/registry.ts");
 
 function assertArgs(params, expected) {
@@ -235,7 +236,27 @@ function assertCliSurfaces() {
 
 assertModeledArgs();
 const frozenReports = JSON.parse(await readFile(new URL("../tests/fixtures/fallow/reports-3.43.1.json", import.meta.url), "utf8"));
-assertEvidenceSubset(await collectReportEvidence(), frozenReports);
+const liveReports = await collectReportEvidence();
+assertEvidenceSubset(liveReports, frozenReports);
+for (const evidence of [frozenReports, liveReports]) {
+	const reports = evidence.reports;
+	assert.deepEqual(reports["dead-code"].report.gate_outcomes["error-severity-findings"].status, "fail");
+	assert.equal(reports["dead-code"].report.gate_outcomes["error-severity-findings"].enforced, true);
+	assert.equal(reports.health.report.gate_outcomes["health-findings"].status, "pass");
+	assert.equal(reports.dupes.report.gate_outcomes, undefined);
+	const combined = structuredClone(reports.combined.report);
+	const security = structuredClone(reports.security.report);
+	assert.deepEqual(buildFallowProjectIssuesReport(combined, security).decision_notes, []);
+	// Synthetic mutations exercise issue aggregation, not live wire captures.
+	combined.gate_outcomes = reports["dead-code"].report.gate_outcomes;
+	security.gate_outcomes = { "synthetic-warning": { status: "warn", enforced: true } };
+	const notes = buildFallowProjectIssuesReport(combined, security).decision_notes;
+	assert.ok(notes.some((note) => note.includes("error-severity-findings") && note.includes("fail; enforced")));
+	assert.ok(notes.some((note) => note.includes("synthetic-warning") && note.includes("warn; enforced")));
+	delete combined.gate_outcomes;
+	delete security.gate_outcomes;
+	assert.deepEqual(buildFallowProjectIssuesReport(combined, security).decision_notes, []);
+}
 assertCliSurfaces();
 await verifyAuditEvidence();
 console.log("Fallow CLI smoke checks passed.");

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createJiti } from "jiti";
+import { readFile } from "node:fs/promises";
 
 const jiti = createJiti(import.meta.url);
 const { fallowProjectIssues } = await jiti.import("../extensions/fallow/command/issues.ts");
@@ -11,6 +12,8 @@ const {
 } = fallowProjectIssues;
 const { getNormalizedFallowReport } = await jiti.import("../extensions/fallow/normalized-report.ts");
 const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
+const { formatToolOutput } = await jiti.import("../extensions/fallow/output.ts");
+const { buildFallowTranscriptContent } = await jiti.import("../extensions/fallow/command/transcript.ts");
 
 function combinedReport() {
 	return {
@@ -66,6 +69,57 @@ function execution(stdout, code = 0) {
 }
 
 describe("project issue aggregation", () => {
+	it("projects only enforced warning/failure gates and judgeable baseline advisories", async () => {
+		const evidence = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.43.1.json", import.meta.url), "utf8"));
+		const combined = structuredClone(evidence.reports.combined.report);
+		const security = structuredClone(evidence.reports.security.report);
+		assert.deepEqual(buildFallowProjectIssuesReport(combined, security).decision_notes, []);
+		// Synthetic mutations of genuine captures, not wire captures.
+		combined.gate_outcomes = {
+			"new-gate": { status: "warn", enforced: true, observed: "SECRET_GATE" },
+			"pass-gate": { status: "pass", enforced: true },
+			"ignored-gate": { status: "fail", enforced: false },
+			"unknown-gate": { status: "future", enforced: true },
+		};
+		security.gate_outcomes = { security: { status: "fail", enforced: true } };
+		combined.check.baseline_staleness = { change_scoped: false, gate_trips: true, stale: false, entries: ["SECRET_BASELINE"] };
+		combined.dupes.baseline_staleness = { change_scoped: true, gate_trips: true };
+		combined.health.baseline_staleness = { stale: true };
+		security.config = { token: "SECRET_CONFIG" };
+		const report = buildFallowProjectIssuesReport(combined, security);
+		assert.deepEqual(report.decision_notes, [
+			"Gate new-gate (combined): warn; enforced.",
+			"Gate security (security): fail; enforced.",
+			"Baseline advisory (dead-code): stale; excluded from issue counts.",
+		]);
+		const overview = buildFallowOverview(report);
+		assert.equal(getNormalizedFallowReport(overview).findingCount, report.total_issues);
+		assert.ok(overview.notes.includes(report.decision_notes[0]));
+		const formatted = await formatToolOutput({ parsed: true, data: report, raw: "" }, "/tmp", 0, true, "raw");
+		for (const navigator of [true, false]) {
+			const transcript = buildFallowTranscriptContent("", formatted.summary, formatted.text, navigator);
+			assert.match(transcript, /Gate new-gate \(combined\): warn; enforced/);
+			assert.match(transcript, /Baseline advisory/);
+			assert.doesNotMatch(transcript, /SECRET_|pass-gate|ignored-gate/);
+		}
+		assert.match(await readFile(formatted.fullOutputPath, "utf8"), /SECRET_BASELINE/);
+		delete combined.gate_outcomes;
+		delete security.gate_outcomes;
+		delete combined.check.baseline_staleness;
+		assert.deepEqual(buildFallowProjectIssuesReport(combined, security).decision_notes, []);
+	});
+
+	it("bounds gate notes and distinguishes an unrecognised baseline from narrowed staleness", () => {
+		const combined = cleanCombinedReport();
+		combined.gate_outcomes = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`gate-${i}`, { status: "fail", enforced: true }]));
+		combined.check.baseline_staleness = { change_scoped: true, unrecognised_format: true, gate_trips: true };
+		combined.dupes.baseline_staleness = { change_scoped: true, stale: true };
+		const report = buildFallowProjectIssuesReport(combined, cleanSecurityReport());
+		assert.equal(report.decision_notes.length, 9);
+		assert.match(report.decision_notes[8], /unrecognised format/);
+		assert.equal(report.total_issues, 0);
+	});
+
 	it("combines code-quality and security findings while omitting per-file health context", () => {
 		const report = buildFallowProjectIssuesReport(combinedReport(), securityReport());
 		const overview = buildFallowOverview(report);

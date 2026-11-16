@@ -114,6 +114,17 @@ async function assertNavigatorCopy(overview, selectKeys, count, rawPattern) {
 }
 
 describe("FallowIssueNavigator prompt generation", () => {
+	it("shows project gate and baseline advisories without adding finding rows", () => {
+		const overview = buildFallowOverview({
+			kind: "project-issues", total_issues: 0, summary: { total_issues: 0, code_issues: 0, security_candidates: 0 },
+			decision_notes: ["Gate security (security): fail; enforced.", "Baseline advisory (health): stale; excluded from issue counts."],
+		});
+		const navigator = new FallowIssueNavigator(overview, theme, () => {}, () => {});
+		const frame = navigator.render(100).join("\n");
+		assert.match(frame, /Gate security \(security\): fail; enforced/);
+		assert.match(frame, /Baseline advisory \(health\): stale/);
+		assert.match(frame, /0 findings/);
+	});
 	it("advertises persistent views without dispatching a legacy dialog action", () => {
 		let result = null;
 		const navigator = new FallowIssueNavigator(createOverview(), theme, (value) => { result = value; }, () => {}, {

@@ -110,6 +110,10 @@ The capture script records exact CLI tokens, exit status, and report for each ca
 - security: one source-backed command-injection candidate and attack-surface path;
 - combined: deterministic dead-code/duplication findings and health context (bare
   combined analysis intentionally does not include the separate security surface);
+  the real captures include an enforced failing dead-code gate, an enforced passing
+  health gate, and a dupes report without gate outcomes. Issue aggregation tests and
+  live smoke also mutate copies to exercise enforced warnings and failures; those
+  mutations are synthetic and are not claimed as live `/fallow issues` captures;
 - type-aware unavailable: advisory no-project evidence from the real companion;
 - type-aware partial: one complete and one structurally blocked TypeScript project,
   preserving blocking-diagnostic omissions from the real companion;
