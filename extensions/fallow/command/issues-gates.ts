@@ -6,23 +6,42 @@ type IssueReport = Record<string, any>;
 
 // Gate names are an open upstream set, but never copy arbitrary report text into the transcript.
 export function projectIssueGateNotes(combined: IssueReport, security: IssueReport): string[] {
-	const gates = [...enforcedGateNotes("combined", combined), ...enforcedGateNotes("security", security)];
-	return [...gates.slice(0, MAX_GATE_SUMMARIES), ...baselineNotes(combined)];
+	const gates: string[] = [];
+	// Failures take precedence over warnings when the display budget is exhausted.
+	for (const status of ["fail", "warn"]) {
+		appendGateNotes(gates, "combined", combined, status);
+		appendGateNotes(gates, "security", security, status);
+	}
+	return [...gates, ...baselineNotes(combined)];
 }
 
-function enforcedGateNotes(source: string, report: IssueReport): string[] {
+function appendGateNotes(notes: string[], source: string, report: IssueReport, status: string): void {
 	const outcomes = asRecord(report.gate_outcomes) ?? {};
-	return Object.entries(outcomes).slice(0, 100).flatMap(([name, value]) => gateNote(source, name, value));
+	Object.entries(outcomes).some(([name, value]) => {
+		appendGateNote(notes, source, name, value, status);
+		return notes.length >= MAX_GATE_SUMMARIES;
+	});
 }
 
-function gateNote(source: string, name: string, value: unknown): string[] {
+function appendGateNote(notes: string[], source: string, name: string, value: unknown, status: string): void {
+	if (notes.length < MAX_GATE_SUMMARIES && isMatchingGate(name, value, status)) {
+		notes.push(`Gate ${name} (${source}): ${status}; enforced.`);
+	}
+}
+
+function isMatchingGate(name: string, value: unknown, status: string): boolean {
 	const gate = asRecord(value);
-	if (!/^[a-z][a-z0-9-]{0,63}$/.test(name) || !isEnforcedProblem(gate)) return [];
-	return [`Gate ${name} (${source}): ${gate.status}; enforced.`];
+	return /^[a-z][a-z0-9-]{0,63}$/.test(name) && gate?.enforced === true && gate.status === status;
 }
 
-function isEnforcedProblem(gate: IssueReport | undefined): boolean {
-	return gate?.enforced === true && (gate.status === "warn" || gate.status === "fail");
+// A failing enforced gate is a failed aggregate even when it has no issue entries.
+// Examine both complete outcome sets rather than the bounded presentation notes.
+export function hasEnforcedGateFailure(combined: IssueReport, security: IssueReport): boolean {
+	return [combined, security].some((report) => Object.values(asRecord(report.gate_outcomes) ?? {})
+		.some((value) => {
+			const gate = asRecord(value);
+			return gate?.enforced === true && gate.status === "fail";
+		}));
 }
 
 function baselineNotes(combined: IssueReport): string[] {
@@ -40,7 +59,7 @@ function baselineNote(name: string, section: unknown): string[] {
 }
 
 function isUnrecognisedBaseline(staleness: IssueReport | undefined): boolean {
-	return staleness?.unrecognised_format === true && staleness.gate_trips === true;
+	return staleness?.change_scoped === false && staleness.unrecognised_format === true && staleness.gate_trips === true;
 }
 
 function isStaleBaseline(staleness: IssueReport | undefined): boolean {

@@ -1,6 +1,6 @@
 import type { ExecResult } from "@earendil-works/pi-coding-agent";
 import { asRecord } from "../data";
-import { projectIssueGateNotes } from "./issues-gates";
+import { hasEnforcedGateFailure, projectIssueGateNotes } from "./issues-gates";
 
 export interface FallowChildExecution {
 	binary: string;
@@ -187,7 +187,8 @@ function omittedHealthContext(combined: Record<string, any>): Record<string, num
 export function buildAggregateExecutionResult(report: Record<string, any>, sources: ParsedChildReport[]): ExecResult {
 	const killed = sources.some((source) => source.execution.result.killed);
 	const fatalCode = sources.reduce(maxFatalSourceCode, 0);
-	const code = aggregateExitCode(killed, fatalCode, Number(report.total_issues));
+	const gateFailed = hasEnforcedGateFailure(report, asRecord(report.security) ?? {});
+	const code = aggregateExitCode(killed, fatalCode, Number(report.total_issues), gateFailed);
 	const stderr = sources.map(sourceStderr).filter(Boolean).join("\n");
 	return { stdout: JSON.stringify(report), stderr, code, killed };
 }
@@ -198,10 +199,10 @@ function maxFatalSourceCode(code: number, source: ParsedChildReport): number {
 	return Math.max(code, sourceCode >= 2 ? sourceCode : 0);
 }
 
-function aggregateExitCode(killed: boolean, fatalCode: number, totalIssues: number): number {
+function aggregateExitCode(killed: boolean, fatalCode: number, totalIssues: number, gateFailed: boolean): number {
 	if (killed) return 130;
 	if (fatalCode) return fatalCode;
-	return totalIssues > 0 ? 1 : 0;
+	return Number(totalIssues > 0 || gateFailed);
 }
 
 function sourceStderr(source: ParsedChildReport): string {

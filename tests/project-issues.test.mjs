@@ -88,8 +88,8 @@ describe("project issue aggregation", () => {
 		security.config = { token: "SECRET_CONFIG" };
 		const report = buildFallowProjectIssuesReport(combined, security);
 		assert.deepEqual(report.decision_notes, [
-			"Gate new-gate (combined): warn; enforced.",
 			"Gate security (security): fail; enforced.",
+			"Gate new-gate (combined): warn; enforced.",
 			"Baseline advisory (dead-code): stale; excluded from issue counts.",
 		]);
 		const overview = buildFallowOverview(report);
@@ -109,15 +109,69 @@ describe("project issue aggregation", () => {
 		assert.deepEqual(buildFallowProjectIssuesReport(combined, security).decision_notes, []);
 	});
 
-	it("bounds gate notes and distinguishes an unrecognised baseline from narrowed staleness", () => {
+	it("bounds gate notes and only reports unrecognised baselines the run can judge", () => {
 		const combined = cleanCombinedReport();
 		combined.gate_outcomes = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`gate-${i}`, { status: "fail", enforced: true }]));
-		combined.check.baseline_staleness = { change_scoped: true, unrecognised_format: true, gate_trips: true };
 		combined.dupes.baseline_staleness = { change_scoped: true, stale: true };
+		for (const scope of [true, undefined, "false"]) {
+			combined.check.baseline_staleness = { change_scoped: scope, unrecognised_format: true, gate_trips: true };
+			const report = buildFallowProjectIssuesReport(combined, cleanSecurityReport());
+			assert.equal(report.decision_notes.length, 8);
+			assert.equal(report.total_issues, 0);
+		}
+		combined.check.baseline_staleness = { change_scoped: false, unrecognised_format: true, gate_trips: true };
 		const report = buildFallowProjectIssuesReport(combined, cleanSecurityReport());
 		assert.equal(report.decision_notes.length, 9);
 		assert.match(report.decision_notes[8], /unrecognised format/);
 		assert.equal(report.total_issues, 0);
+	});
+
+	it("reflects enforced gate failures in the aggregate verdict without inventing findings", async () => {
+		for (const [label, gate, expected] of [
+			["combined", { status: "fail", enforced: true }, 1],
+			["security", { status: "fail", enforced: true }, 1],
+			["combined", { status: "warn", enforced: true }, 0],
+			["combined", { status: "pass", enforced: true }, 0],
+			["combined", { status: "fail", enforced: false }, 0],
+			["security", { status: "fail" }, 0],
+			["security", { status: "future", enforced: true }, 0],
+			["combined", undefined, 0],
+		]) {
+			const executeChild = async (_pi, args) => {
+				const source = args[0] === "security" ? "security" : "combined";
+				const report = source === "security" ? cleanSecurityReport() : cleanCombinedReport();
+				if (source === label && gate) report.gate_outcomes = { example: gate };
+				return { binary: "/fixture/fallow", args, result: execution(report) };
+			};
+			const aggregate = await runFallowProjectIssueCommands({}, [], "/project", undefined, 10, executeChild);
+			const report = JSON.parse(aggregate.result.stdout);
+			const overview = buildFallowOverview(report, aggregate.result.code);
+			assert.equal(aggregate.result.code, expected, `${label}: ${JSON.stringify(gate)}`);
+			assert.equal(report.total_issues, 0);
+			assert.equal(getNormalizedFallowReport(overview).findingCount, 0);
+			if (expected) {
+				assert.equal(overview.status, "warning");
+				assert.match(overview.notes.join("\n"), /Gate example .* fail; enforced/);
+			}
+		}
+	});
+
+	it("does not let the presentation limit hide an enforced failure from the verdict", async () => {
+		const combined = cleanCombinedReport();
+		combined.gate_outcomes = Object.fromEntries([
+			...Array.from({ length: 101 }, (_, i) => [`gate-${i}`, { status: "warn", enforced: true }]),
+			["last-gate", { status: "fail", enforced: true }],
+		]);
+		const executeChild = async (_pi, args) => ({
+			binary: "/fixture/fallow", args,
+			result: execution(args[0] === "security" ? cleanSecurityReport() : combined),
+		});
+		const aggregate = await runFallowProjectIssueCommands({}, [], "/project", undefined, 10, executeChild);
+		assert.equal(aggregate.result.code, 1);
+		const report = JSON.parse(aggregate.result.stdout);
+		assert.equal(report.total_issues, 0);
+		assert.match(report.decision_notes[0], /Gate last-gate .* fail; enforced/);
+		assert.equal(report.decision_notes.length, 8);
 	});
 
 	it("combines code-quality and security findings while omitting per-file health context", () => {
@@ -276,6 +330,7 @@ describe("project issue aggregation", () => {
 			const executeChild = async (_pi, args) => {
 				const label = args[0] === "security" ? "security" : "combined";
 				const report = label === "security" ? cleanSecurityReport() : cleanCombinedReport();
+				if (label === "combined") report.gate_outcomes = { example: { status: "fail", enforced: true } };
 				return { binary: "/fixture/fallow", args, result: execution(report, label === failedLabel ? 2 : 0) };
 			};
 			const aggregate = await runFallowProjectIssueCommands({}, [], "/project", undefined, 10, executeChild);
