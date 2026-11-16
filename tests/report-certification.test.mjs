@@ -11,7 +11,7 @@ const { parseJson } = await jiti.import("../extensions/fallow/json.ts");
 const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 const { getNormalizedFallowReport, allNormalizedFallowEntries } = await jiti.import("../extensions/fallow/normalized-report.ts");
 const { formatToolOutput } = await jiti.import("../extensions/fallow/output.ts");
-const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.36.0.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/reports-3.42.0.json", import.meta.url), "utf8"));
 
 function overview(id) {
 	const evidence = frozen.reports[id];
@@ -63,6 +63,21 @@ describe("captured report and nested-command certification", () => {
 		assert.equal(entry.subject, "unused");
 		assert.equal(entry.action, "Remove the unused export from the public API");
 		assert.match(view.notes.join("\n"), /not a crashed command/);
+	});
+
+	it("retains new 3.42 categories in bounded normalization (synthetic mutation)", () => {
+		const data = structuredClone(frozen.reports["dead-code"].report);
+		const categories = ["unused_namespace_members", "unlisted_binaries", "duplicate_export_aliases"];
+		for (const key of categories) {
+			data.summary[key] = 1;
+			data[key] = [{ path: "synthetic.js", line: 1, name: key }];
+		}
+		const report = getNormalizedFallowReport(buildFallowOverview(data, 1));
+		const entries = allNormalizedFallowEntries(report);
+		assert.equal(report.findingCount, 4);
+		for (const section of ["Unused namespace members", "Unlisted binaries", "Duplicate export aliases"]) {
+			assert.ok(entries.some((entry) => entry.section === section && entry.path === "synthetic.js"), section);
+		}
 	});
 
 	it("keeps informational health scores out of empty finding counts", () => {
