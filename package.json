@@ -91,6 +91,6 @@
     "fallow": "3.42.0",
     "jiti": "^2.7.0",
     "js-tiktoken": "^1.0.21",
-    "typebox": "1.4.4"
+    "typebox": "1.4.7"
   }
 }
