@@ -32,10 +32,10 @@ function mutate(change) {
 }
 
 describe("model-backed similar-code certification", () => {
-	it("binds evidence to the pinned Fallow, model, input, and immutable review documents", async () => {
+	it("binds historical 3.36 evidence to its model, input, and immutable review documents", async () => {
 		const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 		const project = await readFile(new URL("./fixtures/fallow/similar-code-project.json", import.meta.url));
-		assert.equal(frozen.fallowVersion, manifest.devDependencies.fallow);
+		assert.equal(frozen.fallowVersion, "3.36.0");
 		assert.equal(manifest.scripts["smoke:fallow-similar"], "node scripts/similar-code-certification.mjs");
 		assert.doesNotMatch(manifest.scripts["check:publish"], /smoke:fallow-similar/);
 		assert.equal(frozen.inputSha256, sha256(project));

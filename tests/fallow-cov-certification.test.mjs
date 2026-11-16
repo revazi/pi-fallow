@@ -12,7 +12,7 @@ const { getNormalizedFallowReport, allNormalizedFallowEntries } = await jiti.imp
 const { formatToolOutput } = await jiti.import("../extensions/fallow/output.ts");
 const { buildFallowOverview } = await jiti.import("../extensions/fallow/overview.ts");
 const { buildFallowPrompt } = await jiti.import("../extensions/fallow/prompt.ts");
-const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.36.0.json", import.meta.url), "utf8"));
+const frozen = JSON.parse(await readFile(new URL("./fixtures/fallow/coverage-report-3.42.0.json", import.meta.url), "utf8"));
 
 function changedEvidence(change) {
 	const evidence = structuredClone(frozen);
@@ -44,7 +44,7 @@ describe("optional fallow-cov certification", () => {
 		const runtime = report.runtime_coverage;
 		assert.equal(frozen.exitCode, 0);
 		assert.equal(report.kind, "coverage-analyze");
-		assert.equal(report.schema_version, "2");
+		assert.equal(report.schema_version, "3");
 		assert.equal(runtime.schema_version, "1");
 		assert.equal(runtime.verdict, "cold-code-detected");
 		assert.deepEqual(runtime.signals, ["cold-code-detected"]);
@@ -208,7 +208,7 @@ describe("optional fallow-cov certification", () => {
 
 	it("detects selected contract drift while allowing additive fields", () => {
 		for (const [change, expected] of [
-			[(data) => { data.report.schema_version = "3"; }, /report.schema_version/],
+			[(data) => { data.report.schema_version = "99"; }, /report.schema_version/],
 			[(data) => { data.report.runtime_coverage.summary.functions_hit = 2; }, /summary.functions_hit/],
 			[(data) => { delete data.report.runtime_coverage.findings[0].path; }, /findings.0.path/],
 			[(data) => { data.report.runtime_coverage.findings[0].actions[0].auto_fixable = true; }, /actions.0.auto_fixable/],
