@@ -1,0 +1,116 @@
+{
+  "inherited": {
+    "kind": "audit",
+    "schema_version": 14,
+    "version": "3.43.1",
+    "command": "audit",
+    "verdict": "pass",
+    "changed_files_count": 1,
+    "base_ref": "HEAD",
+    "attribution": {
+      "gate": "new-only",
+      "worsened": "warn",
+      "dead_code_introduced": 0,
+      "dead_code_inherited": 1,
+      "complexity_introduced": 0,
+      "complexity_inherited": 0,
+      "complexity_worsened": 0,
+      "duplication_introduced": 0,
+      "duplication_inherited": 0,
+      "styling_introduced": 0,
+      "styling_inherited": 0,
+      "duplication_demoted": 0,
+      "diff_risk_introduced": 0
+    },
+    "dead_code": {
+      "unused_exports": [
+        {
+          "path": "lib.js",
+          "export_name": "unused",
+          "introduced": false,
+          "effective_severity": "error"
+        }
+      ]
+    }
+  },
+  "new": {
+    "kind": "audit",
+    "schema_version": 14,
+    "version": "3.43.1",
+    "command": "audit",
+    "verdict": "fail",
+    "changed_files_count": 1,
+    "base_ref": "HEAD",
+    "attribution": {
+      "gate": "new-only",
+      "worsened": "warn",
+      "dead_code_introduced": 1,
+      "dead_code_inherited": 1,
+      "complexity_introduced": 0,
+      "complexity_inherited": 0,
+      "complexity_worsened": 0,
+      "duplication_introduced": 0,
+      "duplication_inherited": 0,
+      "styling_introduced": 0,
+      "styling_inherited": 0,
+      "duplication_demoted": 0,
+      "diff_risk_introduced": 0
+    },
+    "dead_code": {
+      "unused_exports": [
+        {
+          "path": "lib.js",
+          "export_name": "unused",
+          "introduced": false,
+          "effective_severity": "error"
+        },
+        {
+          "path": "lib.js",
+          "export_name": "addedUnused",
+          "introduced": true,
+          "effective_severity": "error"
+        }
+      ]
+    }
+  },
+  "brief": {
+    "kind": "audit-brief",
+    "schema_version": 14,
+    "version": "3.43.1",
+    "command": "audit-brief",
+    "verdict": "fail",
+    "changed_files_count": 1,
+    "base_ref": "HEAD",
+    "attribution": {
+      "gate": "new-only",
+      "worsened": "warn",
+      "dead_code_introduced": 1,
+      "dead_code_inherited": 1,
+      "complexity_introduced": 0,
+      "complexity_inherited": 0,
+      "complexity_worsened": 0,
+      "duplication_introduced": 0,
+      "duplication_inherited": 0,
+      "styling_introduced": 0,
+      "styling_inherited": 0,
+      "duplication_demoted": 0,
+      "diff_risk_introduced": 0
+    },
+    "dead_code": {
+      "unused_exports": [
+        {
+          "path": "lib.js",
+          "export_name": "unused",
+          "introduced": false,
+          "effective_severity": "error"
+        },
+        {
+          "path": "lib.js",
+          "export_name": "addedUnused",
+          "introduced": true,
+          "effective_severity": "error"
+        }
+      ]
+    }
+  }
+}

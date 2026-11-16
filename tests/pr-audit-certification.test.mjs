@@ -6,7 +6,7 @@ import { createJiti } from "jiti";
 const jiti = createJiti(import.meta.url);
 const { buildFallowPrSummary } = await jiti.import("../extensions/fallow/pr-summary/build.ts");
 const { formatFallowPrSummary } = await jiti.import("../extensions/fallow/pr-summary/format.ts");
-const evidence = JSON.parse(await readFile(new URL("./fixtures/fallow/audit-projection-3.42.0.json", import.meta.url), "utf8"));
+const evidence = JSON.parse(await readFile(new URL("./fixtures/fallow/audit-projection-3.43.1.json", import.meta.url), "utf8"));
 const args = ["audit", "--base", "HEAD", "--gate", "new-only"];
 
 test("real audit attribution distinguishes inherited findings from introduced findings", () => {

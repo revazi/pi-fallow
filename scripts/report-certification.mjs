@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const repository = fileURLToPath(new URL("../", import.meta.url));
@@ -93,6 +94,11 @@ export async function collectReportEvidence() {
 	const projectText = await readFile(join(fixtures, "report-project.json"), "utf8");
 	const partialProjectText = await readFile(join(fixtures, "report-partial-project.json"), "utf8");
 	const manifest = JSON.parse(await readFile(join(repository, "package.json"), "utf8"));
+	const require = createRequire(import.meta.url);
+	for (const path of [require.resolve("fallow-type-aware/package.json"), require.resolve("fallow-similar-code/package.json")]) {
+		const companion = JSON.parse(await readFile(path, "utf8"));
+		assert.equal(companion.version, manifest.devDependencies.fallow, `${companion.name} must match the certified Fallow version`);
+	}
 	const container = await mkdtemp(join(tmpdir(), "pi-fallow-certification-"));
 	const root = join(container, "base");
 	const partialRoot = join(container, "type-aware-partial");

@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertEvidenceSubset } from "./report-certification.mjs";
 
 const repository = fileURLToPath(new URL("..", import.meta.url));
-const fixture = new URL("../tests/fixtures/fallow/audit-projection-3.42.0.json", import.meta.url);
+const fixture = new URL("../tests/fixtures/fallow/audit-projection-3.43.1.json", import.meta.url);
 
 function execute(command, args, cwd, env) {
 	const result = spawnSync(command, args, { cwd, env, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 });
@@ -23,7 +23,7 @@ function project(report) {
 	};
 }
 
-export async function verifyAuditEvidence() {
+async function collectAuditEvidence() {
 	const container = await mkdtemp(join(tmpdir(), "pi-fallow-audit-cert-"));
 	const root = join(container, "project");
 	const env = {
@@ -52,9 +52,20 @@ export async function verifyAuditEvidence() {
 		const introduced = run();
 		const brief = run(["--brief"]);
 		assert.deepEqual([inherited.status, introduced.status, brief.status], [0, 1, 0]);
-		const evidence = { inherited: project(JSON.parse(inherited.stdout)), new: project(JSON.parse(introduced.stdout)), brief: project(JSON.parse(brief.stdout)) };
-		assertEvidenceSubset(evidence, JSON.parse(await readFile(fixture, "utf8")), "audit certification");
+		return { inherited: project(JSON.parse(inherited.stdout)), new: project(JSON.parse(introduced.stdout)), brief: project(JSON.parse(brief.stdout)) };
 	} finally {
 		await rm(container, { recursive: true, force: true });
 	}
+}
+
+export async function verifyAuditEvidence() {
+	assertEvidenceSubset(await collectAuditEvidence(), JSON.parse(await readFile(fixture, "utf8")), "audit certification");
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	assert.deepEqual(process.argv.slice(2), ["--write"], "Usage: node scripts/audit-certification.mjs --write");
+	const manifest = JSON.parse(await readFile(join(repository, "package.json"), "utf8"));
+	assert.equal(manifest.devDependencies.fallow, "3.43.1", "capture requires the certified target");
+	await writeFile(fixture, `${JSON.stringify(await collectAuditEvidence(), null, 2)}\n`);
+	console.log("Captured synthetic audit attribution and verdict evidence.");
 }

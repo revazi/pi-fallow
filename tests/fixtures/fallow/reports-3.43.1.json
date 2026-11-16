@@ -1,0 +1,1937 @@
+{
+  "version": "3.43.1",
+  "inputSha256": {
+    "base": "5a5426bfc0bde678d5be554684f958808cb95c7294ba07f1c610af057d1aa865",
+    "typeAwarePartial": "c63f7b237002649ad5073778b9b15ad3827bff41620201f262b19d85d9ac7caf"
+  },
+  "reports": {
+    "dead-code": {
+      "args": [
+        "dead-code",
+        "--no-cache",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 1,
+      "report": {
+        "kind": "dead-code",
+        "schema_version": 11,
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "total_issues": 1,
+        "entry_points": {
+          "total": 1,
+          "sources": {
+            "package.json": 1
+          }
+        },
+        "summary": {
+          "total_issues": 1,
+          "unused_files": 0,
+          "unused_exports": 1,
+          "unused_types": 0,
+          "private_type_leaks": 0,
+          "deprecated_exports_in_use": 0,
+          "unused_dependencies": 0,
+          "unused_enum_members": 0,
+          "unused_class_members": 0,
+          "unused_namespace_members": 0,
+          "unused_store_members": 0,
+          "unprovided_injects": 0,
+          "unrendered_components": 0,
+          "unused_component_props": 0,
+          "absent_component_props": 0,
+          "unused_component_emits": 0,
+          "unused_component_inputs": 0,
+          "unused_component_outputs": 0,
+          "unused_svelte_events": 0,
+          "unused_effect_layers": 0,
+          "unused_tagged_errors": 0,
+          "unproduced_catch_tags": 0,
+          "unused_server_actions": 0,
+          "unused_load_data_keys": 0,
+          "unresolved_imports": 0,
+          "unlisted_dependencies": 0,
+          "unlisted_binaries": 0,
+          "duplicate_exports": 0,
+          "duplicate_export_aliases": 0,
+          "type_only_dependencies": 0,
+          "test_only_dependencies": 0,
+          "dev_dependencies_in_production": 0,
+          "circular_dependencies": 0,
+          "re_export_cycles": 0,
+          "package_cycles": 0,
+          "boundary_violations": 0,
+          "boundary_coverage_violations": 0,
+          "boundary_call_violations": 0,
+          "policy_violations": 0,
+          "stale_suppressions": 0,
+          "unused_catalog_entries": 0,
+          "empty_catalog_groups": 0,
+          "unresolved_catalog_references": 0,
+          "unused_dependency_overrides": 0,
+          "misconfigured_dependency_overrides": 0,
+          "invalid_client_exports": 0,
+          "mixed_client_server_barrels": 0,
+          "misplaced_directives": 0,
+          "route_collisions": 0,
+          "dynamic_segment_name_conflicts": 0
+        },
+        "unused_files": [],
+        "unused_exports": [
+          {
+            "path": "lib.js",
+            "export_name": "unused",
+            "is_type_only": false,
+            "line": 2,
+            "col": 16,
+            "span_start": 66,
+            "is_re_export": false,
+            "finding_id": "dc1:unused-export:32291399f792cd3c",
+            "actions": [
+              {
+                "type": "remove-export",
+                "auto_fixable": true,
+                "description": "Remove the unused export from the public API"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the line",
+                "comment": "// fallow-ignore-next-line unused-export"
+              }
+            ],
+            "effective_severity": "error"
+          }
+        ],
+        "unused_types": [],
+        "private_type_leaks": [],
+        "deprecated_exports_in_use": [],
+        "unused_dependencies": [],
+        "unused_dev_dependencies": [],
+        "unused_optional_dependencies": [],
+        "unused_enum_members": [],
+        "unused_class_members": [],
+        "unresolved_imports": [],
+        "unlisted_dependencies": [],
+        "unlisted_binaries": [],
+        "duplicate_exports": [],
+        "type_only_dependencies": [],
+        "test_only_dependencies": [],
+        "dev_dependencies_in_production": [],
+        "circular_dependencies": [],
+        "re_export_cycles": [],
+        "package_cycles": [],
+        "boundary_violations": [],
+        "boundary_coverage_violations": [],
+        "boundary_call_violations": [],
+        "policy_violations": [],
+        "stale_suppressions": [],
+        "unused_catalog_entries": [],
+        "empty_catalog_groups": [],
+        "unresolved_catalog_references": [],
+        "unused_dependency_overrides": [],
+        "misconfigured_dependency_overrides": [],
+        "invalid_client_exports": [],
+        "mixed_client_server_barrels": [],
+        "misplaced_directives": [],
+        "route_collisions": [],
+        "dynamic_segment_name_conflicts": [],
+        "gate_outcomes": {
+          "error-severity-findings": {
+            "status": "fail",
+            "enforced": true,
+            "observed": 1,
+            "threshold_label": "error"
+          }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ],
+        "next_steps": [
+          {
+            "id": "setup",
+            "command": "fallow agent install --dry-run",
+            "reason": "fallow has no config here; offer the user `fallow init` for a config, and this dry run previews the agent guide, skills, MCP server, and commit gate"
+          },
+          {
+            "id": "trace-unused-export",
+            "command": "fallow dead-code --trace lib.js:unused",
+            "reason": "verify an export is truly unused before deleting"
+          }
+        ],
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "dupes": {
+      "args": [
+        "dupes",
+        "--no-cache",
+        "--min-tokens",
+        "20",
+        "--min-lines",
+        "3",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "dupes",
+        "schema_version": 10,
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "clone_groups": [
+          {
+            "instances": [
+              {
+                "file": "clone-a.js",
+                "start_line": 1,
+                "end_line": 7,
+                "start_col": 31,
+                "end_col": 41,
+                "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+              },
+              {
+                "file": "clone-b.js",
+                "start_line": 1,
+                "end_line": 7,
+                "start_col": 30,
+                "end_col": 41,
+                "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+              }
+            ],
+            "token_count": 102,
+            "line_count": 7,
+            "fingerprint": "dup:414235dd",
+            "spread": 0,
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "clone_families": [
+          {
+            "files": [
+              "clone-a.js",
+              "clone-b.js"
+            ],
+            "groups": [
+              {
+                "instances": [
+                  {
+                    "file": "clone-a.js",
+                    "start_line": 1,
+                    "end_line": 7,
+                    "start_col": 31,
+                    "end_col": 41,
+                    "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                  },
+                  {
+                    "file": "clone-b.js",
+                    "start_line": 1,
+                    "end_line": 7,
+                    "start_col": 30,
+                    "end_col": 41,
+                    "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                  }
+                ],
+                "token_count": 102,
+                "line_count": 7,
+                "fingerprint": "dup:414235dd",
+                "spread": 0,
+                "actions": [
+                  {
+                    "type": "extract-shared",
+                    "auto_fixable": false,
+                    "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+                  },
+                  {
+                    "type": "suppress-line",
+                    "auto_fixable": false,
+                    "description": "Suppress with an inline comment above the duplicated code",
+                    "comment": "// fallow-ignore-next-line code-duplication"
+                  }
+                ]
+              }
+            ],
+            "total_duplicated_lines": 7,
+            "total_duplicated_tokens": 102,
+            "suggestions": [
+              {
+                "kind": "ExtractFunction",
+                "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js",
+                "estimated_savings": 7
+              }
+            ],
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract 1 duplicated code block (7 lines) into a shared module",
+                "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+              },
+              {
+                "type": "apply-suggestion",
+                "auto_fixable": false,
+                "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "stats": {
+          "total_files": 4,
+          "files_with_clones": 2,
+          "total_lines": 23,
+          "duplicated_lines": 14,
+          "total_tokens": 274,
+          "duplicated_tokens": 102,
+          "clone_groups": 1,
+          "clone_families": 1,
+          "clone_instances": 2,
+          "duplication_percentage": 60.86956521739131
+        },
+        "clone_groups_shown": 1,
+        "clone_groups_omitted": 0,
+        "clone_families_shown": 1,
+        "clone_families_omitted": 0,
+        "next_steps": [
+          {
+            "id": "setup",
+            "command": "fallow agent install --dry-run",
+            "reason": "fallow has no config here; offer the user `fallow init` for a config, and this dry run previews the agent guide, skills, MCP server, and commit gate"
+          },
+          {
+            "id": "trace-clone",
+            "command": "fallow dupes --trace dup:414235dd",
+            "reason": "see sibling locations and an extract-function suggestion"
+          }
+        ],
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "health": {
+      "args": [
+        "health",
+        "--no-cache",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "health",
+        "schema_version": 13,
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "findings": [],
+        "summary": {
+          "files_analyzed": 5,
+          "functions_analyzed": 11,
+          "functions_above_threshold": 0,
+          "max_cyclomatic_threshold": 20,
+          "max_cognitive_threshold": 15,
+          "max_crap_threshold": 30,
+          "max_unit_size_threshold": 60,
+          "files_scored": 4,
+          "average_maintainability": 95.9,
+          "coverage_model": "static_estimated",
+          "severity_critical_count": 0,
+          "severity_high_count": 0,
+          "severity_moderate_count": 0
+        },
+        "sections": [
+          "complexity",
+          "vital-signs",
+          "score",
+          "file-scores",
+          "hotspots",
+          "targets"
+        ],
+        "vital_signs": {
+          "dead_file_pct": 0,
+          "dead_export_pct": 20,
+          "avg_cyclomatic": 1,
+          "critical_complexity_pct": 0,
+          "p90_cyclomatic": 1,
+          "cyclomatic_population": {
+            "functions": {
+              "count": 11,
+              "sum": 11,
+              "max": 1
+            },
+            "modules": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            },
+            "templates": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            }
+          },
+          "duplication_pct": 87.5,
+          "hotspot_count": 0,
+          "hotspot_top_pct_count": 0,
+          "maintainability_avg": 95.9,
+          "maintainability_low_pct": 0,
+          "unused_dep_count": 0,
+          "unused_deps_per_k_files": 0,
+          "circular_dep_count": 0,
+          "circular_deps_per_k_files": 0,
+          "counts": {
+            "total_files": 5,
+            "total_exports": 5,
+            "dead_files": 0,
+            "dead_exports": 1,
+            "duplicated_lines": 14,
+            "total_lines": 32,
+            "files_scored": 4,
+            "total_deps": 0
+          },
+          "unit_size_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "functions_over_60_loc_per_k": 0,
+          "unit_interfacing_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "p95_fan_in": 1,
+          "coupling_high_pct": 0,
+          "total_loc": 32
+        },
+        "health_score": {
+          "formula_version": 3,
+          "score": 86,
+          "grade": "A",
+          "penalties": {
+            "dead_files": 0,
+            "dead_exports": 4,
+            "complexity": 0,
+            "p90_complexity": 0,
+            "maintainability": 0,
+            "hotspots": 0,
+            "unused_deps": 0,
+            "circular_deps": 0,
+            "unit_size": 0,
+            "coupling": 0,
+            "duplication": 10
+          }
+        },
+        "file_scores": [
+          {
+            "path": "lib.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0.5,
+            "complexity_density": 0.67,
+            "maintainability_index": 88.8,
+            "total_cyclomatic": 2,
+            "total_cognitive": 0,
+            "function_count": 2,
+            "lines": 3,
+            "crap_max": 2,
+            "crap_above_threshold": 0
+          },
+          {
+            "path": "clone-a.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0,
+            "complexity_density": 0.44,
+            "maintainability_index": 97.6,
+            "total_cyclomatic": 4,
+            "total_cognitive": 0,
+            "function_count": 4,
+            "lines": 9,
+            "crap_max": 2,
+            "crap_above_threshold": 0
+          },
+          {
+            "path": "clone-b.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0,
+            "complexity_density": 0.44,
+            "maintainability_index": 97.6,
+            "total_cyclomatic": 4,
+            "total_cognitive": 0,
+            "function_count": 4,
+            "lines": 9,
+            "crap_max": 2,
+            "crap_above_threshold": 0
+          },
+          {
+            "path": "security.js",
+            "fan_in": 1,
+            "fan_out": 0,
+            "dead_code_ratio": 0,
+            "complexity_density": 0.2,
+            "maintainability_index": 99.4,
+            "total_cyclomatic": 1,
+            "total_cognitive": 0,
+            "function_count": 1,
+            "lines": 5,
+            "crap_max": 2,
+            "crap_above_threshold": 0
+          }
+        ],
+        "target_thresholds": {
+          "fan_in_p95": 5,
+          "fan_in_p75": 3,
+          "fan_out_p95": 8,
+          "fan_out_p90": 5
+        },
+        "gate_outcomes": {
+          "health-findings": {
+            "status": "pass",
+            "enforced": true,
+            "observed": 0,
+            "threshold_label": "error"
+          }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "hotspots-skipped",
+            "cause": "not-a-repository",
+            "message": "Hotspot analysis was skipped because no git repository was found at the project root, so the hotspots, churn and ownership sections report nothing rather than zero. Run fallow inside the repository, or pass --churn-file with exported change history.",
+            "degrades_analysis": true
+          }
+        ],
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "security": {
+      "args": [
+        "security",
+        "--no-cache",
+        "--surface",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "security",
+        "schema_version": "8",
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "config": {
+          "rules": {
+            "security_client_server_leak": {
+              "configured": "off",
+              "effective": "warn"
+            },
+            "security_sink": {
+              "configured": "off",
+              "effective": "warn"
+            }
+          },
+          "categories_include": null,
+          "categories_exclude": null
+        },
+        "gate_outcomes": {
+          "security-advisory": {
+            "status": "pass",
+            "enforced": false
+          }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "client-server-leak-no-client-roots",
+            "message": "No file has a top-level \"use client\" directive, so the client-server-leak detector had no starting point and its zero count measures nothing. The rule does not apply to projects whose client code has no \"use client\" directive, such as React Router Framework Mode or a Vite SPA."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ],
+        "security_findings": [
+          {
+            "finding_id": "2ccdf200a69a5162",
+            "stable_finding_id": "sec1:173aa265853fdcfd",
+            "kind": "tainted-sink",
+            "category": "command-injection",
+            "cwe": 78,
+            "path": "security.js",
+            "line": 3,
+            "col": 9,
+            "evidence": "Untrusted source reaches this sink (an argument traces to http request input). Non-literal command passed to node:child_process.exec(). Candidate for verification: confirm the command/args are not attacker-controlled.",
+            "source_backed": true,
+            "severity": "high",
+            "trace": [
+              {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "role": "sink"
+              }
+            ],
+            "actions": [
+              {
+                "type": "suppress-file",
+                "auto_fixable": false,
+                "description": "Suppress with a file-level comment at the top of the file",
+                "comment": "// fallow-ignore-file security-sink"
+              }
+            ],
+            "reachability": {
+              "reachable_from_entry": true,
+              "reachable_from_untrusted_source": true,
+              "taint_confidence": "arg-level",
+              "untrusted_source_hop_count": 0,
+              "untrusted_source_trace": [
+                {
+                  "path": "security.js",
+                  "line": 3,
+                  "col": 9,
+                  "role": "untrusted-source"
+                },
+                {
+                  "path": "security.js",
+                  "line": 3,
+                  "col": 9,
+                  "role": "sink"
+                }
+              ],
+              "blast_radius": 1,
+              "crosses_boundary": false
+            },
+            "candidate": {
+              "source_kind": "http-request-input",
+              "sink": {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "category": "command-injection",
+                "cwe": 78,
+                "callee": "node:child_process.exec"
+              },
+              "boundary": {
+                "client_server": false,
+                "cross_module": false
+              }
+            },
+            "taint_flow": {
+              "source": {
+                "path": "security.js",
+                "line": 3,
+                "col": 9
+              },
+              "sink": {
+                "path": "security.js",
+                "line": 3,
+                "col": 9
+              },
+              "path": {
+                "intra_module": true,
+                "cross_module_hops": 0
+              }
+            }
+          }
+        ],
+        "attack_surface": [
+          {
+            "source": {
+              "path": "security.js",
+              "line": 3,
+              "col": 9
+            },
+            "sink": {
+              "path": "security.js",
+              "line": 3,
+              "col": 9,
+              "category": "command-injection",
+              "cwe": 78,
+              "callee": "node:child_process.exec"
+            },
+            "path": [
+              {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "role": "untrusted-source"
+              },
+              {
+                "path": "security.js",
+                "line": 3,
+                "col": 9,
+                "role": "sink"
+              }
+            ],
+            "defensive_boundary": {
+              "controls": [],
+              "verification_prompt": "No recognized control pattern was observed in files on this import trace. What controls does this sink require?"
+            }
+          }
+        ],
+        "unresolved_edge_files": 0,
+        "unresolved_callee_sites": 0,
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "combined": {
+      "args": [
+        "--no-cache",
+        "--dupes-min-tokens",
+        "20",
+        "--dupes-min-lines",
+        "3",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "combined",
+        "schema_version": 15,
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "gate_outcomes": {
+          "error-severity-findings": {
+            "status": "fail",
+            "enforced": false,
+            "observed": 1,
+            "threshold_label": "error"
+          },
+          "health-findings": {
+            "status": "pass",
+            "enforced": false,
+            "observed": 0,
+            "threshold_label": "error"
+          }
+        },
+        "check": {
+          "schema_version": 11,
+          "version": "3.43.1",
+          "elapsed_ms": 0,
+          "total_issues": 1,
+          "entry_points": {
+            "total": 1,
+            "sources": {
+              "package.json": 1
+            }
+          },
+          "summary": {
+            "total_issues": 1,
+            "unused_files": 0,
+            "unused_exports": 1,
+            "unused_types": 0,
+            "private_type_leaks": 0,
+            "deprecated_exports_in_use": 0,
+            "unused_dependencies": 0,
+            "unused_enum_members": 0,
+            "unused_class_members": 0,
+            "unused_namespace_members": 0,
+            "unused_store_members": 0,
+            "unprovided_injects": 0,
+            "unrendered_components": 0,
+            "unused_component_props": 0,
+            "absent_component_props": 0,
+            "unused_component_emits": 0,
+            "unused_component_inputs": 0,
+            "unused_component_outputs": 0,
+            "unused_svelte_events": 0,
+            "unused_effect_layers": 0,
+            "unused_tagged_errors": 0,
+            "unproduced_catch_tags": 0,
+            "unused_server_actions": 0,
+            "unused_load_data_keys": 0,
+            "unresolved_imports": 0,
+            "unlisted_dependencies": 0,
+            "unlisted_binaries": 0,
+            "duplicate_exports": 0,
+            "duplicate_export_aliases": 0,
+            "type_only_dependencies": 0,
+            "test_only_dependencies": 0,
+            "dev_dependencies_in_production": 0,
+            "circular_dependencies": 0,
+            "re_export_cycles": 0,
+            "package_cycles": 0,
+            "boundary_violations": 0,
+            "boundary_coverage_violations": 0,
+            "boundary_call_violations": 0,
+            "policy_violations": 0,
+            "stale_suppressions": 0,
+            "unused_catalog_entries": 0,
+            "empty_catalog_groups": 0,
+            "unresolved_catalog_references": 0,
+            "unused_dependency_overrides": 0,
+            "misconfigured_dependency_overrides": 0,
+            "invalid_client_exports": 0,
+            "mixed_client_server_barrels": 0,
+            "misplaced_directives": 0,
+            "route_collisions": 0,
+            "dynamic_segment_name_conflicts": 0
+          },
+          "unused_files": [],
+          "unused_exports": [
+            {
+              "path": "lib.js",
+              "export_name": "unused",
+              "is_type_only": false,
+              "line": 2,
+              "col": 16,
+              "span_start": 66,
+              "is_re_export": false,
+              "finding_id": "dc1:unused-export:32291399f792cd3c",
+              "actions": [
+                {
+                  "type": "remove-export",
+                  "auto_fixable": true,
+                  "description": "Remove the unused export from the public API"
+                },
+                {
+                  "type": "suppress-line",
+                  "auto_fixable": false,
+                  "description": "Suppress with an inline comment above the line",
+                  "comment": "// fallow-ignore-next-line unused-export"
+                }
+              ],
+              "effective_severity": "error"
+            }
+          ],
+          "unused_types": [],
+          "private_type_leaks": [],
+          "deprecated_exports_in_use": [],
+          "unused_dependencies": [],
+          "unused_dev_dependencies": [],
+          "unused_optional_dependencies": [],
+          "unused_enum_members": [],
+          "unused_class_members": [],
+          "unresolved_imports": [],
+          "unlisted_dependencies": [],
+          "unlisted_binaries": [],
+          "duplicate_exports": [],
+          "type_only_dependencies": [],
+          "test_only_dependencies": [],
+          "dev_dependencies_in_production": [],
+          "circular_dependencies": [],
+          "re_export_cycles": [],
+          "package_cycles": [],
+          "boundary_violations": [],
+          "boundary_coverage_violations": [],
+          "boundary_call_violations": [],
+          "policy_violations": [],
+          "stale_suppressions": [],
+          "unused_catalog_entries": [],
+          "empty_catalog_groups": [],
+          "unresolved_catalog_references": [],
+          "unused_dependency_overrides": [],
+          "misconfigured_dependency_overrides": [],
+          "invalid_client_exports": [],
+          "mixed_client_server_barrels": [],
+          "misplaced_directives": [],
+          "route_collisions": [],
+          "dynamic_segment_name_conflicts": []
+        },
+        "dupes": {
+          "clone_groups": [
+            {
+              "instances": [
+                {
+                  "file": "clone-a.js",
+                  "start_line": 1,
+                  "end_line": 7,
+                  "start_col": 31,
+                  "end_col": 41,
+                  "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                },
+                {
+                  "file": "clone-b.js",
+                  "start_line": 1,
+                  "end_line": 7,
+                  "start_col": 30,
+                  "end_col": 41,
+                  "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                }
+              ],
+              "token_count": 102,
+              "line_count": 7,
+              "fingerprint": "dup:414235dd",
+              "spread": 0,
+              "actions": [
+                {
+                  "type": "extract-shared",
+                  "auto_fixable": false,
+                  "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+                },
+                {
+                  "type": "suppress-line",
+                  "auto_fixable": false,
+                  "description": "Suppress with an inline comment above the duplicated code",
+                  "comment": "// fallow-ignore-next-line code-duplication"
+                }
+              ]
+            }
+          ],
+          "clone_families": [
+            {
+              "files": [
+                "clone-a.js",
+                "clone-b.js"
+              ],
+              "groups": [
+                {
+                  "instances": [
+                    {
+                      "file": "clone-a.js",
+                      "start_line": 1,
+                      "end_line": 7,
+                      "start_col": 31,
+                      "end_col": 41,
+                      "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                    },
+                    {
+                      "file": "clone-b.js",
+                      "start_line": 1,
+                      "end_line": 7,
+                      "start_col": 30,
+                      "end_col": 41,
+                      "fragment": "records) {\n  const active = records.filter((record) => record.active);\n  const names = active.map((record) => record.name.trim());\n  const unique = [...new Set(names)];\n  unique.sort((left, right) => left.localeCompare(right));\n  const joined = unique.join(', ');\n  return { count: unique.length, joined }"
+                    }
+                  ],
+                  "token_count": 102,
+                  "line_count": 7,
+                  "fingerprint": "dup:414235dd",
+                  "spread": 0,
+                  "actions": [
+                    {
+                      "type": "extract-shared",
+                      "auto_fixable": false,
+                      "description": "Extract duplicated code (7 lines, 2 instances) into a shared function"
+                    },
+                    {
+                      "type": "suppress-line",
+                      "auto_fixable": false,
+                      "description": "Suppress with an inline comment above the duplicated code",
+                      "comment": "// fallow-ignore-next-line code-duplication"
+                    }
+                  ]
+                }
+              ],
+              "total_duplicated_lines": 7,
+              "total_duplicated_tokens": 102,
+              "suggestions": [
+                {
+                  "kind": "ExtractFunction",
+                  "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js",
+                  "estimated_savings": 7
+                }
+              ],
+              "actions": [
+                {
+                  "type": "extract-shared",
+                  "auto_fixable": false,
+                  "description": "Extract 1 duplicated code block (7 lines) into a shared module",
+                  "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+                },
+                {
+                  "type": "apply-suggestion",
+                  "auto_fixable": false,
+                  "description": "Extract shared function (7 lines) from clone-a.js, clone-b.js"
+                },
+                {
+                  "type": "suppress-line",
+                  "auto_fixable": false,
+                  "description": "Suppress with an inline comment above the duplicated code",
+                  "comment": "// fallow-ignore-next-line code-duplication"
+                }
+              ]
+            }
+          ],
+          "stats": {
+            "total_files": 4,
+            "files_with_clones": 2,
+            "total_lines": 23,
+            "duplicated_lines": 14,
+            "total_tokens": 274,
+            "duplicated_tokens": 102,
+            "clone_groups": 1,
+            "clone_families": 1,
+            "clone_instances": 2,
+            "duplication_percentage": 60.86956521739131
+          }
+        },
+        "health": {
+          "findings": [],
+          "summary": {
+            "files_analyzed": 5,
+            "functions_analyzed": 11,
+            "functions_above_threshold": 0,
+            "max_cyclomatic_threshold": 20,
+            "max_cognitive_threshold": 15,
+            "max_crap_threshold": 30,
+            "max_unit_size_threshold": 60,
+            "files_scored": 4,
+            "average_maintainability": 95.9,
+            "coverage_model": "static_estimated",
+            "severity_critical_count": 0,
+            "severity_high_count": 0,
+            "severity_moderate_count": 0
+          },
+          "sections": [
+            "complexity",
+            "vital-signs",
+            "file-scores",
+            "hotspots",
+            "targets"
+          ],
+          "vital_signs": {
+            "dead_file_pct": 0,
+            "dead_export_pct": 20,
+            "avg_cyclomatic": 1,
+            "critical_complexity_pct": 0,
+            "p90_cyclomatic": 1,
+            "cyclomatic_population": {
+              "functions": {
+                "count": 11,
+                "sum": 11,
+                "max": 1
+              },
+              "modules": {
+                "count": 0,
+                "sum": 0,
+                "max": null
+              },
+              "templates": {
+                "count": 0,
+                "sum": 0,
+                "max": null
+              }
+            },
+            "hotspot_count": 0,
+            "hotspot_top_pct_count": 0,
+            "maintainability_avg": 95.9,
+            "maintainability_low_pct": 0,
+            "unused_dep_count": 0,
+            "unused_deps_per_k_files": 0,
+            "circular_dep_count": 0,
+            "circular_deps_per_k_files": 0,
+            "counts": {
+              "total_files": 5,
+              "total_exports": 5,
+              "dead_files": 0,
+              "dead_exports": 1,
+              "total_lines": 32,
+              "files_scored": 4,
+              "total_deps": 0
+            },
+            "unit_size_profile": {
+              "low_risk": 100,
+              "medium_risk": 0,
+              "high_risk": 0,
+              "very_high_risk": 0
+            },
+            "functions_over_60_loc_per_k": 0,
+            "unit_interfacing_profile": {
+              "low_risk": 100,
+              "medium_risk": 0,
+              "high_risk": 0,
+              "very_high_risk": 0
+            },
+            "p95_fan_in": 1,
+            "coupling_high_pct": 0,
+            "total_loc": 32
+          },
+          "file_scores": [
+            {
+              "path": "lib.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0.5,
+              "complexity_density": 0.67,
+              "maintainability_index": 88.8,
+              "total_cyclomatic": 2,
+              "total_cognitive": 0,
+              "function_count": 2,
+              "lines": 3,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            },
+            {
+              "path": "clone-a.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0,
+              "complexity_density": 0.44,
+              "maintainability_index": 97.6,
+              "total_cyclomatic": 4,
+              "total_cognitive": 0,
+              "function_count": 4,
+              "lines": 9,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            },
+            {
+              "path": "clone-b.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0,
+              "complexity_density": 0.44,
+              "maintainability_index": 97.6,
+              "total_cyclomatic": 4,
+              "total_cognitive": 0,
+              "function_count": 4,
+              "lines": 9,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            },
+            {
+              "path": "security.js",
+              "fan_in": 1,
+              "fan_out": 0,
+              "dead_code_ratio": 0,
+              "complexity_density": 0.2,
+              "maintainability_index": 99.4,
+              "total_cyclomatic": 1,
+              "total_cognitive": 0,
+              "function_count": 1,
+              "lines": 5,
+              "crap_max": 2,
+              "crap_above_threshold": 0
+            }
+          ],
+          "target_thresholds": {
+            "fan_in_p95": 5,
+            "fan_in_p75": 3,
+            "fan_out_p95": 8,
+            "fan_out_p90": 5
+          }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "hotspots-skipped",
+            "cause": "not-a-repository",
+            "message": "Hotspot analysis was skipped because no git repository was found at the project root, so the hotspots, churn and ownership sections report nothing rather than zero. Run fallow inside the repository, or pass --churn-file with exported change history.",
+            "degrades_analysis": true
+          }
+        ],
+        "next_steps": [
+          {
+            "id": "setup",
+            "command": "fallow agent install --dry-run",
+            "reason": "fallow has no config here; offer the user `fallow init` for a config, and this dry run previews the agent guide, skills, MCP server, and commit gate"
+          },
+          {
+            "id": "trace-unused-export",
+            "command": "fallow dead-code --trace lib.js:unused",
+            "reason": "verify an export is truly unused before deleting"
+          },
+          {
+            "id": "trace-clone",
+            "command": "fallow dupes --trace dup:414235dd",
+            "reason": "see sibling locations and an extract-function suggestion"
+          }
+        ],
+        "_meta": {
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        }
+      }
+    },
+    "type-aware-unavailable": {
+      "args": [
+        "health",
+        "--no-cache",
+        "--type-aware",
+        "--type-aware-project",
+        "missing-tsconfig.json",
+        "--type-coupling",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "health",
+        "schema_version": 13,
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "findings": [],
+        "summary": {
+          "files_analyzed": 5,
+          "functions_analyzed": 11,
+          "functions_above_threshold": 0,
+          "max_cyclomatic_threshold": 20,
+          "max_cognitive_threshold": 15,
+          "max_crap_threshold": 30,
+          "max_unit_size_threshold": 60,
+          "severity_critical_count": 0,
+          "severity_high_count": 0,
+          "severity_moderate_count": 0
+        },
+        "sections": [
+          "vital-signs"
+        ],
+        "vital_signs": {
+          "dead_file_pct": 0,
+          "dead_export_pct": 20,
+          "avg_cyclomatic": 1,
+          "critical_complexity_pct": 0,
+          "p90_cyclomatic": 1,
+          "cyclomatic_population": {
+            "functions": {
+              "count": 11,
+              "sum": 11,
+              "max": 1
+            },
+            "modules": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            },
+            "templates": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            }
+          },
+          "maintainability_avg": 95.9,
+          "maintainability_low_pct": 0,
+          "unused_dep_count": 0,
+          "unused_deps_per_k_files": 0,
+          "circular_dep_count": 0,
+          "circular_deps_per_k_files": 0,
+          "counts": {
+            "total_files": 5,
+            "total_exports": 5,
+            "dead_files": 0,
+            "dead_exports": 1,
+            "total_lines": 32,
+            "files_scored": 4,
+            "total_deps": 0
+          },
+          "unit_size_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "functions_over_60_loc_per_k": 0,
+          "unit_interfacing_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "p95_fan_in": 1,
+          "coupling_high_pct": 0,
+          "total_loc": 32
+        },
+        "gate_outcomes": {
+          "health-findings": {
+            "status": "pass",
+            "enforced": true,
+            "observed": 0,
+            "threshold_label": "error"
+          }
+        },
+        "_meta": {
+          "type_aware": {
+            "identity": {
+              "mode": "type-aware",
+              "semantic_schema_version": 3,
+              "capabilities": [
+                "type-coupling"
+              ],
+              "project_config_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "backend_family": "typescript-go",
+              "completeness": "unavailable"
+            },
+            "required_completeness": "best-effort",
+            "queries": [
+              {
+                "query_id": 0,
+                "capability": "type-coupling",
+                "assertion": "no-coupling-found",
+                "status": "unavailable",
+                "reason_code": "no-project",
+                "total_evidence_count": 0,
+                "truncated": false,
+                "omissions": [
+                  {
+                    "reason_code": "no-project",
+                    "count": 1
+                  }
+                ],
+                "actions": [
+                  "Pass an explicit tsconfig with --type-aware-project and retry."
+                ]
+              }
+            ],
+            "type_coupling": {
+              "identity": {
+                "mode": "type-aware",
+                "semantic_schema_version": 3,
+                "capabilities": [
+                  "type-coupling"
+                ],
+                "project_config_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "backend_family": "typescript-go",
+                "completeness": "unavailable"
+              },
+              "assertion": "no-coupling-found",
+              "status": "unavailable",
+              "files": [],
+              "omissions": [
+                {
+                  "reason_code": "no-project",
+                  "count": 1
+                }
+              ],
+              "actions": [
+                "Pass an explicit tsconfig with --type-aware-project and retry."
+              ]
+            },
+            "executed": true,
+            "protocol_version": 7,
+            "sidecar_version": "3.43.1",
+            "backend": "typescript-go",
+            "backend_version": "7.0.2",
+            "selected_tsconfigs": [],
+            "candidate_count": 0,
+            "confirmed_used_count": 0,
+            "contract_preserved_count": 0,
+            "no_static_references_count": 0,
+            "fix_eligible_count": 0,
+            "unresolved_count": 0,
+            "abstained_count": 0,
+            "abstention_reasons": {
+              "no_project": 0,
+              "ambiguous_project": 0,
+              "blocking_diagnostics": 0,
+              "svelte_virtual_module_exports": 0,
+              "unknown_symbol": 0,
+              "unsupported_syntax": 0,
+              "capacity": 0
+            },
+            "projects": [],
+            "warning_count": 0,
+            "warnings": [],
+            "elapsed_ms": 0,
+            "phase_timings_ms": {
+              "project_setup": 0,
+              "diagnostics": 0,
+              "symbol_scan": 0
+            }
+          },
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ]
+      }
+    },
+    "similar-status": {
+      "args": [
+        "similar-code",
+        "status",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "similar-code-status",
+        "schema_version": "1",
+        "version": "3.43.1",
+        "protocol_version": 2,
+        "embedding_semantics_version": 2,
+        "companion_version": "3.43.1",
+        "model_ready": false,
+        "model_id": "jinaai/jina-embeddings-v2-base-code",
+        "model_revision": "516f4baf13dec4ddddda8631e019b5737c8bc250",
+        "dimensions": 768,
+        "max_tokens": 1024,
+        "license": "Apache-2.0",
+        "cache_dir": "<ISOLATED_MODEL_CACHE>",
+        "download_bytes": 324329844,
+        "analysis_offline": true,
+        "integrity_verified": false,
+        "problem": "the local model is not installed; run `fallow similar-code setup --local`"
+      }
+    },
+    "similar-missing-model": {
+      "args": [
+        "similar-code",
+        "--no-cache",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 3,
+      "report": {
+        "error": true,
+        "message": "the local model is not installed; run `fallow similar-code setup --local`",
+        "exit_code": 3,
+        "code": "FALLOW_SIMILAR_CODE_NOT_READY"
+      }
+    },
+    "coverage-missing-value": {
+      "args": [
+        "coverage",
+        "analyze",
+        "--runtime-coverage",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 2,
+      "report": {
+        "error": true,
+        "message": "error: a value is required for '--runtime-coverage <PATH>' but none was supplied\n\nFor more information, try '--help'.",
+        "exit_code": 2,
+        "code": "FALLOW_INVALID_CLI_ARGUMENTS",
+        "help": "Run `fallow --help` or `fallow <command> --help` to check accepted arguments and required values."
+      }
+    },
+    "inspect-missing-inputs": {
+      "args": [
+        "similar-code",
+        "inspect",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 2,
+      "report": {
+        "error": true,
+        "message": "error: the following required arguments were not provided:\n  --candidates <PATH>\n  <CANDIDATE_ID>\n\nUsage: fallow similar-code inspect --format <FORMAT> --quiet --candidates <PATH> <CANDIDATE_ID>\n\nFor more information, try '--help'.",
+        "exit_code": 2,
+        "code": "FALLOW_INVALID_CLI_ARGUMENTS",
+        "help": "Run `fallow --help` or `fallow <command> --help` to check accepted arguments and required values."
+      }
+    },
+    "review-missing-inputs": {
+      "args": [
+        "similar-code",
+        "review",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 2,
+      "report": {
+        "error": true,
+        "message": "error: the following required arguments were not provided:\n  --candidates <PATH>\n  --verdicts <PATH>\n\nUsage: fallow similar-code review --candidates <PATH> --verdicts <PATH> --format <FORMAT> --quiet\n\nFor more information, try '--help'.",
+        "exit_code": 2,
+        "code": "FALLOW_INVALID_CLI_ARGUMENTS",
+        "help": "Run `fallow --help` or `fallow <command> --help` to check accepted arguments and required values."
+      }
+    },
+    "type-aware-partial": {
+      "args": [
+        "health",
+        "--no-cache",
+        "--type-aware",
+        "--type-aware-project",
+        "tsconfig.valid.json",
+        "--type-aware-project",
+        "tsconfig.broken.json",
+        "--type-coupling",
+        "--format",
+        "json",
+        "--quiet"
+      ],
+      "exitCode": 0,
+      "report": {
+        "kind": "health",
+        "schema_version": 13,
+        "version": "3.43.1",
+        "elapsed_ms": 0,
+        "findings": [],
+        "summary": {
+          "files_analyzed": 2,
+          "functions_analyzed": 1,
+          "functions_above_threshold": 0,
+          "max_cyclomatic_threshold": 20,
+          "max_cognitive_threshold": 15,
+          "max_crap_threshold": 30,
+          "max_unit_size_threshold": 60,
+          "severity_critical_count": 0,
+          "severity_high_count": 0,
+          "severity_moderate_count": 0
+        },
+        "sections": [
+          "vital-signs"
+        ],
+        "vital_signs": {
+          "dead_file_pct": 50,
+          "dead_export_pct": 0,
+          "avg_cyclomatic": 1,
+          "critical_complexity_pct": 0,
+          "p90_cyclomatic": 1,
+          "cyclomatic_population": {
+            "functions": {
+              "count": 1,
+              "sum": 1,
+              "max": 1
+            },
+            "modules": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            },
+            "templates": {
+              "count": 0,
+              "sum": 0,
+              "max": null
+            }
+          },
+          "maintainability_avg": 99.4,
+          "maintainability_low_pct": 0,
+          "unused_dep_count": 0,
+          "unused_deps_per_k_files": 0,
+          "circular_dep_count": 0,
+          "circular_deps_per_k_files": 0,
+          "counts": {
+            "total_files": 2,
+            "total_exports": 2,
+            "dead_files": 1,
+            "dead_exports": 0,
+            "total_lines": 5,
+            "files_scored": 1,
+            "total_deps": 0
+          },
+          "unit_size_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "functions_over_60_loc_per_k": 0,
+          "unit_interfacing_profile": {
+            "low_risk": 100,
+            "medium_risk": 0,
+            "high_risk": 0,
+            "very_high_risk": 0
+          },
+          "p95_fan_in": 0,
+          "coupling_high_pct": 0,
+          "total_loc": 5
+        },
+        "gate_outcomes": {
+          "health-findings": {
+            "status": "pass",
+            "enforced": true,
+            "observed": 0,
+            "threshold_label": "error"
+          }
+        },
+        "_meta": {
+          "type_aware": {
+            "identity": {
+              "mode": "type-aware",
+              "semantic_schema_version": 3,
+              "capabilities": [
+                "type-coupling"
+              ],
+              "project_config_hash": "sha256:bc2575347694668c5559421596eeba33d2b239faeb572ff741d964e75947dce8",
+              "backend_family": "typescript-go",
+              "completeness": "partial"
+            },
+            "required_completeness": "best-effort",
+            "queries": [
+              {
+                "query_id": 0,
+                "capability": "type-coupling",
+                "assertion": "no-coupling-found",
+                "status": "partial",
+                "reason_code": "blocking-diagnostics",
+                "total_evidence_count": 0,
+                "truncated": false,
+                "omissions": [
+                  {
+                    "reason_code": "blocking-diagnostics",
+                    "count": 1
+                  }
+                ],
+                "actions": [
+                  "Repair structural TypeScript diagnostics in every selected project and retry."
+                ]
+              }
+            ],
+            "type_coupling": {
+              "identity": {
+                "mode": "type-aware",
+                "semantic_schema_version": 3,
+                "capabilities": [
+                  "type-coupling"
+                ],
+                "project_config_hash": "sha256:bc2575347694668c5559421596eeba33d2b239faeb572ff741d964e75947dce8",
+                "backend_family": "typescript-go",
+                "completeness": "partial"
+              },
+              "assertion": "no-coupling-found",
+              "status": "partial",
+              "summary": {
+                "scope": "project-local-public-signatures",
+                "direction": "directed",
+                "project_size": 1,
+                "files_analyzed": 1,
+                "distinct_coupled_files": 0,
+                "edge_count": 0,
+                "coupled_file_pct": 0,
+                "p50_distinct_connections": 0,
+                "p90_distinct_connections": 0,
+                "p95_public_types_used_by": 0,
+                "p95_public_api_depends_on": 0,
+                "high_coupling_pct": 0,
+                "concentration": 0,
+                "cycle_count": 0
+              },
+              "files": [],
+              "omissions": [
+                {
+                  "reason_code": "blocking-diagnostics",
+                  "count": 1
+                }
+              ],
+              "actions": [
+                "Repair structural TypeScript diagnostics in every selected project and retry."
+              ]
+            },
+            "executed": true,
+            "protocol_version": 7,
+            "sidecar_version": "3.43.1",
+            "backend": "typescript-go",
+            "backend_version": "7.0.2",
+            "selected_tsconfigs": [
+              "tsconfig.broken.json",
+              "tsconfig.valid.json"
+            ],
+            "candidate_count": 0,
+            "confirmed_used_count": 0,
+            "contract_preserved_count": 0,
+            "no_static_references_count": 0,
+            "fix_eligible_count": 0,
+            "unresolved_count": 0,
+            "abstained_count": 0,
+            "abstention_reasons": {
+              "no_project": 0,
+              "ambiguous_project": 0,
+              "blocking_diagnostics": 0,
+              "svelte_virtual_module_exports": 0,
+              "unknown_symbol": 0,
+              "unsupported_syntax": 0,
+              "capacity": 0
+            },
+            "projects": [
+              {
+                "config": "tsconfig.broken.json",
+                "source": "explicit",
+                "status": "unavailable",
+                "candidate_count": 0,
+                "confirmed_used_count": 0,
+                "contract_preserved_count": 0,
+                "no_static_references_count": 0,
+                "fix_eligible_count": 0,
+                "unresolved_count": 0,
+                "abstained_count": 0,
+                "blocking_diagnostic_count": 1,
+                "source_file_count": 83,
+                "program_reused": false,
+                "program_shared_across_queries": false,
+                "reason_code": "blocking-diagnostics"
+              },
+              {
+                "config": "tsconfig.valid.json",
+                "source": "explicit",
+                "status": "complete",
+                "candidate_count": 0,
+                "confirmed_used_count": 0,
+                "contract_preserved_count": 0,
+                "no_static_references_count": 0,
+                "fix_eligible_count": 0,
+                "unresolved_count": 0,
+                "abstained_count": 0,
+                "blocking_diagnostic_count": 0,
+                "source_file_count": 83,
+                "program_reused": false,
+                "program_shared_across_queries": false
+              }
+            ],
+            "warning_count": 0,
+            "warnings": [],
+            "elapsed_ms": 0,
+            "phase_timings_ms": {
+              "project_setup": 0,
+              "diagnostics": 0,
+              "symbol_scan": 0
+            }
+          },
+          "telemetry": {
+            "analysis_run_id": "<RUN_ID>"
+          }
+        },
+        "workspace_diagnostics": [
+          {
+            "path": "broken.ts",
+            "kind": "source-parse-degraded",
+            "error_count": 1,
+            "panicked": true,
+            "message": "Parsed 'broken.ts' with 1 error(s); the parser stopped there. Imports, exports, and references it did not reach are missing from this run, so files and symbols it uses can be reported as unused. Fix the syntax, or ignore this if the file uses syntax newer than fallow's parser.",
+            "degrades_analysis": true
+          },
+          {
+            "path": ".",
+            "kind": "boundaries-not-configured",
+            "message": "No architecture boundaries are configured, so the boundary detector did not run and its violation counts are zero because nothing was measured. Add `boundaries` to the config, or set `boundary-violation` to off to state that the check is not wanted."
+          },
+          {
+            "path": ".",
+            "kind": "rule-packs-not-configured",
+            "message": "No rule packs are configured, so the policy detector did not run and its violation counts are zero because nothing was measured. Add `rulePacks` to the config, or set `policy-violation` to off to state that the check is not wanted."
+          }
+        ]
+      }
+    }
+  },
+  "help": {
+    "coverage-analyze": {
+      "args": [
+        "coverage",
+        "analyze",
+        "--help"
+      ],
+      "requiredUsage": "Usage: fallow coverage analyze",
+      "options": {
+        "--runtime-coverage": "<PATH>",
+        "--cloud": "boolean",
+        "--api-key": "<KEY>",
+        "--api-endpoint": "<URL>",
+        "--repo": "<OWNER/REPO>",
+        "--project-id": "<ID>",
+        "--coverage-period": "<DAYS>",
+        "--environment": "<ENV>",
+        "--commit-sha": "<SHA>",
+        "--production": "boolean",
+        "--min-invocations-hot": "<MIN_INVOCATIONS_HOT>",
+        "--min-observation-volume": "<N>",
+        "--low-traffic-threshold": "<RATIO>",
+        "--top": "<TOP>",
+        "--blast-radius": "boolean",
+        "--importance": "boolean",
+        "--debug-unmatched": "boolean",
+        "--root": "<ROOT>",
+        "--config": "<CONFIG>",
+        "--allow-remote-extends": "boolean",
+        "--format": "<FORMAT>",
+        "--pretty": "boolean",
+        "--lean": "boolean",
+        "--full-tables": "boolean",
+        "--quiet": "boolean",
+        "--no-cache": "boolean",
+        "--threads": "<THREADS>",
+        "--changed-since": "<CHANGED_SINCE>",
+        "--no-package-baselines": "boolean",
+        "--diff-file": "<PATH>",
+        "--diff-stdin": "boolean",
+        "--churn-file": "<PATH>",
+        "--max-file-size": "<MB>",
+        "--baseline": "<BASELINE>",
+        "--baseline-mode": "<BASELINE_MODE>",
+        "--save-baseline": "<SAVE_BASELINE>",
+        "--no-production": "boolean",
+        "--workspace": "<WORKSPACE>",
+        "--changed-workspaces": "<REF>",
+        "--group-by": "<GROUP_BY>",
+        "--group": "<KEY>",
+        "--performance": "boolean",
+        "--explain": "boolean",
+        "--explain-skipped": "boolean",
+        "--summary": "boolean",
+        "--ci": "boolean",
+        "--fail-on-issues": "boolean",
+        "--sarif-file": "<PATH>",
+        "--output-file": "<PATH>",
+        "--report-path-prefix": "<PREFIX>",
+        "--fail-on-regression": "boolean",
+        "--fail-on-stale-baseline": "boolean",
+        "--fail-on-baseline-growth": "boolean",
+        "--baseline-base": "<REF>",
+        "--fail-on-parse-error": "boolean",
+        "--tolerance": "<TOLERANCE>",
+        "--regression-baseline": "<PATH>",
+        "--save-regression-baseline": "[<PATH>]",
+        "--dupes-mode": "<DUPES_MODE>",
+        "--dupes-near": "boolean",
+        "--dupes-threshold": "<DUPES_THRESHOLD>",
+        "--dupes-min-tokens": "<DUPES_MIN_TOKENS>",
+        "--dupes-min-lines": "<DUPES_MIN_LINES>",
+        "--dupes-min-occurrences": "<DUPES_MIN_OCCURRENCES>",
+        "--dupes-skip-local": "boolean",
+        "--dupes-cross-language": "boolean",
+        "--dupes-ignore-imports": "boolean",
+        "--dupes-no-ignore-imports": "boolean",
+        "--dupes-ignore-symlinks": "boolean",
+        "--dupes-no-ignore-symlinks": "boolean",
+        "--include-entry-exports": "boolean",
+        "--show-cascade": "boolean",
+        "--type-aware": "boolean",
+        "--no-type-aware": "boolean",
+        "--type-aware-project": "<PATH>",
+        "--type-aware-require": "<TYPE_AWARE_REQUIRE>",
+        "--help": "boolean"
+      }
+    },
+    "similar-discovery": {
+      "args": [
+        "similar-code",
+        "--help"
+      ],
+      "requiredUsage": "Usage: fallow similar-code",
+      "options": {
+        "--root": "<ROOT>",
+        "--config": "<CONFIG>",
+        "--allow-remote-extends": "boolean",
+        "--format": "<FORMAT>",
+        "--pretty": "boolean",
+        "--quiet": "boolean",
+        "--no-cache": "boolean",
+        "--threads": "<THREADS>",
+        "--changed-since": "<REF>",
+        "--diff-file": "<PATH>",
+        "--diff-stdin": "boolean",
+        "--workspace": "<WORKSPACE>",
+        "--changed-workspaces": "<REF>",
+        "--max-file-size": "<MB>",
+        "--explain": "boolean",
+        "--threshold": "<0..1>",
+        "--min-lines": "<N>",
+        "--top": "<N>",
+        "--file": "<PATH>",
+        "--output-file": "<PATH>",
+        "--help": "boolean"
+      }
+    },
+    "similar-inspect": {
+      "args": [
+        "similar-code",
+        "inspect",
+        "--help"
+      ],
+      "requiredUsage": "Usage: fallow similar-code inspect <CANDIDATE_ID> --candidates <PATH>",
+      "options": {
+        "--root": "<ROOT>",
+        "--config": "<CONFIG>",
+        "--allow-remote-extends": "boolean",
+        "--candidates": "<PATH>",
+        "--format": "<FORMAT>",
+        "--pretty": "boolean",
+        "--quiet": "boolean",
+        "--output-file": "<PATH>",
+        "--help": "boolean"
+      }
+    },
+    "similar-review": {
+      "args": [
+        "similar-code",
+        "review",
+        "--help"
+      ],
+      "requiredUsage": "Usage: fallow similar-code review --candidates <PATH> --verdicts <PATH>",
+      "options": {
+        "--candidates": "<PATH>",
+        "--verdicts": "<PATH>",
+        "--require-verdict-for-each-candidate": "boolean",
+        "--format": "<FORMAT>",
+        "--pretty": "boolean",
+        "--quiet": "boolean",
+        "--output-file": "<PATH>",
+        "--help": "boolean"
+      }
+    }
+  }
+}

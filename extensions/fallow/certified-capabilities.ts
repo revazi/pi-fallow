@@ -1,19 +1,19 @@
-/** Frozen projection of Fallow 3.42.0; update only with reviewed certification evidence. */
+/** Frozen projection of Fallow 3.43.1; update only with reviewed certification evidence. */
 export const certifiedFallowCapabilities = {
 	name: "fallow",
-	certifiedVersion: "3.42.0",
+	certifiedVersion: "3.43.1",
 	manifestVersion: "1",
 	defaultCommand: null,
 	outputFormats: ["human","json","sarif","compact","markdown","md","codeclimate","gitlab-codequality","gitlab-code-quality","pr-comment-github","pr-comment-gitlab","review-github","review-gitlab","badge","github-annotations","github-summary"],
 	globalFlags: ["path","--root","--config","--allow-remote-extends","--format","--pretty","--lean","--full-tables","--quiet","--no-cache","--threads","--changed-since","--no-package-baselines","--diff-file","--diff-stdin","--churn-file","--max-file-size","--baseline","--baseline-mode","--parent-run","--save-baseline","--production","--no-production","--production-dead-code","--production-health","--production-dupes","--workspace","--changed-workspaces","--group-by","--group","--performance","--explain","--explain-skipped","--summary","--ci","--fail-on-issues","--sarif-file","--output-file","--report-path-prefix","--fail-on-regression","--fail-on-stale-baseline","--fail-on-baseline-growth","--baseline-base","--fail-on-parse-error","--tolerance","--regression-baseline","--save-regression-baseline","--only","--skip","--dupes-mode","--dupes-near","--dupes-threshold","--dupes-min-tokens","--dupes-min-lines","--dupes-min-occurrences","--dupes-skip-local","--dupes-cross-language","--dupes-ignore-imports","--dupes-no-ignore-imports","--dupes-ignore-symlinks","--dupes-no-ignore-symlinks","--score","--trend","--trend-from","--save-snapshot","--coverage","--coverage-root","--dupes-baseline","--health-baseline","--include-entry-exports","--show-cascade","--type-aware","--no-type-aware","--type-aware-project","--type-aware-require"],
 	commands: {
-		"dead-code": ["--unused-files","--unused-exports","--unused-deps","--unused-types","--private-type-leaks","--deprecated-exports-in-use","--unused-enum-members","--unused-class-members","--unused-store-members","--unused-namespace-members","--unprovided-injects","--unrendered-components","--unused-component-props","--absent-component-props","--unused-component-emits","--unused-component-inputs","--unused-component-outputs","--unused-svelte-events","--unused-effect-layers","--unused-tagged-errors","--unproduced-catch-tags","--unused-server-actions","--unused-load-data-keys","--unresolved-imports","--unlisted-deps","--unlisted-binaries","--duplicate-exports","--duplicate-export-aliases","--circular-deps","--re-export-cycles","--package-cycles","--boundary-violations","--policy-violations","--stale-suppressions","--unused-catalog-entries","--empty-catalog-groups","--unresolved-catalog-references","--unused-dependency-overrides","--misconfigured-dependency-overrides","--include-dupes","--trace","--trace-file","--trace-dependency","--impact-closure","--symbol-impact","--top","--file","--finding-id","path"],
-		"architecture": ["--cycles","--boundaries","--policy","--file","--finding-id","path"],
+		"dead-code": ["--unused-files","--unused-exports","--unused-deps","--unused-types","--private-type-leaks","--deprecated-exports-in-use","--unused-enum-members","--unused-class-members","--unused-store-members","--unused-namespace-members","--unprovided-injects","--unrendered-components","--unused-component-props","--absent-component-props","--constant-parameters","--unused-component-emits","--unused-component-inputs","--unused-component-outputs","--unused-svelte-events","--unused-effect-layers","--unused-tagged-errors","--unproduced-catch-tags","--unused-server-actions","--unused-load-data-keys","--unresolved-imports","--unlisted-deps","--unlisted-binaries","--duplicate-exports","--duplicate-export-aliases","--circular-deps","--re-export-cycles","--package-cycles","--boundary-violations","--policy-violations","--stale-suppressions","--unused-catalog-entries","--empty-catalog-groups","--unresolved-catalog-references","--unused-dependency-overrides","--misconfigured-dependency-overrides","--include-dupes","--trace","--trace-file","--trace-dependency","--impact-closure","--symbol-impact","--top","--file","--finding-id","path"],
+		"architecture": ["--shared-state","--cycles","--boundaries","--policy","--file","--finding-id","path"],
 		"watch": ["--no-clear"],
 		"type-aware": [],
 		"doctor": [],
 		"similar-code": ["--threshold","--min-lines","--top","--file","path"],
-		"mutation": ["--all","--plan","--max-mutants","--mutants-per-line","--function-scope","--time-budget","--concurrency","--runtime","--allow-dirty","--allow-side-effects","--min-score","--operators","--verdicts","--setup-timeout","--runner-config","--typecheck","--resume","--kill-matrix","--kill-matrix-for","--recheck","--report","--mutant","--compare","paths"],
+		"mutation": ["--all","--plan","--max-mutants","--mutants-per-line","--function-scope","--time-budget","--concurrency","--runtime","--allow-dirty","--allow-side-effects","--record-args","--min-score","--operators","--verdicts","--setup-timeout","--runner-config","--typecheck","--resume","--kill-matrix","--kill-matrix-for","--recheck","--report","--mutant","--compare","paths"],
 		"inspect": ["--file","--symbol","--symbol-chain","--churn","--cloud","--repo"],
 		"cloud": [],
 		"trace": ["symbol","--dependency","--specifier","--sites","--limit","--cursor","--path","--eager-only","--callers","--callees","--depth"],
@@ -38,7 +38,7 @@ export const certifiedFallowCapabilities = {
 		"flags": ["--top","--retirement","--reason","--sort","--flag-age","--min-age","--flag-state","--max-flag-age"],
 		"suppressions": ["--file"],
 		"explain": ["issue_type"],
-		"audit": ["--production-dead-code","--production-health","--production-dupes","--dead-code-baseline","--health-baseline","--dupes-baseline","--max-crap","--coverage","--coverage-root","--only","--skip","--no-css","--css-deep","--no-css-deep","--gate","--worsened","--runtime-coverage","--min-invocations-hot","--gate-marker","--brief","--max-decisions","--walkthrough-guide","--walkthrough-file","--walkthrough","--mark-viewed","--show-cleared","--show-deprioritized","path"],
+		"audit": ["--production-dead-code","--production-health","--production-dupes","--dead-code-baseline","--health-baseline","--dupes-baseline","--max-crap","--coverage","--coverage-root","--only","--skip","--no-css","--css-deep","--no-css-deep","--gate","--worsened","--runtime-coverage","--min-invocations-hot","--mutation-report","--gate-marker","--staged","--brief","--max-decisions","--walkthrough-guide","--walkthrough-file","--walkthrough","--mark-viewed","--show-cleared","--show-deprioritized","path"],
 		"audit-cache": [],
 		"baselines": [],
 		"decision-surface": ["--max-decisions"],
@@ -95,6 +95,7 @@ export const certifiedFallowCapabilities = {
 		["unprovided-inject","dead-code","unprovided_injects"],
 		["unrendered-component","dead-code","unrendered_components"],
 		["absent-component-prop","dead-code","absent_component_props"],
+		["constant-parameter","dead-code","constant_parameters"],
 		["unused-component-prop","dead-code","unused_component_props"],
 		["unused-component-emit","dead-code","unused_component_emits"],
 		["unused-component-input","dead-code","unused_component_inputs"],
@@ -192,5 +193,5 @@ export const certifiedFallowCapabilities = {
 	],
 	relatedSchemaCommands: ["fallow config-schema","fallow rule-pack-schema","fallow plugin-schema","fallow plugin-check"],
 	resourceUris: ["fallow://tools","fallow://issue-types","fallow://explain","fallow://task-matrix","fallow://schema/config","fallow://schema/plugin","fallow://schema/rule-pack","fallow://schema/similar-code-snapshot","fallow://tools/{name}","fallow://explain/{issue_type}"],
-	reportSchemas: {"combined":"15","dead-code":"10","dupes":"10","health":"13","security":"8","runtime-coverage":"3"},
+	reportSchemas: {"combined":"15","dead-code":"11","dupes":"10","health":"13","security":"8","runtime-coverage":"3"},
 } as const;
