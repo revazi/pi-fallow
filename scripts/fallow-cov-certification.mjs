@@ -121,6 +121,13 @@ export async function collectCoverageEvidence() {
 	}
 }
 
+export function historicalCoverageContract(historical, targetVersion) {
+	const expected = structuredClone(historical);
+	expected.fallowVersion = targetVersion;
+	expected.report.version = targetVersion;
+	return expected;
+}
+
 async function main() {
 	const evidence = await collectCoverageEvidence();
 	const destination = join(fixtures, `coverage-report-${evidence.fallowVersion}.json`);
@@ -131,9 +138,17 @@ async function main() {
 		return;
 	}
 	assert.equal(process.argv.length, 2, "Usage: fallow-cov-certification.mjs [--write]");
-	const frozen = JSON.parse(await readFile(destination, "utf8"));
-	assertEvidenceSubset(evidence, frozen, "fallow-cov certification");
-	console.log("Optional fallow-cov certification passed.");
+	if (existsSync(destination)) {
+		const frozen = JSON.parse(await readFile(destination, "utf8"));
+		assertEvidenceSubset(evidence, frozen, "fallow-cov certification");
+		console.log("Optional fallow-cov certification passed.");
+		return;
+	}
+	// Until a current-version capture is reviewed, compare the live hosted run
+	// against the historical 3.42 contract without relabeling that capture.
+	const historical = JSON.parse(await readFile(join(fixtures, "coverage-report-3.42.0.json"), "utf8"));
+	assertEvidenceSubset(evidence, historicalCoverageContract(historical, evidence.fallowVersion), "fallow-cov historical contract comparison");
+	console.log("Optional fallow-cov historical contract comparison passed; current-version capture not certified.");
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

@@ -5,6 +5,7 @@ import { dirname } from "node:path";
 import { describe, it } from "node:test";
 import { createJiti } from "jiti";
 import { assertEvidenceSubset } from "../scripts/report-certification.mjs";
+import { historicalCoverageContract } from "../scripts/fallow-cov-certification.mjs";
 
 const jiti = createJiti(import.meta.url);
 const { parseJson } = await jiti.import("../extensions/fallow/json.ts");
@@ -21,10 +22,12 @@ function changedEvidence(change) {
 }
 
 describe("optional fallow-cov certification", () => {
-	it("binds a real V8 capture to pinned Fallow, Node, sidecar, license, and source input", async () => {
+	it("binds historical V8 evidence to its original Fallow, Node, sidecar, license, and source input", async () => {
 		const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 		const project = await readFile(new URL("./fixtures/fallow/coverage-project.json", import.meta.url));
-		assert.equal(frozen.fallowVersion, manifest.devDependencies.fallow);
+		assert.equal(frozen.fallowVersion, "3.42.0");
+		assert.equal(frozen.report.version, frozen.fallowVersion);
+		assert.notEqual(frozen.fallowVersion, manifest.devDependencies.fallow);
 		assert.equal(frozen.nodeMajor, 24);
 		assert.deepEqual(frozen.sidecar, {
 			package: "@fallow-cli/fallow-cov",
@@ -37,6 +40,17 @@ describe("optional fallow-cov certification", () => {
 		assert.match(manifest.scripts["check:publish"], /smoke:fallow-cov/);
 		assert.equal(frozen.inputSha256, createHash("sha256").update(project).digest("hex"));
 		assertEvidenceSubset(frozen, frozen);
+	});
+
+	it("compares a newer hosted run against historical fields without relabeling the capture", () => {
+		const expected = historicalCoverageContract(frozen, "3.43.1");
+		assert.equal(frozen.fallowVersion, "3.42.0");
+		assert.equal(frozen.report.version, "3.42.0");
+		assert.equal(expected.fallowVersion, "3.43.1");
+		assert.equal(expected.report.version, "3.43.1");
+		const changed = structuredClone(expected);
+		changed.report.runtime_coverage.verdict = "unknown";
+		assert.throws(() => assertEvidenceSubset(changed, expected), /verdict/);
 	});
 
 	it("captures successful local coverage with observed and tracked-cold functions", () => {
