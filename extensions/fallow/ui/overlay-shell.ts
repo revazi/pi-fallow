@@ -149,7 +149,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private handleEditorInput(data: string): boolean {
-		if (this.findings.hasModalInput) { this.findings.handleInput(data); return true; }
+		if (this.findings.hasModalInput) { this.followFindings = true; this.findings.handleInput(data); return true; }
 		if (this.isFormEditing()) { this.currentForm()!.handleInput(data); return true; }
 		return false;
 	}
@@ -290,7 +290,7 @@ export class FallowOverlayShell implements Component, Focusable {
 
 	private renderFindingsView(width: number, rows: number): string[] {
 		const content = this.findings.render(width, this.navigationLine(width - 4));
-		const fixedRows = Math.min(3, content.findIndex((line) => line.includes("[1 Findings]")) + 1);
+		const fixedRows = Math.min(3, content.findIndex((line) => line.includes("[1 Findings]")) + 1 + Number(this.findings.decisionNoteCount > 0));
 		const anchor = this.followFindings ? this.findings.viewportAnchor : undefined;
 		const adjustedAnchor = anchor === undefined ? undefined : Math.max(0, anchor - fixedRows);
 		return this.applyFrame(overlayFrame(
@@ -358,7 +358,7 @@ export class FallowOverlayShell implements Component, Focusable {
 	}
 
 	private findingsFooter(): string {
-		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "q close · ↑↓ findings · PgUp/PgDn viewport · 2 Similar · 3 Runtime";
+		return this.findings.isModalInput ? "Enter choose/finish · Esc dismiss · text keys stay here" : "p actions · e prompt · PgUp/PgDn scroll · q close";
 	}
 
 	private optionalContent(width: number): string[] {

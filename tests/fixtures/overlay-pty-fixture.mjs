@@ -13,7 +13,10 @@ const log = (event) => appendFileSync(process.argv[2], JSON.stringify(event) + "
 let mounts = 0;
 let runs = 0;
 let confirms = 0;
-const original = { title: "PTY original report", status: "success", stats: [], notes: [], sections: [{ title: "Exports", role: "finding", count: 1000,
+const original = { title: "Fallow project issues", status: "warning", stats: [], notes: [
+	...Array.from({ length: 8 }, (_, i) => `Gate gate-${i} (combined): fail; enforced.`),
+	"Baseline advisory (health): stale; excluded from issue counts.",
+], sections: [{ title: "Exports", role: "finding", count: 1000,
 	items: Array.from({ length: 1000 }, (_, i) => ({ label: `helper${i}`, path: `src/file${i}.ts`, severity: "high" })),
 }] };
 const result = await fallowEngine.runFallowWithExecutor({ pi: {}, cwd: process.cwd(), args: ["similar-code"], timeoutSecs: 1,
