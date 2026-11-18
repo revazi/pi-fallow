@@ -270,14 +270,17 @@ export class FallowIssueNavigator implements Component, Focusable {
 			this.theme,
 		);
 		lines.push(this.topBorder(frameWidth, title));
-		if (navigation) {
-			lines.push(this.frame(navigation, frameWidth));
-			if (this.decisionNoteCount) lines.push(this.frame(this.theme.fg("warning", `Gate/baseline notes: ${this.decisionNoteCount} · PgDn`), frameWidth));
-		}
+		this.renderNavigation(frameWidth, navigation, lines);
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
 		for (const line of this.filterLines(innerWidth)) lines.push(this.frame(line, frameWidth));
 		for (const line of wrapTextWithAnsi(this.helpLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
 		lines.push(this.separator(frameWidth));
+	}
+
+	private renderNavigation(frameWidth: number, navigation: string | undefined, lines: string[]): void {
+		if (!navigation) return;
+		lines.push(this.frame(navigation, frameWidth));
+		if (this.decisionNoteCount) lines.push(this.frame(this.theme.fg("warning", `Gate/baseline notes: ${this.decisionNoteCount} · PgDn`), frameWidth));
 	}
 
 	private decisionNotes(): string[] {

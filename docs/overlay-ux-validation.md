@@ -24,6 +24,15 @@ Bundle, health thresholds, duplication/dead-code checks, Fallow CLI smoke, the e
 - Preserve the cancellation status while late setup progress arrives.
 - Remove standalone optional-analysis select/input/confirm chains and their private command dispatch. `o` now opens Similar Code in the same overlay. The shared pinned setup safety workflow remains, with confirmation supplied only by the overlay.
 
+## Focused project-issues review
+
+A fixture-only review of empty, 1,000-finding, partial-child-failure, and gate/baseline reports identified the following related viewport problems before this change:
+
+- **High — gate-heavy reports hide navigation at 40×12.** With eight enforced gate notes and a baseline advisory, wrapped notes appeared ahead of the view tabs. For an empty report, they also displaced the empty-state message; with findings, following the selected row displaced the tabs and gate text instead. The condition reproduced using the overlay shell and synthetic report fixtures, not a provider workload.
+- **Medium — dismissing a findings modal can leave the selection off-screen.** At the same size, opening and dismissing the action palette left the viewport on help text rather than returning to the selected finding. This was reproduced in the native Pi PTY fixture while verifying the selected viewport fix.
+
+The selected fix addresses this single compact-Findings navigation problem: tabs and a gate/baseline note count stay in bounded chrome, the selected finding or empty state is initially visible, and `PgUp`/`PgDn` reach the complete displayed notes without changing selection. Modal dismissal follows the selected finding again. Notes remain separate from finding counts; enforced gate verdicts, baseline advisories, transcript redaction and complete report retention are unchanged. The fixture matrix covers zero, one and 1,000 findings at 40×12, 64×24 and 120×48, including palette use and every displayed note. Existing aggregate fixtures cover child failures, bounded transcripts and retained evidence. These automated results are not human visual acceptance or production wire certification.
+
 ## Automated matrix
 
 Run `npm test` (or `node --test tests/overlay-*.test.mjs`).
