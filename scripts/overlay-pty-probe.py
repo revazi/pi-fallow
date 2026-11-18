@@ -69,7 +69,23 @@ def probe(directory):
         wait(f"resize {columns}x{rows}", lambda f: f.get("rows") == rows and f.get("width", 999) <= columns)
 
     try:
-        text("native overlay mounted", "PTY original report")
+        text("native overlay mounted", "Fallow project issues")
+        resize(40, 12)
+        wait("compact gate report keeps tabs, notes and finding visible", lambda f: all(
+            value in f.get("text", "") for value in ["[1 Findings]", "Gate/baseline notes: 9", "helper0", "p actions"]))
+        key("p"); text("compact action palette", "Inspect file")
+        key("\x1b"); frame = text("return to finding", "helper0")
+        pages = frame["text"]
+        for index in range(15):
+            previous = frame["text"]
+            key("\x1b[6~")
+            frame = wait(f"scroll decision notes page {index}", lambda f: f.get("text", "") != previous)
+            pages += frame["text"]
+            if "Baseline advisory" in pages:
+                break
+        assert all(f"gate-{index}" in pages for index in range(8)) and "Baseline advisory" in pages
+        checks.append("all gate and baseline notes retained")
+        resize(100, 30)
         key("s"); text("original finding marked", "selected")
         view(2)
         key("s"); text("scope editing", "Enter validate")

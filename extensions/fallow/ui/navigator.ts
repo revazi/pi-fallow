@@ -100,6 +100,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 	private actionNotice?: string;
 	private selectedRow = 0;
 	get viewportAnchor(): number { return this.selectedRow; }
+	get decisionNoteCount(): number { return this.decisionNotes().length; }
 
 	private cachedWidth?: number;
 	private cachedNavigation?: string;
@@ -184,6 +185,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		this.selectedRow = 0;
 		this.renderHeader(frameWidth, innerWidth, visible, lines, navigation);
 		this.renderBody(frameWidth, innerWidth, visible, lines);
+		this.renderDecisionNotes(frameWidth, innerWidth, lines);
 		this.renderFooter(frameWidth, lines);
 		lines.push(this.bottomBorder(frameWidth));
 		return this.cache(width, lines);
@@ -268,17 +270,26 @@ export class FallowIssueNavigator implements Component, Focusable {
 			this.theme,
 		);
 		lines.push(this.topBorder(frameWidth, title));
+		this.renderNavigation(frameWidth, navigation, lines);
 		lines.push(...this.statLines(innerWidth).map((line) => this.frame(line, frameWidth)));
-		this.renderDecisionNotes(frameWidth, innerWidth, lines);
-		if (navigation) lines.push(this.frame(navigation, frameWidth));
 		for (const line of this.filterLines(innerWidth)) lines.push(this.frame(line, frameWidth));
 		for (const line of wrapTextWithAnsi(this.helpLine(), innerWidth)) lines.push(this.frame(line, frameWidth));
 		lines.push(this.separator(frameWidth));
 	}
 
+	private renderNavigation(frameWidth: number, navigation: string | undefined, lines: string[]): void {
+		if (!navigation) return;
+		lines.push(this.frame(navigation, frameWidth));
+		if (this.decisionNoteCount) lines.push(this.frame(this.theme.fg("warning", `Gate/baseline notes: ${this.decisionNoteCount} · PgDn`), frameWidth));
+	}
+
+	private decisionNotes(): string[] {
+		if (this.overview.title !== "Fallow project issues") return [];
+		return this.overview.notes.filter((text) => text.startsWith("Gate ") || text.startsWith("Baseline advisory ("));
+	}
+
 	private renderDecisionNotes(frameWidth: number, innerWidth: number, lines: string[]): void {
-		if (this.overview.title !== "Fallow project issues") return;
-		for (const note of this.overview.notes.filter((text) => text.startsWith("Gate ") || text.startsWith("Baseline advisory ("))) {
+		for (const note of this.decisionNotes()) {
 			for (const line of wrapTextWithAnsi(note, innerWidth)) lines.push(this.frame(this.theme.fg("warning", line), frameWidth));
 		}
 	}
@@ -323,6 +334,7 @@ export class FallowIssueNavigator implements Component, Focusable {
 		}
 		const empty = this.emptyBodyMessage(visible);
 		if (empty) {
+			this.selectedRow = lines.length;
 			lines.push(this.frame(this.theme.fg(empty.tone, empty.text), frameWidth));
 			return;
 		}

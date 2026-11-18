@@ -99,6 +99,7 @@ The TUI keeps every actionable finding navigable while defaulting to a compact m
 | Key | Action |
 |---|---|
 | `↑`/`↓`, `j`/`k` | Move |
+| `PgUp` / `PgDn` | Scroll the Findings viewport without changing selection |
 | `Enter`/`Space` | Expand finding |
 | `/` | Search |
 | `f` / `v` | Cycle section/severity filters |
@@ -111,7 +112,7 @@ The TUI keeps every actionable finding navigable while defaulting to a compact m
 | `i` | Toggle informational health context |
 | `q` / `Esc` | Close or dismiss the current control |
 
-The action palette supports safe inspection, explanation, tracing, symbol impact, and architecture lookup. Fixes are limited to explicit project-wide dry-run previews; the navigator never applies them.
+The action palette supports safe inspection, explanation, tracing, symbol impact, and architecture lookup. Fixes are limited to explicit project-wide dry-run previews; the navigator never applies them. Project-issues gate and baseline notes are distinct from findings; when present, the Findings header shows their count, and `PgDn` scrolls to their full text below the finding rows.
 
 ### 🧩 Similar Code
 

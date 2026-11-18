@@ -32,6 +32,37 @@ function bounded(component, width, rows, ...args) {
 	return lines.join("\n");
 }
 
+
+function assertGateHeavyViewport(count, width, rows) {
+	const overview = report(count, "finding");
+	overview.title = "Fallow project issues";
+	overview.stats = [{ label: "issues", value: count }, { label: "security candidates", value: 0 }];
+	overview.notes = [
+		...Array.from({ length: 8 }, (_, i) => `Gate gate-${i} (combined): fail; enforced.`),
+		"Baseline advisory (health): stale; excluded from issue counts.",
+	];
+	const findings = new FallowIssueNavigator(overview, theme, () => {}, () => {}, { visibleRows: 8 });
+	const shell = new FallowOverlayShell(findings, theme, () => {}, () => rows);
+	shell.focused = true;
+	try {
+		const initial = shell.render(width).join("\n");
+		assert.match(initial, /\[1 Findings\].*2 Similar.*3 Runtime/);
+		assert.match(initial, /Gate\/baseline notes: 9/);
+		assert.match(initial, count ? /helper0/ : /No navigable findings/);
+		if (count) {
+			shell.handleInput("p");
+			assert.ok(shell.render(width).join("\n").includes(CURSOR_MARKER));
+			shell.handleInput("\x1b");
+			assert.match(shell.render(width).join("\n"), /helper0/);
+		}
+		let pages = shell.render(width).join("\n");
+		for (let i = 0; i < 30; i++) { shell.handleInput("\x1b[6~"); pages += "\n" + shell.render(width).join("\n"); }
+		for (let i = 0; i < 8; i++) assert.match(pages, new RegExp(`Gate gate-${i}`));
+		assert.match(pages, /Baseline advisory \(health\)/);
+		assert.equal(findings.snapshotState().selectedReportIndex, count ? 0 : undefined);
+	} finally { shell.dispose(); }
+}
+
 // No real analysis, installation or capability discovery occurs in this matrix.
 describe("integrated optional-overlay UX matrix", () => {
 	for (const [count, role] of [[0, "finding"], [8, "context"], [1000, "finding"]]) {
@@ -53,6 +84,12 @@ describe("integrated optional-overlay UX matrix", () => {
 				} finally { shell.dispose(); }
 			});
 		}
+	}
+
+	for (const count of [0, 1, 1000]) for (const [width, rows] of [[40, 12], [64, 24], [120, 48]]) {
+		it(`gate-heavy ${count} findings at ${width}×${rows} retain navigation and notes`, () => {
+			assertGateHeavyViewport(count, width, rows);
+		});
 	}
 
 	it("follows the selected finding without losing the full scrollable report at 40×12", () => {
