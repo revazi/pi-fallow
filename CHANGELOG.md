@@ -4,6 +4,20 @@ All notable changes to Pi Fallow are documented here.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-20
+
+### Added
+- Surface enforced failing and warning gates and judgeable stale-baseline advisories separately in `/fallow issues`, without inflating finding counts. Enforced failures set the aggregate findings/gate-failure exit even with no findings; passing gates are omitted. Inline output redacts raw gate and baseline details while the complete aggregate remains available locally.
+
+### Changed
+- Keep compact Findings overlays usable with gate-heavy reports: tabs and note counts stay visible, the selected finding or empty state is initially visible, and `PgUp`/`PgDn` reach displayed notes without changing selection. Dismissing a modal returns to the selected finding.
+- Updated the development certification matrix to Pi AI/coding-agent/TUI 1.5.2, root TypeBox 1.4.7, and Fallow 3.43.1 for core capability/schema, report, and audit evidence. Host-provided wildcard peers and bundle externals remain unchanged. Successful optional runtime-coverage evidence remains a historical Fallow 3.42.0 capture; model-backed Similar Code evidence remains at 3.36.0, not a 3.43.1 certification.
+- Expanded thin command, rendering, and gate regression coverage, shared benchmark helpers, and fixed popular-packages benchmark CLI option initialization. Updated pinned CI actions, including CodeQL 4.39.3.
+- Durable investigation remains deferred: the isolated private spike is not a workspace or part of the npm package and is not production integration.
+
+### Security
+- As of 2026-11-20, production npm audit reports zero vulnerabilities; the complete development tree has four moderate findings through `c8`/`test-exclude`/`glob`/`minimatch`, with no high or critical findings. Existing high-severity audit thresholds remain unchanged; the upstream `test-exclude` fix is pending.
+
 ## [0.7.0] - 2026-10-27
 
 ### Added
@@ -170,7 +184,8 @@ All notable changes to Pi Fallow are documented here.
 - Removed the persistent footer status line (`fallow ready · branch ... · base ...`) while keeping the transient `fallow running…` status during commands.
 - Improved output parsing, overview summaries, and navigator prompt coverage with regression tests.
 
-[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/revazi/pi-fallow/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/revazi/pi-fallow/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/revazi/pi-fallow/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/revazi/pi-fallow/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/revazi/pi-fallow/compare/v0.6.1...v0.6.2
