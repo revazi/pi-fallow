@@ -16,6 +16,8 @@ export interface FallowPrSummary {
 	gate: string;
 	changedFilesCount?: number;
 	newIssuesCount?: number;
+	/** Structured audit verdict; passed remains the non-failing gate indicator. */
+	verdict?: "pass" | "warn" | "fail";
 	passed?: boolean;
 	topAffectedFiles: string[];
 	severityBuckets?: Array<{ severity: string; count: number }>;

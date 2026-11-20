@@ -6,6 +6,8 @@ import { createJiti } from "jiti";
 const jiti = createJiti(import.meta.url);
 const { buildFallowPrSummary } = await jiti.import("../extensions/fallow/pr-summary/build.ts");
 const { formatFallowPrSummary } = await jiti.import("../extensions/fallow/pr-summary/format.ts");
+const { formatFallowPrSummaryText } = await jiti.import("../extensions/fallow/pr-summary/text.ts");
+const { buildFallowTranscriptContent } = await jiti.import("../extensions/fallow/command/transcript.ts");
 const evidence = JSON.parse(await readFile(new URL("./fixtures/fallow/audit-projection-3.43.1.json", import.meta.url), "utf8"));
 const args = ["audit", "--base", "HEAD", "--gate", "new-only"];
 
@@ -26,11 +28,34 @@ test("brief's zero exit does not hide its failing structured verdict", () => {
 	assert.match(formatFallowPrSummary(summary).lines[0].text, /FAIL/);
 });
 
+test("warning verdict remains visible even when the gate does not fail", () => {
+	// A synthetic mutation of the captured audit exercises presentation, not a live warn capture.
+	const report = { ...evidence.new, verdict: "warn" };
+	const summary = buildFallowPrSummary(report, args, 0);
+	assert.equal(summary.verdict, "warn");
+	assert.equal(summary.passed, true);
+	assert.equal(summary.newIssuesCount, 1);
+	assert.deepEqual(formatFallowPrSummary(summary).lines[0], { tone: "warning", text: "PR audit: WARN" });
+	const transcript = buildFallowTranscriptContent(formatFallowPrSummaryText(summary), "", "", true);
+	assert.match(transcript, /PR audit: WARN/);
+	assert.doesNotMatch(transcript, /PR audit: PASS/);
+
+	const failed = buildFallowPrSummary(report, args, 1);
+	assert.equal(failed.verdict, "warn");
+	assert.equal(failed.passed, false);
+	assert.match(formatFallowPrSummary(failed).lines[0].text, /FAIL/);
+	// Older persisted summaries have no verdict and retain their previous rendering.
+	assert.match(formatFallowPrSummary({ ...summary, verdict: undefined }).lines[0].text, /PASS/);
+});
+
 test("unknown attribution and verdict are not converted into zero or a pass", () => {
 	const summary = buildFallowPrSummary({ total_issues: 12 }, args, 0);
 	assert.equal(summary.newIssuesCount, undefined);
+	assert.equal(summary.verdict, undefined);
 	assert.equal(summary.passed, undefined);
 	assert.match(formatFallowPrSummary(summary).lines[0].text, /UNKNOWN/);
-	assert.equal(buildFallowPrSummary({ verdict: "warn" }, args, 0).passed, true);
-	assert.equal(buildFallowPrSummary({ verdict: "pass" }, args, 2).passed, false);
+	const fatal = buildFallowPrSummary({ verdict: "pass" }, args, 2);
+	assert.equal(fatal.verdict, "pass");
+	assert.equal(fatal.passed, false);
+	assert.match(formatFallowPrSummary(fatal).lines[0].text, /FAIL/);
 });

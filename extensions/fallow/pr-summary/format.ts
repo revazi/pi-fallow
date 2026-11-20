@@ -14,15 +14,17 @@ function buildTopAffectedLine(summary: FallowPrSummary): FallowSummaryLine | und
 	return { tone: "muted", text: `Top affected files: ${summary.topAffectedFiles.join(", ")}` };
 }
 
-function verdictLine(passed: boolean | undefined): FallowSummaryLine {
-	if (passed === undefined) return { tone: "warning", text: "PR audit: UNKNOWN" };
-	return { tone: passed ? "success" : "warning", text: `PR audit: ${passed ? "PASS" : "FAIL"}` };
+function verdictLine(summary: FallowPrSummary): FallowSummaryLine {
+	if (summary.passed === false) return { tone: "warning", text: "PR audit: FAIL" };
+	if (summary.verdict === "warn") return { tone: "warning", text: "PR audit: WARN" };
+	if (summary.passed === true) return { tone: "success", text: "PR audit: PASS" };
+	return { tone: "warning", text: "PR audit: UNKNOWN" };
 }
 
 export function formatFallowPrSummary(summary: FallowPrSummary | undefined): FallowSummaryLines | undefined {
 	if (!summary) return undefined;
 	const lines: FallowSummaryLine[] = [];
-	lines.push(verdictLine(summary.passed));
+	lines.push(verdictLine(summary));
 	addPrSummaryLine(lines, "Base ref", summary.baseRef);
 	addPrSummaryLine(lines, "Changed files", summary.changedFilesCount);
 	addPrSummaryLine(lines, "New issues", summary.newIssuesCount);

@@ -62,7 +62,7 @@ This combines dead-code, duplication, health, and security analysis into one act
 | `/fallow config-assist` | Read-only config inspection |
 | `/fallow similar-code status` | Local similar-code readiness |
 
-`/fallow pr` is shorthand for an audit against the detected base with a new-only gate. `/fallow rerun` repeats the last analysis. `/fallow architecture <file>...` maps to Fallow's read-only `guard` command.
+`/fallow pr` is shorthand for an audit against the detected base with a new-only gate. Its summary distinguishes Fallow's non-failing `WARN` verdict from `PASS`; an unrecognized verdict is `UNKNOWN` when execution otherwise succeeds. `/fallow rerun` repeats the last analysis. `/fallow architecture <file>...` maps to Fallow's read-only `guard` command.
 
 Set a shell-free custom default with `PI_FALLOW_DEFAULT_COMMAND`:
 
