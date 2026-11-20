@@ -29,21 +29,28 @@ function buildPrSummaryFromFindings(
 ): FallowPrSummary {
 	const findings = collectFindingLikeObjects(root);
 	const newIssuesCount = resolveIssueCount(root);
+	const verdict = resolveVerdict(root);
 	return {
 		baseRef,
 		gate: gate ?? "new-only",
 		changedFilesCount: resolveNumericField(root, ["changed_files_count", "changedFilesCount", "changed_file_count", "changedFileCount"]),
 		newIssuesCount,
-		passed: resolveVerdict(root, exitCode),
+		verdict,
+		passed: auditPassed(verdict, exitCode),
 		topAffectedFiles: countTopFiles(findings),
 		severityBuckets: findings.length ? countSeverityBuckets(findings) : [],
 	};
 }
 
-function resolveVerdict(root: Record<string, any> | undefined, exitCode: number): boolean | undefined {
-	if (exitCode !== 0) return false;
-	const verdicts = new Map<unknown, boolean>([["pass", true], ["warn", true], ["fail", false]]);
+function resolveVerdict(root: Record<string, any> | undefined): FallowPrSummary["verdict"] {
+	const verdicts = new Map<unknown, FallowPrSummary["verdict"]>([["pass", "pass"], ["warn", "warn"], ["fail", "fail"]]);
 	return verdicts.get(root?.verdict);
+}
+
+function auditPassed(verdict: FallowPrSummary["verdict"], exitCode: number): boolean | undefined {
+	if (exitCode !== 0) return false;
+	if (verdict === undefined) return undefined;
+	return verdict !== "fail";
 }
 
 function attributionCount(root: Record<string, any> | undefined): number | undefined {

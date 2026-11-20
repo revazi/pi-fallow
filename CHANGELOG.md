@@ -15,6 +15,9 @@ All notable changes to Pi Fallow are documented here.
 - Expanded thin command, rendering, and gate regression coverage, shared benchmark helpers, and fixed popular-packages benchmark CLI option initialization. Updated pinned CI actions, including CodeQL 4.39.3.
 - Durable investigation remains deferred: the isolated private spike is not a workspace or part of the npm package and is not production integration.
 
+### Fixed
+- Preserve Fallow's warning verdict in PR audit summaries instead of presenting a non-failing warning as a green `PASS`.
+
 ### Security
 - As of 2026-11-20, production npm audit reports zero vulnerabilities; the complete development tree has four moderate findings through `c8`/`test-exclude`/`glob`/`minimatch`, with no high or critical findings. Existing high-severity audit thresholds remain unchanged; the upstream `test-exclude` fix is pending.
 
