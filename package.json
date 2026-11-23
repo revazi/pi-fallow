@@ -89,8 +89,8 @@
     "c8": "12.0.0",
     "esbuild": "0.28.2",
     "fallow": "3.43.1",
-    "fallow-similar-code": "3.43.1",
-    "fallow-type-aware": "3.43.1",
+    "fallow-similar-code": "3.44.0",
+    "fallow-type-aware": "3.44.0",
     "jiti": "^2.7.0",
     "js-tiktoken": "^1.0.21",
     "typebox": "1.4.7"
